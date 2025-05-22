@@ -1,0 +1,19 @@
+vboxuser@ubuntu:~/Downloads/ns-allinone-3.43/ns-3.43$ ./ns3 run scratch/novo_main_corrigido.cc 
+[  0%] Building CXX object scratch/CMakeFiles/scratch_novo_main_corrigido.dir/novo_main_corrigido.cc.o
+[  2%] Linking CXX executable /home/vboxuser/Downloads/ns-allinone-3.43/ns-3.43/build/scratch/ns3.43-novo_main_corrigido-default
+AP1 Interfaces: 
+  Interface 0: ::1
+  Interface 1: fe80::200:ff:fe00:6b
+  Interface 1: fd00::200:ff:fe00:6b
+  Interface 2: fe80::200:ff:fe00:1
+  Interface 2: fd00::200:ff:fe00:1
+  Interface 3: fe80::200:ff:fe00:6
+  Interface 3: fd00::2:200:ff:fe00:6
+AP3 Interfaces: 
+  Interface: 0: ::1
+  Interface: 1: fe80::200:ff:fe00:135
+  Interface: 1: fd00:2::200:ff:fe00:135
+  Interface: 2: fe80::200:ff:fe00:4
+  Interface: 2: fd00::1:200:ff:fe00:4
+  Interface: 3: fe80::200:ff:fe00:5
+  Interface: 3: fd00::2:200:ff:fe00:5
