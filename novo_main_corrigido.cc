@@ -15,11 +15,11 @@ int main() {
     LogComponentEnable("Ping", LOG_LEVEL_INFO);
     
     NodeContainer staGroup1, ap1, staGroup2, ap2, staGroup3, ap3;
-    staGroup1.Create(100);
+    staGroup1.Create(50);
     ap1.Create(1);
-    staGroup2.Create(100);
+    staGroup2.Create(50);
     ap2.Create(1);
-    staGroup3.Create(100);
+    staGroup3.Create(50);
     ap3.Create(1);
 
     NodeContainer ap1ap2(ap1.Get(0), ap2.Get(0));
@@ -118,7 +118,7 @@ int main() {
         for(uint32_t j = 0; j < Ipv6AP1->GetNAddresses(i); j++){
             Ipv6Address addr = Ipv6AP1->GetAddress(i, j).GetAddress();
             // if(j == 0)
-                std::cout << "  Interface " << i << ": " << addr << std::endl;
+                std::cout << "  Interface " << i << "address" << j << ": " << addr << std::endl;
         }
     }
 
@@ -128,19 +128,24 @@ int main() {
         for(uint32_t j = 0; j < Ipv6AP3->GetNAddresses(i); j++){
             Ipv6Address addr = Ipv6AP3->GetAddress(i, j).GetAddress();
             // if(j == 0)
-                std::cout << "  Interface: " << i << ": " << addr << std::endl;
+                std::cout << "  Interface: " << i << "address " <<  j << ": "<< addr << std::endl;
         }
     }
+
+    Ptr<Ipv6> Ipv6AP2 = ap2.Get(0)->GetObject<Ipv6>();
 
     Ipv6StaticRoutingHelper routingHelper;
     
     // AP1 (interfaces são 0=lo, 1=wifi, 2=p2p_ap2, 3=p2p_ap3)
     Ptr<Ipv6StaticRouting> staticRoutingAp1 = routingHelper.GetStaticRouting(Ipv6AP1);
-    staticRoutingAp1->AddNetworkRouteTo(Ipv6Address("fd00:1::"), Ipv6Prefix(64), p2pIfs3.GetAddress(0,0), 3);
+    staticRoutingAp1->AddNetworkRouteTo(Ipv6Address("fd00:0:0:1::"), Ipv6Prefix(64), p2pIfs1.GetAddress(0,0), 2);
     
-    // AP3 (interfaces são 0=lo, 1=wifi, 2=p2p_ap2, 3=p2p_ap1)
-    Ptr<Ipv6StaticRouting> staticRoutingAp3 = routingHelper.GetStaticRouting(Ipv6AP3);
-    staticRoutingAp3->AddNetworkRouteTo(Ipv6Address("fd00:2::"), Ipv6Prefix(64), p2pIfs3.GetAddress(1,0), 3);
+    Ptr<Ipv6StaticRouting> staticRoutingAp2 = routingHelper.GetStaticRouting(Ipv6AP2);
+    staticRoutingAp2->AddNetworkRouteTo(Ipv6Address("fd00:0:0:0::"), Ipv6Prefix(64), p2pIfs1.GetAddress(1,0), 2);
+
+    // // AP3 (interfaces são 0=lo, 1=wifi, 2=p2p_ap2, 3=p2p_ap1)
+    // Ptr<Ipv6StaticRouting> staticRoutingAp3 = routingHelper.GetStaticRouting(Ipv6AP3);
+    // staticRoutingAp3->AddNetworkRouteTo(Ipv6Address("fd00:2::"), Ipv6Prefix(64), p2pIfs3.GetAddress(1,0), 3);
     
     // Rotas default para as estações da rede 1
     for (uint32_t i = 0; i < staGroup1.GetN(); i++) {
@@ -148,26 +153,26 @@ int main() {
         staticRoutingSta->SetDefaultRoute(apIfs1.GetAddress(0,0), 1);
     }
     
-    // for (uint32_t i = 0; i < staGroup2.GetN(); i++) {
-    //     Ptr<Ipv6StaticRouting> staticRoutingSta = routingHelper.GetStaticRouting(staGroup2.Get(i)->GetObject<Ipv6>());
-    //     staticRoutingSta->SetDefaultRoute(apIfs2.GetAddress(0), 1);
-    // }
-
-    // Rotas default para as estações da rede 3
-    for (uint32_t i = 0; i < staGroup3.GetN(); i++) {
-        Ptr<Ipv6StaticRouting> staticRoutingSta = routingHelper.GetStaticRouting(staGroup3.Get(i)->GetObject<Ipv6>());
-        staticRoutingSta->SetDefaultRoute(apIfs3.GetAddress(0,0), 1);
+    for (uint32_t i = 0; i < staGroup2.GetN(); i++) {
+        Ptr<Ipv6StaticRouting> staticRoutingSta = routingHelper.GetStaticRouting(staGroup2.Get(i)->GetObject<Ipv6>());
+        staticRoutingSta->SetDefaultRoute(apIfs2.GetAddress(0,0), 1);
     }
+
+    // // Rotas default para as estações da rede 3
+    // for (uint32_t i = 0; i < staGroup3.GetN(); i++) {
+    //     Ptr<Ipv6StaticRouting> staticRoutingSta = routingHelper.GetStaticRouting(staGroup3.Get(i)->GetObject<Ipv6>());
+    //     staticRoutingSta->SetDefaultRoute(apIfs3.GetAddress(0,0), 1);
+    // }
     
     // Ipv6GlobalRoutingHelper::PopulateRoutingTables();
 
     // Imprimir tabela de roteamento para diagnóstico
     Ptr<OutputStreamWrapper> routingStream = Create<OutputStreamWrapper>("routing_ipv6.txt", std::ios::out);
     routingHelper.PrintRoutingTableAt(Seconds(0.5), ap1.Get(0), routingStream);
-    routingHelper.PrintRoutingTableAt(Seconds(0.5), ap3.Get(0), routingStream);
+    routingHelper.PrintRoutingTableAt(Seconds(0.5), ap2.Get(0), routingStream);
 
-    // Ping de um nó da rede 1 para um nó da rede 3
-    PingHelper ping(staIfs3.GetAddress(0,1));
+    // Ping de um nó da rede 1 para um nó da rede 2
+    PingHelper ping(staIfs1.GetAddress(1,0));
     ping.SetAttribute("Interval", TimeValue(Seconds(1.0)));
     ping.SetAttribute("Size", UintegerValue(1024));
     ping.SetAttribute("Count", UintegerValue(5));
