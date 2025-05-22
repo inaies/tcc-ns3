@@ -34,7 +34,8 @@ int main() {
     NetDeviceContainer p2pDevs3 = p2p.Install(ap3ap1);
 
     InternetStackHelper internet;
-    internet.SetIpv6StackInstall(true);
+    // internet.SetIpv6StackInstall(true);
+    internet.SetIpv4StackInstall(false);
     internet.Install(staGroup1);
     internet.Install(ap1);
     internet.Install(staGroup2);
@@ -84,26 +85,26 @@ int main() {
 
     Ipv6AddressHelper ip;
 
-    ip.SetBase("fd00:0::", Ipv6Prefix(64));
+    ip.SetBase(Ipv6Address("2001:db8:0::"), Ipv6Prefix(64));
     Ipv6InterfaceContainer staIfs1 = ip.Assign(staDevs1);
     Ipv6InterfaceContainer apIfs1 = ip.Assign(apDev1);
 
-    ip.SetBase("fd00:1::", Ipv6Prefix(64));
+    ip.SetBase(Ipv6Address("2001:db8:1::"), Ipv6Prefix(64));
     Ipv6InterfaceContainer staIfs2 = ip.Assign(staDevs2);
     Ipv6InterfaceContainer apIfs2 = ip.Assign(apDev2);
 
-    ip.SetBase("fd00:2::", Ipv6Prefix(64));
+    ip.SetBase(Ipv6Address("2001:db8:2::"), Ipv6Prefix(64));
     Ipv6InterfaceContainer staIfs3 = ip.Assign(staDevs3);
     Ipv6InterfaceContainer apIfs3 = ip.Assign(apDev3);
 
     // Links point-to-point entre APs
-    ip.SetBase("fd00:0:0:0::", Ipv6Prefix(64));
+    ip.SetBase(Ipv6Address("fd00:0:0:0::"), Ipv6Prefix(64));
     Ipv6InterfaceContainer p2pIfs1 = ip.Assign(p2pDevs1);
 
-    ip.SetBase("fd00:0:0:1::", Ipv6Prefix(64));
+    ip.SetBase(Ipv6Address("fd00:0:0:1::"), Ipv6Prefix(64));
     Ipv6InterfaceContainer p2pIfs2 = ip.Assign(p2pDevs2);
 
-    ip.SetBase("fd00:0:0:2::", Ipv6Prefix(64));
+    ip.SetBase(Ipv6Address("fd00:0:0:2::"), Ipv6Prefix(64));
     Ipv6InterfaceContainer p2pIfs3 = ip.Assign(p2pDevs3);
 
     p2p.EnablePcapAll("p2p-trace");
