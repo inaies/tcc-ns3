@@ -220,7 +220,7 @@ int main() {
     uint32_t port = 9;
     uint32_t maxPacketCount = 5;
     UdpEchoServerHelper echoServer(port); // porta padrão para recebimento dos pacotes
-    ApplicationContainer serverApps = echoServer.Install(ap1);
+    ApplicationContainer serverApps = echoServer.Install(staGroup1);
     serverApps.Start(Seconds(0.0));
     serverApps.Stop(Seconds(30.0));
 
@@ -237,6 +237,9 @@ int main() {
     // Simulação
     Simulator::Stop(Seconds(120.0));
     Simulator::Run();
+
+    Ptr<UdpServer> server = DynamicCast<UdpServer>(serverApps.Get(0));
+    std::cout << "ap1 recebeu " << server->GetReceived() << " pacotes UDP. " << std::endl;
     Simulator::Destroy();
 
     return 0;
