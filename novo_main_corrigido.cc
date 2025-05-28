@@ -14,8 +14,8 @@ int main() {
 
     LogComponentEnable("Ping", LOG_LEVEL_INFO);
     // LogComponentEnable("UdpEchoClientApplication", LOG_LEVEL_ALL);
-    LogComponentEnable("UdpEchoServerApplication", LOG_LEVEL_ALL);
-    // LogComponentEnable("UdpEchoClientApplication", LOG_LEVEL_INFO);
+    // LogComponentEnable("UdpEchoServerApplication", LOG_LEVEL_ALL);
+    LogComponentEnable("UdpEchoClientApplication", LOG_LEVEL_INFO);
     
     NodeContainer staGroup1, ap1, staGroup2, ap2, staGroup3, ap3;
     staGroup1.Create(50);
@@ -149,24 +149,7 @@ int main() {
         }
     }
 
-    // Create an UDP Echo server on n2
-    uint32_t port = 9;
-    uint32_t maxPacketCount = 5;
-    UdpEchoServerHelper echoServer(port); // porta padrão para recebimento dos pacotes
-    ApplicationContainer serverApps = echoServer.Install(ap1);
-    serverApps.Start(Seconds(0.0));
-    serverApps.Stop(Seconds(30.0));
-
-    // Create an UDP Echo client on n1 to send UDP packets to n2 via r1
-    uint32_t packetSizeAP3 = 1600; // Packet should fragment as intermediate link MTU is 1500
-    UdpEchoClientHelper echoClient(staIfs3.GetAddress(1, 1), port);
-    echoClient.SetAttribute("PacketSize", UintegerValue(packetSizeAP3));
-    echoClient.SetAttribute("MaxPackets", UintegerValue(maxPacketCount));
-
-    ApplicationContainer clientAppsAP3 = echoClient.Install(staGroup3);
-    clientAppsAP3.Start(Seconds(2.0));
-    clientAppsAP3.Stop(Seconds(10.0));
-
+    
     Ipv6StaticRoutingHelper routingHelper;
     
     Ptr<Ipv6StaticRouting> staticRoutingAp1 = routingHelper.GetStaticRouting(Ipv6AP1);
@@ -189,7 +172,7 @@ int main() {
     staticRoutingAp2->AddNetworkRouteTo(Ipv6Address("2001:db8:2::"), Ipv6Prefix(64), p2pIfs2.GetAddress(0,0), 2);
     //AP3 -> AP2
     staticRoutingAp3->AddNetworkRouteTo(Ipv6Address("2001:db8:1::"), Ipv6Prefix(64), p2pIfs2.GetAddress(1,0), 2);    
-
+    
     // // AP3 (interfaces são 0=lo, 1=wifi, 2=p2p_ap2, 3=p2p_ap1)
     // Ptr<Ipv6StaticRouting> staticRoutingAp3 = routingHelper.GetStaticRouting(Ipv6AP3);
     // staticRoutingAp3->AddNetworkRouteTo(Ipv6Address("fd00:2::"), Ipv6Prefix(64), p2pIfs3.GetAddress(1,0), 3);
@@ -204,7 +187,7 @@ int main() {
         Ptr<Ipv6StaticRouting> staticRoutingSta = routingHelper.GetStaticRouting(staGroup2.Get(i)->GetObject<Ipv6>());
         staticRoutingSta->SetDefaultRoute(apIfs2.GetAddress(0,0), 1);
     }
-
+    
     for (uint32_t i = 0; i < staGroup3.GetN(); i++) {
         Ptr<Ipv6StaticRouting> staticRoutingSta = routingHelper.GetStaticRouting(staGroup3.Get(i)->GetObject<Ipv6>());
         staticRoutingSta->SetDefaultRoute(apIfs3.GetAddress(0,0), 1);
@@ -217,7 +200,7 @@ int main() {
     // }
     
     // Ipv6GlobalRoutingHelper::PopulateRoutingTables();
-
+    
     // Imprimir tabela de roteamento para diagnóstico
     Ptr<OutputStreamWrapper> routingStream = Create<OutputStreamWrapper>("routing_ipv6.txt", std::ios::out);
     routingHelper.PrintRoutingTableAt(Seconds(0.5), ap2.Get(0), routingStream);
@@ -232,6 +215,24 @@ int main() {
     // ApplicationContainer pingApp = ping.Install(staGroup2.Get(0));
     // pingApp.Start(Seconds(30.0));
     // pingApp.Stop(Seconds(110.0));
+    
+    // Create an UDP Echo server on n2
+    uint32_t port = 9;
+    uint32_t maxPacketCount = 5;
+    UdpEchoServerHelper echoServer(port); // porta padrão para recebimento dos pacotes
+    ApplicationContainer serverApps = echoServer.Install(ap1);
+    serverApps.Start(Seconds(0.0));
+    serverApps.Stop(Seconds(30.0));
+
+    // Create an UDP Echo client on n1 to send UDP packets to n2 via r1
+    uint32_t packetSizeAP3 = 1600; // Packet should fragment as intermediate link MTU is 1500
+    UdpEchoClientHelper echoClient(staIfs3.GetAddress(1, 1), port);
+    echoClient.SetAttribute("PacketSize", UintegerValue(packetSizeAP3));
+    echoClient.SetAttribute("MaxPackets", UintegerValue(maxPacketCount));
+
+    ApplicationContainer clientAppsAP3 = echoClient.Install(staGroup3);
+    clientAppsAP3.Start(Seconds(2.0));
+    clientAppsAP3.Stop(Seconds(10.0));
 
     // Simulação
     Simulator::Stop(Seconds(120.0));
