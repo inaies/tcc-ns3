@@ -203,7 +203,7 @@ int main() {
     
     // Imprimir tabela de roteamento para diagnóstico
     Ptr<OutputStreamWrapper> routingStream = Create<OutputStreamWrapper>("routing_ipv6.txt", std::ios::out);
-    routingHelper.PrintRoutingTableAt(Seconds(0.5), ap2.Get(0), routingStream);
+    routingHelper.PrintRoutingTableAt(Seconds(0.5), ap1.Get(0), routingStream);
     routingHelper.PrintRoutingTableAt(Seconds(0.5), ap3.Get(0), routingStream);
 
     // Ping de um nó da rede 1 para um nó da rede 3
@@ -218,21 +218,21 @@ int main() {
     
     // Create an UDP Echo server on n2
     uint32_t port = 9;
-    uint32_t maxPacketCount = 5;
+    uint32_t maxPacketCount = 100;
     UdpServerHelper Server(port); // porta padrão para recebimento dos pacotes
-    ApplicationContainer serverApps = Server.Install(staGroup1.Get(0));
+    ApplicationContainer serverApps = Server.Install(ap1.Get(0));
     serverApps.Start(Seconds(1.0));
     serverApps.Stop(Seconds(10.0));
 
     // Create an UDP Echo client on n1 to send UDP packets to n2 via r1
-    uint32_t packetSizeAP3 = 1600; // Packet should fragment as intermediate link MTU is 1500
+    uint32_t packetSizeAP3 = 1280; // Packet should fragment as intermediate link MTU is 1500
     Time interPacketInterval = Seconds(0.05);
-    UdpClientHelper Client(apIfs3.GetAddress(0, 1), port);
+    UdpClientHelper Client(p2pIfs3.GetAddress(1, 0), port);
     Client.SetAttribute("MaxPackets", UintegerValue(maxPacketCount));
     Client.SetAttribute("Interval", TimeValue(interPacketInterval));
     Client.SetAttribute("PacketSize", UintegerValue(packetSizeAP3));
 
-    ApplicationContainer clientAppsAP3 = Client.Install(staGroup3.Get(0));
+    ApplicationContainer clientAppsAP3 = Client.Install(ap3.Get(0));
     clientAppsAP3.Start(Seconds(2.0));
     clientAppsAP3.Stop(Seconds(10.0));
 

@@ -1,0 +1,129 @@
+vboxuser@ubuntu:~/Downloads/ns-allinone-3.43/ns-3.43$ ./ns3 run scratch/novo_main_corrigido.cc 
+[  0%] Building CXX object scratch/CMakeFiles/scratch_novo_main_corrigido.dir/novo_main_corrigido.cc.o
+[  2%] Linking CXX executable /home/vboxuser/Downloads/ns-allinone-3.43/ns-3.43/build/scratch/ns3.43-novo_main_corrigido-default
+AP1 Interfaces: 
+  Interface 0address0: ::1
+  Interface 1address0: fe80::200:ff:fe00:39
+  Interface 1address1: 2001:db8::200:ff:fe00:39
+  Interface 2address0: fe80::200:ff:fe00:1
+  Interface 2address1: fd00::200:ff:fe00:1
+  Interface 3address0: fe80::200:ff:fe00:6
+  Interface 3address1: fd00::2:200:ff:fe00:6
+AP2 Interfaces: 
+  Interface: 0address 0: ::1
+  Interface: 1address 0: fe80::200:ff:fe00:6c
+  Interface: 1address 1: 2001:db8:1:0:200:ff:fe00:6c
+  Interface: 2address 0: fe80::200:ff:fe00:2
+  Interface: 2address 1: fd00::200:ff:fe00:2
+  Interface: 3address 0: fe80::200:ff:fe00:3
+  Interface: 3address 1: fd00::1:200:ff:fe00:3
+AP3 Interfaces: 
+  Interface: 0address 0: ::1
+  Interface: 1address 0: fe80::200:ff:fe00:9f
+  Interface: 1address 1: 2001:db8:2:0:200:ff:fe00:9f
+  Interface: 2address 0: fe80::200:ff:fe00:4
+  Interface: 2address 1: fd00::1:200:ff:fe00:4
+  Interface: 3address 0: fe80::200:ff:fe00:5
+  Interface: 3address 1: fd00::2:200:ff:fe00:5
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 1847 Time: +2s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 1913 Time: +2.05s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 1969 Time: +2.1s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 1982 Time: +2.15s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 1984 Time: +2.2s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 1989 Time: +2.25s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 2134 Time: +2.3s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 2226 Time: +2.35s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 2228 Time: +2.4s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 2390 Time: +2.45s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 2477 Time: +2.5s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 2482 Time: +2.55s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 2484 Time: +2.6s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 2489 Time: +2.65s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 2491 Time: +2.7s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 2496 Time: +2.75s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 2498 Time: +2.8s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 2503 Time: +2.85s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 2505 Time: +2.9s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 2655 Time: +2.95s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 2699 Time: +3s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 2704 Time: +3.05s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 2706 Time: +3.1s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 2710 Time: +3.15s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 2713 Time: +3.2s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 2716 Time: +3.25s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 2720 Time: +3.3s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 2723 Time: +3.35s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 2727 Time: +3.4s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 2887 Time: +3.45s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 2973 Time: +3.5s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 2974 Time: +3.55s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 3176 Time: +3.6s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 3237 Time: +3.65s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 3251 Time: +3.7s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 3279 Time: +3.75s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 3311 Time: +3.8s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 3331 Time: +3.85s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 3387 Time: +3.9s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 3414 Time: +3.95s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 3441 Time: +4s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 3475 Time: +4.05s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 3676 Time: +4.1s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 3748 Time: +4.15s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 3771 Time: +4.2s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 3814 Time: +4.25s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 3835 Time: +4.3s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 3852 Time: +4.35s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 3862 Time: +4.4s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 3864 Time: +4.45s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 3869 Time: +4.5s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 3871 Time: +4.55s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4006 Time: +4.6s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4015 Time: +4.65s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4100 Time: +4.7s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4250 Time: +4.75s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4264 Time: +4.8s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4266 Time: +4.85s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4271 Time: +4.9s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4273 Time: +4.95s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4278 Time: +5s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4280 Time: +5.05s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4285 Time: +5.1s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4287 Time: +5.15s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4353 Time: +5.2s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4502 Time: +5.25s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4526 Time: +5.3s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4529 Time: +5.35s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4532 Time: +5.4s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4536 Time: +5.45s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4539 Time: +5.5s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4543 Time: +5.55s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4544 Time: +5.6s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4550 Time: +5.65s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4602 Time: +5.7s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4729 Time: +5.75s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4731 Time: +5.8s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4810 Time: +5.85s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4891 Time: +5.9s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4897 Time: +5.95s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4898 Time: +6s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4904 Time: +6.05s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4905 Time: +6.1s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4911 Time: +6.15s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4912 Time: +6.2s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4918 Time: +6.25s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4919 Time: +6.3s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 4957 Time: +6.35s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 5011 Time: +6.4s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 5016 Time: +6.45s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 5018 Time: +6.5s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 5023 Time: +6.55s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 5025 Time: +6.6s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 5030 Time: +6.65s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 5032 Time: +6.7s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 5037 Time: +6.75s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 5039 Time: +6.8s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 5081 Time: +6.85s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 5131 Time: +6.9s
+TraceDelay TX 1280 bytes to fe80::200:ff:fe00:6 Uid: 5136 Time: +6.95s
+ap1 recebeu 100 pacotes UDP. 
+
