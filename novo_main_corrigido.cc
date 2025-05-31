@@ -15,7 +15,7 @@ int main() {
     LogComponentEnable("Ping", LOG_LEVEL_INFO);
     // LogComponentEnable("UdpEchoClientApplication", LOG_LEVEL_ALL);
     // LogComponentEnable("UdpEchoServerApplication", LOG_LEVEL_ALL);
-    LogComponentEnable("UdpEchoClientApplication", LOG_LEVEL_INFO);
+    LogComponentEnable("UdpClient", LOG_LEVEL_INFO);
     
     NodeContainer staGroup1, ap1, staGroup2, ap2, staGroup3, ap3;
     staGroup1.Create(50);
@@ -219,18 +219,20 @@ int main() {
     // Create an UDP Echo server on n2
     uint32_t port = 9;
     uint32_t maxPacketCount = 5;
-    UdpEchoServerHelper echoServer(port); // porta padrão para recebimento dos pacotes
-    ApplicationContainer serverApps = echoServer.Install(staGroup1);
-    serverApps.Start(Seconds(0.0));
-    serverApps.Stop(Seconds(30.0));
+    UdpServerHelper Server(port); // porta padrão para recebimento dos pacotes
+    ApplicationContainer serverApps = Server.Install(staGroup1.Get(0));
+    serverApps.Start(Seconds(1.0));
+    serverApps.Stop(Seconds(10.0));
 
     // Create an UDP Echo client on n1 to send UDP packets to n2 via r1
     uint32_t packetSizeAP3 = 1600; // Packet should fragment as intermediate link MTU is 1500
-    UdpEchoClientHelper echoClient(staIfs3.GetAddress(1, 1), port);
-    echoClient.SetAttribute("PacketSize", UintegerValue(packetSizeAP3));
-    echoClient.SetAttribute("MaxPackets", UintegerValue(maxPacketCount));
+    Time interPacketInterval = Seconds(0.05);
+    UdpClientHelper Client(apIfs3.GetAddress(0, 1), port);
+    Client.SetAttribute("MaxPackets", UintegerValue(maxPacketCount));
+    Client.SetAttribute("Interval", TimeValue(interPacketInterval));
+    Client.SetAttribute("PacketSize", UintegerValue(packetSizeAP3));
 
-    ApplicationContainer clientAppsAP3 = echoClient.Install(staGroup3);
+    ApplicationContainer clientAppsAP3 = Client.Install(staGroup3.Get(0));
     clientAppsAP3.Start(Seconds(2.0));
     clientAppsAP3.Stop(Seconds(10.0));
 
@@ -238,8 +240,8 @@ int main() {
     Simulator::Stop(Seconds(120.0));
     Simulator::Run();
 
-    Ptr<UdpServer> server = DynamicCast<UdpServer>(serverApps.Get(0));
-    std::cout << "ap1 recebeu " << server->GetReceived() << " pacotes UDP. " << std::endl;
+    double received = DynamicCast<UdpServer>(serverApps.Get(0))->GetReceived();
+    std::cout << "ap1 recebeu " << received << " pacotes UDP. " << std::endl;
     Simulator::Destroy();
 
     return 0;
