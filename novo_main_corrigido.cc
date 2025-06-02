@@ -46,7 +46,37 @@ int main() {
     internet.Install(staGroup3);
     internet.Install(ap3);
 
+    MobilityHelper mobility;
+    mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
+    mobility.InstallAll();
+    mobility.Install(staGroup1);
+
     // Rede 1
+    // WifiHelper wifi1;
+    // wifi1.SetStandard(WIFI_STANDARD_80211n);
+    // WifiMacHelper mac1;
+    // YansWifiChannelHelper channel1 = YansWifiChannelHelper::Default();
+    // YansWifiPhyHelper phy1;
+    // phy1.SetChannel(channel1.Create());
+    // mac1.SetType("ns3::StaWifiMac", "Ssid", SsidValue(Ssid("rede1")));
+    // NetDeviceContainer staDevs1 = wifi1.Install(phy1, mac1, staGroup1);
+
+    // lrWpan1.SetPropagationDelayModel("ns3::ConstantSpeedPropagationDelayModel");
+    // lrWpan1.AddPropagationLossModel("ns3::LogDistancePropagationLossModel");
+    
+    LrWpanHelper lrWpan1;
+    NetDeviceContainer staDevs1 = lrWpan1.Install(staGroup1);
+    lrWpan1.CreateAssociatedPan(staDevs1, 10);    
+    
+    LrWpanHelper lrWpan2;
+    NetDeviceContainer staDevs2 = lrWpan2.Install(staGroup2);
+    lrWpan2.CreateAssociatedPan(staDevs2, 10);    
+
+    LrWpanHelper lrWpan3;
+    NetDeviceContainer staDevs3 = lrWpan3.Install(staGroup3);
+    lrWpan3.CreateAssociatedPan(staDevs3, 10);    
+
+    //NetDevice nos dispositivos ? nao eh pra por o 801154 aqui
     WifiHelper wifi1;
     wifi1.SetStandard(WIFI_STANDARD_80211n);
     WifiMacHelper mac1;
@@ -54,9 +84,6 @@ int main() {
     YansWifiPhyHelper phy1;
     phy1.SetChannel(channel1.Create());
     mac1.SetType("ns3::StaWifiMac", "Ssid", SsidValue(Ssid("rede1")));
-    NetDeviceContainer staDevs1 = wifi1.Install(phy1, mac1, staGroup1);
-
-    //NetDevice nos dispositivos ? nao eh pra por o 801154 aqui
     mac1.SetType("ns3::ApWifiMac", "Ssid", SsidValue(Ssid("rede1")));
     NetDeviceContainer apDev1 = wifi1.Install(phy1, mac1, ap1);
 
@@ -67,10 +94,6 @@ int main() {
     YansWifiChannelHelper channel2 = YansWifiChannelHelper::Default();
     YansWifiPhyHelper phy2;
     phy2.SetChannel(channel2.Create());
-    mac2.SetType("ns3::StaWifiMac", "Ssid", SsidValue(Ssid("rede2")));
-    NetDeviceContainer staDevs2 = wifi2.Install(phy2, mac2, staGroup2);
-
-    //instalar 
     mac2.SetType("ns3::ApWifiMac", "Ssid", SsidValue(Ssid("rede2")));
     NetDeviceContainer apDev2 = wifi2.Install(phy2, mac2, ap2);
 
@@ -81,14 +104,9 @@ int main() {
     YansWifiChannelHelper channel3 = YansWifiChannelHelper::Default();
     YansWifiPhyHelper phy3;
     phy3.SetChannel(channel3.Create());
-    mac3.SetType("ns3::StaWifiMac", "Ssid", SsidValue(Ssid("rede3")));
-    NetDeviceContainer staDevs3 = wifi3.Install(phy3, mac3, staGroup3);
     mac3.SetType("ns3::ApWifiMac", "Ssid", SsidValue(Ssid("rede3")));
     NetDeviceContainer apDev3 = wifi3.Install(phy3, mac3, ap3);
 
-    MobilityHelper mobility;
-    mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
-    mobility.InstallAll();
 
     Ipv6AddressHelper ip;
 
