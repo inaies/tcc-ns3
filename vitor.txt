@@ -1,0 +1,34 @@
+Ipv6StaticRoutingHelper routingHelper;
+
+// ===== AP1 =====
+Ptr<Ipv6> Ipv6AP1 = ap1.Get(0)->GetObject<Ipv6>();
+Ptr<Ipv6StaticRouting> staticRoutingAp1 = routingHelper.GetStaticRouting(Ipv6AP1);
+// Rede do AP2 (Wi-Fi)
+staticRoutingAp1->AddNetworkRouteTo(Ipv6Address("2001:db8:1::"), Ipv6Prefix(64), p2pIfs1.GetAddress(0,0), 2);
+// Rede do AP3 (Wi-Fi)
+staticRoutingAp1->AddNetworkRouteTo(Ipv6Address("2001:db8:2::"), Ipv6Prefix(64), p2pIfs3.GetAddress(0,0), 3);
+// Sub-rede p2p entre AP2 e AP3
+staticRoutingAp1->AddNetworkRouteTo(Ipv6Address("fd00:0:0:1::"), Ipv6Prefix(64), p2pIfs1.GetAddress(0,0), 2);
+staticRoutingAp1->AddNetworkRouteTo(Ipv6Address("fd00:0:0:2::"), Ipv6Prefix(64), p2pIfs3.GetAddress(0,0), 3);
+
+// ===== AP2 =====
+Ptr<Ipv6> Ipv6AP2 = ap2.Get(0)->GetObject<Ipv6>();
+Ptr<Ipv6StaticRouting> staticRoutingAp2 = routingHelper.GetStaticRouting(Ipv6AP2);
+// Rede do AP1
+staticRoutingAp2->AddNetworkRouteTo(Ipv6Address("2001:db8:0::"), Ipv6Prefix(64), p2pIfs1.GetAddress(1,0), 2);
+// Rede do AP3
+staticRoutingAp2->AddNetworkRouteTo(Ipv6Address("2001:db8:2::"), Ipv6Prefix(64), p2pIfs2.GetAddress(0,0), 3);
+// Sub-redes p2p
+staticRoutingAp2->AddNetworkRouteTo(Ipv6Address("fd00:0:0:0::"), Ipv6Prefix(64), p2pIfs1.GetAddress(1,0), 2);
+staticRoutingAp2->AddNetworkRouteTo(Ipv6Address("fd00:0:0:2::"), Ipv6Prefix(64), p2pIfs2.GetAddress(0,0), 3);
+
+// ===== AP3 =====
+Ptr<Ipv6> Ipv6AP3 = ap3.Get(0)->GetObject<Ipv6>();
+Ptr<Ipv6StaticRouting> staticRoutingAp3 = routingHelper.GetStaticRouting(Ipv6AP3);
+// Rede do AP1
+staticRoutingAp3->AddNetworkRouteTo(Ipv6Address("2001:db8:0::"), Ipv6Prefix(64), p2pIfs3.GetAddress(1,0), 3);
+// Rede do AP2
+staticRoutingAp3->AddNetworkRouteTo(Ipv6Address("2001:db8:1::"), Ipv6Prefix(64), p2pIfs2.GetAddress(1,0), 2);
+// Sub-redes p2p
+staticRoutingAp3->AddNetworkRouteTo(Ipv6Address("fd00:0:0:0::"), Ipv6Prefix(64), p2pIfs3.GetAddress(1,0), 3);
+staticRoutingAp3->AddNetworkRouteTo(Ipv6Address("fd00:0:0:1::"), Ipv6Prefix(64), p2pIfs2.GetAddress(1,0), 2);
