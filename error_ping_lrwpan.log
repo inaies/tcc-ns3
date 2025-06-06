@@ -1,0 +1,32 @@
+vboxuser@ubuntu:~/Downloads/ns-allinone-3.43/ns-3.43$ ./ns3 run scratch/test_ping.cc 
+[  0%] Building CXX object scratch/CMakeFiles/scratch_test_ping.dir/test_ping.cc.o
+[  0%] Linking CXX executable /home/vboxuser/Downloads/ns-allinone-3.43/ns-3.43/build/scratch/ns3.43-test_ping-default
+AP1 Interfaces: 
+  Interface 0address0: ::1
+  Interface 1address0: fe80::200:ff:fe00:7
+  Interface 1address1: 2001:db8::200:ff:fe00:7
+  Interface 2address0: fe80::200:ff:fe00:1
+  Interface 2address1: 2001:db8:a:0:200:ff:fe00:1
+  Interface 3address0: fe80::200:ff:fe00:6
+  Interface 3address1: 2001:db8:c:0:200:ff:fe00:6
+AP2 Interfaces: 
+  Interface: 0address 0: ::1
+  Interface: 1address 0: fe80::200:ff:fe00:8
+  Interface: 1address 1: 2001:db8:1:0:200:ff:fe00:8
+  Interface: 2address 0: fe80::200:ff:fe00:2
+  Interface: 2address 1: 2001:db8:a:0:200:ff:fe00:2
+  Interface: 3address 0: fe80::200:ff:fe00:3
+  Interface: 3address 1: 2001:db8:b:0:200:ff:fe00:3
+AP3 Interfaces: 
+  Interface: 0address 0: ::1
+  Interface: 1address 0: fe80::200:ff:fe00:9
+  Interface: 1address 1: 2001:db8:2:0:200:ff:fe00:9
+  Interface: 2address 0: fe80::200:ff:fe00:4
+  Interface: 2address 1: 2001:db8:b:0:200:ff:fe00:4
+  Interface: 3address 0: fe80::200:ff:fe00:5
+  Interface: 3address 1: 2001:db8:c:0:200:ff:fe00:5
+msg="index 1 out of bounds", +0.000000000s -1 file=/home/vboxuser/Downloads/ns-allinone-3.43/ns-3.43/src/internet/model/ipv6-interface.cc, line=304
+NS_FATAL, terminating
+terminate called without an active exception
+Command 'build/scratch/ns3.43-test_ping-default' died with <Signals.SIGABRT: 6>.
+
