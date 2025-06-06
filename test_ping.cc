@@ -43,6 +43,17 @@ int main() {
     internet.Install(staGroup3);
     internet.Install(ap3);
 
+    LrWpanHelper lrWpan1;
+    NetDeviceContainer staDevs1 = lrWpan1.Install(staGroup1);
+    lrWpan1.CreateAssociatedPan(staDevs1, 10);    
+    
+    LrWpanHelper lrWpan2;
+    NetDeviceContainer staDevs2 = lrWpan2.Install(staGroup2);
+    lrWpan2.CreateAssociatedPan(staDevs2, 10);    
+
+    LrWpanHelper lrWpan3;
+    NetDeviceContainer staDevs3 = lrWpan3.Install(staGroup3);
+    lrWpan3.CreateAssociatedPan(staDevs3, 10);    
 
     // Rede 1
     WifiHelper wifi1;
@@ -52,7 +63,7 @@ int main() {
     YansWifiPhyHelper phy1;
     phy1.SetChannel(channel1.Create());
     mac1.SetType("ns3::StaWifiMac", "Ssid", SsidValue(Ssid("rede1")));
-    NetDeviceContainer staDevs1 = wifi1.Install(phy1, mac1, staGroup1);
+    // NetDeviceContainer staDevs1 = wifi1.Install(phy1, mac1, staGroup1);
     mac1.SetType("ns3::ApWifiMac", "Ssid", SsidValue(Ssid("rede1")));
     NetDeviceContainer apDev1 = wifi1.Install(phy1, mac1, ap1);
 
@@ -64,7 +75,7 @@ int main() {
     YansWifiPhyHelper phy2;
     phy2.SetChannel(channel2.Create());
     mac2.SetType("ns3::StaWifiMac", "Ssid", SsidValue(Ssid("rede2")));
-    NetDeviceContainer staDevs2 = wifi2.Install(phy2, mac2, staGroup2);
+    // NetDeviceContainer staDevs2 = wifi2.Install(phy2, mac2, staGroup2);
     mac2.SetType("ns3::ApWifiMac", "Ssid", SsidValue(Ssid("rede2")));
     NetDeviceContainer apDev2 = wifi2.Install(phy2, mac2, ap2);
 
@@ -76,7 +87,7 @@ int main() {
     YansWifiPhyHelper phy3;
     phy3.SetChannel(channel3.Create());
     mac3.SetType("ns3::StaWifiMac", "Ssid", SsidValue(Ssid("rede3")));
-    NetDeviceContainer staDevs3 = wifi3.Install(phy3, mac3, staGroup3);
+    // NetDeviceContainer staDevs3 = wifi3.Install(phy3, mac3, staGroup3);
     mac3.SetType("ns3::ApWifiMac", "Ssid", SsidValue(Ssid("rede3")));
     NetDeviceContainer apDev3 = wifi3.Install(phy3, mac3, ap3);
 
@@ -224,12 +235,12 @@ int main() {
    //p2pIfs3 -> p2pDevs3 -> ap3ap1
 
     // Ping de um nó da rede 1 para um nó da rede 3
-    PingHelper ping(p2pIfs3.GetAddress(0,1));
+    PingHelper ping(p2pIfs2.GetAddress(0,1));
     ping.SetAttribute("Interval", TimeValue(Seconds(1.0)));
     ping.SetAttribute("Size", UintegerValue(1024));
     ping.SetAttribute("Count", UintegerValue(5));
 
-    ApplicationContainer pingApp = ping.Install(ap1.Get(0));
+    ApplicationContainer pingApp = ping.Install(ap3.Get(0));
     pingApp.Start(Seconds(30.0));
     pingApp.Stop(Seconds(110.0));
 
