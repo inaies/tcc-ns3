@@ -262,8 +262,8 @@ int main() {
     // Ping de um nó da rede 1 para um nó da rede 3
     PingHelper ping(staIfs3.GetAddress(0,1));
     ping.SetAttribute("Interval", TimeValue(Seconds(1.0)));
-    ping.SetAttribute("Size", UintegerValue(1024));
-    ping.SetAttribute("Count", UintegerValue(5));
+    ping.SetAttribute("Size", UintegerValue(512));
+    ping.SetAttribute("Count", UintegerValue(10));
 
     ApplicationContainer pingApp = ping.Install(staGroup1.Get(0));
     pingApp.Start(Seconds(30.0));
