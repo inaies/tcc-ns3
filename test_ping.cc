@@ -180,46 +180,49 @@ int main() {
     //AP1 -> AP2
     staticRoutingAp1->AddNetworkRouteTo(Ipv6Address("2001:db8:1::"), Ipv6Prefix(64), 
                                         p2pIfs1.GetAddress(1,1), 2, 10);
+    //AP1 -> AP3
+    staticRoutingAp1->AddNetworkRouteTo(Ipv6Address("2001:db8:2::"), Ipv6Prefix(64), 
+                                        p2pIfs3.GetAddress(0,1), 3, 10);
+
     //AP2 -> AP1
     staticRoutingAp2->AddNetworkRouteTo(Ipv6Address("2001:db8:0::"), Ipv6Prefix(64), 
                                         p2pIfs1.GetAddress(0,1), 1, 10);
-                                        
+    
     //AP2 -> AP3
     staticRoutingAp2->AddNetworkRouteTo(Ipv6Address("2001:db8:2::"), Ipv6Prefix(64), 
                                         p2pIfs2.GetAddress(1,1), 2, 10);
-    //AP3 -> AP2AddNetworkRouteTo
-    staticRoutingAp3->AddNetworkRouteTo(Ipv6Address("2001:db8:1::"), Ipv6Prefix(64), 
-                                        p2pIfs2.GetAddress(0,1), 2, 10);    
 
-    //AP1 -> AP3
-    // staticRoutingAp1 = routingHelper.GetStaticRouting(Ipv6AP1);
-    staticRoutingAp1->AddNetworkRouteTo(Ipv6Address("2001:db8:2::"), Ipv6Prefix(64), 
-                                        p2pIfs3.GetAddress(0,1), 3, 10);
+
     //AP3 -> AP1
     staticRoutingAp3->AddNetworkRouteTo(Ipv6Address("2001:db8:0::"), Ipv6Prefix(64), 
                                         p2pIfs3.GetAddress(1,1), 1, 10);
+ 
+    //AP3 -> AP2AddNetworkRouteTo
+    staticRoutingAp3->AddNetworkRouteTo(Ipv6Address("2001:db8:1::"), Ipv6Prefix(64), 
+                                        p2pIfs2.GetAddress(0,1), 2, 10);    
+    
 
     //p2pIfs1 -> p2pDevs1 -> ap1ap2
     //p2pIfs2 -> p2pDevs2 -> ap2ap3
     //p2pIfs3 -> p2pDevs3 -> ap3ap1
         
                                         
-    staticRoutingAp1->AddNetworkRouteTo(Ipv6Address("2001:db8:b::"), Ipv6Prefix(64), 
-                                        p2pIfs1.GetAddress(1,0), 2);
+    staticRoutingAp1->AddNetworkRouteTo(Ipv6Address("2001:db8:a::"), Ipv6Prefix(64), 
+                                        Ipv6Address::GetZero(), 2);
     staticRoutingAp1->AddNetworkRouteTo(Ipv6Address("2001:db8:c::"), Ipv6Prefix(64), 
-                                        p2pIfs3.GetAddress(0,0), 2);
+                                        Ipv6Address::GetZero(), 3);
 
 
     staticRoutingAp2->AddNetworkRouteTo(Ipv6Address("2001:db8:a::"), Ipv6Prefix(64), 
-                                        p2pIfs1.GetAddress(0,0), 2);
-    staticRoutingAp2->AddNetworkRouteTo(Ipv6Address("2001:db8:c::"), Ipv6Prefix(64), 
-                                        p2pIfs2.GetAddress(1,0), 2);
+                                        Ipv6Address::GetZero(), 1);
+    staticRoutingAp2->AddNetworkRouteTo(Ipv6Address("2001:db8:b::"), Ipv6Prefix(64), 
+                                        Ipv6Address::GetZero(), 2);
                                     
-    staticRoutingAp3->AddNetworkRouteTo(Ipv6Address("2001:db8:a::"), Ipv6Prefix(64), 
-                                        p2pIfs3.GetAddress(1,0), 2);
     staticRoutingAp3->AddNetworkRouteTo(Ipv6Address("2001:db8:b::"), Ipv6Prefix(64), 
-                                        p2pIfs2.GetAddress(0,0), 2);
-
+                                        Ipv6Address::GetZero(), 2);
+    staticRoutingAp3->AddNetworkRouteTo(Ipv6Address("2001:db8:c::"), Ipv6Prefix(64), 
+                                        Ipv6Address::GetZero(), 1);
+                              
     // // AP3 (interfaces são 0=lo, 1=wifi, 2=p2p_ap2, 3=p2p_ap1)
     // Ptr<Ipv6StaticRouting> staticRoutingAp3 = routingHelper.GetStaticRouting(Ipv6AP3);
     // staticRoutingAp3->AddNetworkRouteTo(Ipv6Address("fd00:2::"), Ipv6Prefix(64), p2pIfs3.GetAddress(1,0), 3);
@@ -260,7 +263,7 @@ int main() {
    //p2pIfs3 -> p2pDevs3 -> ap3ap1
 
     // Ping de um nó da rede 1 para um nó da rede 3
-    PingHelper ping(staIfs3.GetAddress(0,1));
+    PingHelper ping(staIfs3.GetAddress(0,0));
     ping.SetAttribute("Interval", TimeValue(Seconds(1.0)));
     ping.SetAttribute("Size", UintegerValue(512));
     ping.SetAttribute("Count", UintegerValue(10));
