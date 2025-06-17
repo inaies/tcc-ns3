@@ -207,21 +207,21 @@ int main() {
     //p2pIfs3 -> p2pDevs3 -> ap3ap1
         
                                         
-    staticRoutingAp1->AddNetworkRouteTo(Ipv6Address("2001:db8:a::"), Ipv6Prefix(64), 
-                                        Ipv6Address::GetZero(), 2);
-    staticRoutingAp1->AddNetworkRouteTo(Ipv6Address("2001:db8:c::"), Ipv6Prefix(64), 
-                                        Ipv6Address::GetZero(), 3);
+    // staticRoutingAp1->AddNetworkRouteTo(Ipv6Address("2001:db8:a::"), Ipv6Prefix(64), 
+    //                                     Ipv6Address::GetZero(), 2);
+    // staticRoutingAp1->AddNetworkRouteTo(Ipv6Address("2001:db8:c::"), Ipv6Prefix(64), 
+    //                                     Ipv6Address::GetZero(), 3);
 
 
-    staticRoutingAp2->AddNetworkRouteTo(Ipv6Address("2001:db8:a::"), Ipv6Prefix(64), 
-                                        Ipv6Address::GetZero(), 1);
-    staticRoutingAp2->AddNetworkRouteTo(Ipv6Address("2001:db8:b::"), Ipv6Prefix(64), 
-                                        Ipv6Address::GetZero(), 2);
+    // staticRoutingAp2->AddNetworkRouteTo(Ipv6Address("2001:db8:a::"), Ipv6Prefix(64), 
+    //                                     Ipv6Address::GetZero(), 1);
+    // staticRoutingAp2->AddNetworkRouteTo(Ipv6Address("2001:db8:b::"), Ipv6Prefix(64), 
+    //                                     Ipv6Address::GetZero(), 2);
                                     
-    staticRoutingAp3->AddNetworkRouteTo(Ipv6Address("2001:db8:b::"), Ipv6Prefix(64), 
-                                        Ipv6Address::GetZero(), 2);
-    staticRoutingAp3->AddNetworkRouteTo(Ipv6Address("2001:db8:c::"), Ipv6Prefix(64), 
-                                        Ipv6Address::GetZero(), 1);
+    // staticRoutingAp3->AddNetworkRouteTo(Ipv6Address("2001:db8:b::"), Ipv6Prefix(64), 
+    //                                     Ipv6Address::GetZero(), 2);
+    // staticRoutingAp3->AddNetworkRouteTo(Ipv6Address("2001:db8:c::"), Ipv6Prefix(64), 
+    //                                     Ipv6Address::GetZero(), 1);
                               
     // // AP3 (interfaces são 0=lo, 1=wifi, 2=p2p_ap2, 3=p2p_ap1)
     // Ptr<Ipv6StaticRouting> staticRoutingAp3 = routingHelper.GetStaticRouting(Ipv6AP3);
@@ -253,6 +253,10 @@ int main() {
 
     // Imprimir tabela de roteamento para diagnóstico
 
+    std::cout << "numero de endereços no nó staGroup1 :" << staGroup1.GetN();
+    // std::cout << "nó 0 no stagroup1 :" << staIfs1.GetAddress(0,1);
+
+
     Ptr<OutputStreamWrapper> routingStream = Create<OutputStreamWrapper>("rotas_test_ping.txt", std::ios::out);
     routingHelper.PrintRoutingTableAt(Seconds(0.5), ap1.Get(0), routingStream);
     routingHelper.PrintRoutingTableAt(Seconds(0.6), ap2.Get(0), routingStream);
@@ -263,7 +267,7 @@ int main() {
    //p2pIfs3 -> p2pDevs3 -> ap3ap1
 
     // Ping de um nó da rede 1 para um nó da rede 3
-    PingHelper ping(staIfs3.GetAddress(0,0));
+    PingHelper ping(staIfs1.GetAddress(0,0));
     ping.SetAttribute("Interval", TimeValue(Seconds(1.0)));
     ping.SetAttribute("Size", UintegerValue(512));
     ping.SetAttribute("Count", UintegerValue(10));
