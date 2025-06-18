@@ -43,17 +43,18 @@ int main() {
     internet.Install(staGroup3);
     internet.Install(ap3);
 
-    LrWpanHelper lrWpan1;
-    NetDeviceContainer staDevs1 = lrWpan1.Install(staGroup1);
-    lrWpan1.CreateAssociatedPan(staDevs1, 10);    
+    // LrWpanHelper lrWpan1;
+    // NetDeviceContainer staDevs1 = lrWpan1.Install(staGroup1);
+    // lrWpan1.CreateAssociatedPan(staDevs1, 10);    
     
-    LrWpanHelper lrWpan2;
-    NetDeviceContainer staDevs2 = lrWpan2.Install(staGroup2);
-    lrWpan2.CreateAssociatedPan(staDevs2, 10);    
+    // LrWpanHelper lrWpan2;
+    // NetDeviceContainer staDevs2 = lrWpan2.Install(staGroup2);
+    // lrWpan2.CreateAssociatedPan(staDevs2, 10);    
 
-    LrWpanHelper lrWpan3;
-    NetDeviceContainer staDevs3 = lrWpan3.Install(staGroup3);
-    lrWpan3.CreateAssociatedPan(staDevs3, 10);    
+    // LrWpanHelper lrWpan3;
+    // NetDeviceContainer staDevs3 = lrWpan3.Install(staGroup3);
+    // lrWpan3.CreateAssociatedPan(staDevs3, 10);    
+
 
     // Rede 1
     WifiHelper wifi1;
@@ -63,7 +64,7 @@ int main() {
     YansWifiPhyHelper phy1;
     phy1.SetChannel(channel1.Create());
     mac1.SetType("ns3::StaWifiMac", "Ssid", SsidValue(Ssid("rede1")));
-    // NetDeviceContainer staDevs1 = wifi1.Install(phy1, mac1, staGroup1);
+    NetDeviceContainer staDevs1 = wifi1.Install(phy1, mac1, staGroup1);
     mac1.SetType("ns3::ApWifiMac", "Ssid", SsidValue(Ssid("rede1")));
     NetDeviceContainer apDev1 = wifi1.Install(phy1, mac1, ap1);
 
@@ -75,7 +76,7 @@ int main() {
     YansWifiPhyHelper phy2;
     phy2.SetChannel(channel2.Create());
     mac2.SetType("ns3::StaWifiMac", "Ssid", SsidValue(Ssid("rede2")));
-    // NetDeviceContainer staDevs2 = wifi2.Install(phy2, mac2, staGroup2);
+    NetDeviceContainer staDevs2 = wifi2.Install(phy2, mac2, staGroup2);
     mac2.SetType("ns3::ApWifiMac", "Ssid", SsidValue(Ssid("rede2")));
     NetDeviceContainer apDev2 = wifi2.Install(phy2, mac2, ap2);
 
@@ -87,7 +88,7 @@ int main() {
     YansWifiPhyHelper phy3;
     phy3.SetChannel(channel3.Create());
     mac3.SetType("ns3::StaWifiMac", "Ssid", SsidValue(Ssid("rede3")));
-    // NetDeviceContainer staDevs3 = wifi3.Install(phy3, mac3, staGroup3);
+    NetDeviceContainer staDevs3 = wifi3.Install(phy3, mac3, staGroup3);
     mac3.SetType("ns3::ApWifiMac", "Ssid", SsidValue(Ssid("rede3")));
     NetDeviceContainer apDev3 = wifi3.Install(phy3, mac3, ap3);
 
@@ -96,6 +97,13 @@ int main() {
     mobility.InstallAll();
  
     Ipv6AddressHelper ip;
+
+    // NetDeviceContainer apLrWpanDev1 = lrWpan1.Install(ap1);
+    // lrWpan1.CreateAssociatedPan(apLrWpanDev1, 10);
+
+    // ip.SetBase(Ipv6Address("2001:DB8:0::"), Ipv6Prefix(64));
+    // Ipv6InterfaceContainer apLrIfs1 = ip.Assign(apLrWpanDev1);
+
 
     ip.SetBase(Ipv6Address("2001:db8:0::"), Ipv6Prefix(64));
     Ipv6InterfaceContainer staIfs1 = ip.Assign(staDevs1);
@@ -167,15 +175,6 @@ int main() {
     Ptr<Ipv6StaticRouting> staticRoutingAp2 = routingHelper.GetStaticRouting(Ipv6AP2);
     Ptr<Ipv6StaticRouting> staticRoutingAp3 = routingHelper.GetStaticRouting(Ipv6AP3);
 
-    // staticRoutingAp1->AddNetworkRouteTo(Ipv6Address("2001:db8:0::"), Ipv6Prefix(64), 
-    //                                                     Ipv6Address::GetZero(), 1);
-
-    // staticRoutingAp2->AddNetworkRouteTo(Ipv6Address("2001:db8:1::"), Ipv6Prefix(64), 
-    //                                                     Ipv6Address::GetZero(), 1);
-
-    // staticRoutingAp3->AddNetworkRouteTo(Ipv6Address("2001:db8:2::"), Ipv6Prefix(64), 
-    //                                                     Ipv6Address::GetZero(), 1);
-
     // AP1 (interfaces são 0=lo, 1=wifi, 2=p2p_ap2, 3=p2p_ap3)
     //AP1 -> AP2
     staticRoutingAp1->AddNetworkRouteTo(Ipv6Address("2001:db8:1::"), Ipv6Prefix(64), 
@@ -183,6 +182,9 @@ int main() {
     //AP1 -> AP3
     staticRoutingAp1->AddNetworkRouteTo(Ipv6Address("2001:db8:2::"), Ipv6Prefix(64), 
                                         p2pIfs3.GetAddress(0,1), 3, 10);
+
+    staticRoutingAp1->AddNetworkRouteTo(Ipv6Address("2001:db8:200::"), Ipv6Prefix(64), 
+                                        Ipv6Address::GetZero(), 1);
 
     //AP2 -> AP1
     staticRoutingAp2->AddNetworkRouteTo(Ipv6Address("2001:db8:0::"), Ipv6Prefix(64), 
@@ -207,30 +209,11 @@ int main() {
     //p2pIfs3 -> p2pDevs3 -> ap3ap1
         
                                         
-    // staticRoutingAp1->AddNetworkRouteTo(Ipv6Address("2001:db8:a::"), Ipv6Prefix(64), 
-    //                                     Ipv6Address::GetZero(), 2);
-    // staticRoutingAp1->AddNetworkRouteTo(Ipv6Address("2001:db8:c::"), Ipv6Prefix(64), 
-    //                                     Ipv6Address::GetZero(), 3);
-
-
-    // staticRoutingAp2->AddNetworkRouteTo(Ipv6Address("2001:db8:a::"), Ipv6Prefix(64), 
-    //                                     Ipv6Address::GetZero(), 1);
-    // staticRoutingAp2->AddNetworkRouteTo(Ipv6Address("2001:db8:b::"), Ipv6Prefix(64), 
-    //                                     Ipv6Address::GetZero(), 2);
-                                    
-    // staticRoutingAp3->AddNetworkRouteTo(Ipv6Address("2001:db8:b::"), Ipv6Prefix(64), 
-    //                                     Ipv6Address::GetZero(), 2);
-    // staticRoutingAp3->AddNetworkRouteTo(Ipv6Address("2001:db8:c::"), Ipv6Prefix(64), 
-    //                                     Ipv6Address::GetZero(), 1);
-                              
-    // // AP3 (interfaces são 0=lo, 1=wifi, 2=p2p_ap2, 3=p2p_ap1)
-    // Ptr<Ipv6StaticRouting> staticRoutingAp3 = routingHelper.GetStaticRouting(Ipv6AP3);
-    // staticRoutingAp3->AddNetworkRouteTo(Ipv6Address("fd00:2::"), Ipv6Prefix(64), p2pIfs3.GetAddress(1,0), 3);
-    
     // Rotas default para as estações da rede 1
     for (uint32_t i = 0; i < staGroup1.GetN(); i++) {
         Ptr<Ipv6StaticRouting> staticRoutingSta = routingHelper.GetStaticRouting(staGroup1.Get(i)->GetObject<Ipv6>());
         staticRoutingSta->SetDefaultRoute(apIfs1.GetAddress(0,0), 1);
+        std::cout << "nó " << i << "no stagroup1 :" << staIfs1.GetAddress(i,1) << std::endl;
     }
     
     for (uint32_t i = 0; i < staGroup2.GetN(); i++) {
@@ -253,9 +236,8 @@ int main() {
 
     // Imprimir tabela de roteamento para diagnóstico
 
-    std::cout << "numero de endereços no nó staGroup1 :" << staGroup1.GetN();
-    // std::cout << "nó 0 no stagroup1 :" << staIfs1.GetAddress(0,1);
-
+    std::cout << "numero de endereços no nó staGroup1 : " << staGroup1.GetN() << std::endl;
+    std::cout << "endereço ap1 :" << p2pIfs1.GetAddress(0,0) << std::endl;
 
     Ptr<OutputStreamWrapper> routingStream = Create<OutputStreamWrapper>("rotas_test_ping.txt", std::ios::out);
     routingHelper.PrintRoutingTableAt(Seconds(0.5), ap1.Get(0), routingStream);
@@ -267,12 +249,12 @@ int main() {
    //p2pIfs3 -> p2pDevs3 -> ap3ap1
 
     // Ping de um nó da rede 1 para um nó da rede 3
-    PingHelper ping(staIfs1.GetAddress(0,0));
+    PingHelper ping(staIfs1.GetAddress(10,0));
     ping.SetAttribute("Interval", TimeValue(Seconds(1.0)));
     ping.SetAttribute("Size", UintegerValue(512));
     ping.SetAttribute("Count", UintegerValue(10));
 
-    ApplicationContainer pingApp = ping.Install(staGroup1.Get(0));
+    ApplicationContainer pingApp = ping.Install(ap1.Get(0));
     pingApp.Start(Seconds(30.0));
     pingApp.Stop(Seconds(110.0));
 
