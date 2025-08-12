@@ -228,16 +228,14 @@ int main() {
         
     // Rotas default para as estações da rede 1
     Ptr<Ipv6> ap1_Ipv6 = ap1.Get(0)->GetObject<Ipv6>();
-    uint32_t ifAP1 = ap1_Ipv6->GetInterfaceForAddress(apIfs1.GetAddress(0,1));
+    // uint32_t ifAP1 = ap1_Ipv6->GetInterfaceForAddress(apIfs1.GetAddress(0,1));
     for (uint32_t i = 0; i < staGroup1.GetN(); i++) {
         Ptr<Ipv6StaticRouting> staticRoutingSta = routingHelper.GetStaticRouting(staGroup1.Get(i)->GetObject<Ipv6>());
 
         Ipv6Address gateway = apIfs1.GetAddress(0,1);
 
-        staticRoutingSta->SetDefaultRoute(gateway, ifAP1);
+        // staticRoutingSta->SetDefaultRoute(gateway, ifAP1);
 
-        
-        std::cout << "nó " << i << "no stagroup1 :" << staIfs1.GetAddress(i,1) << std::endl;
     }
     
     for (uint32_t i = 0; i < staGroup2.GetN(); i++) {
@@ -251,21 +249,13 @@ int main() {
         staticRoutingSta->SetDefaultRoute(apIfs3.GetAddress(0,1), 1);
     }
     
-
-
-    // Ptr<Ipv6StaticRouting> staticRoutingSta
-
-    // // Rotas default para as estações da rede 3
-    // for (uint32_t i = 0; i < staGroup3.GetN(); i++) {
-    //     Ptr<Ipv6StaticRouting> staticRoutingSta = routingHelper.GetStaticRouting(staGroup3.Get(i)->GetObject<Ipv6>());
-    //     staticRoutingSta->SetDefaultRoute(apIfs3.GetAddress(0,0), 1);
-    // }
-    
-    // Ipv6GlobalRoutingHelper::PopulateRoutingTables();
     
     
     Ptr<Ipv6StaticRouting> sta1StaticRouting = routingHelper.GetStaticRouting(staGroup1.Get(1)->GetObject<Ipv6>());
-    sta1StaticRouting->AddHostRouteTo(apIfs2.GetAddress(0,1), apIfs1.GetAddress(0,1), 1);
+    sta1StaticRouting->AddNetworkRouteTo(Ipv6Address("2001:db8:1::1"), Ipv6Prefix(64), 
+                                        p2pIfs1.GetAddress(0,1), 1, 1);
+
+    // sta1StaticRouting->SetDefaultRoute(apIfs3.GetAddress(0,1), 1);
 
     // Imprimir tabela de roteamento para diagnóstico
 
