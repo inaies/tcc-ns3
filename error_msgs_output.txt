@@ -1,0 +1,81 @@
+vboxuser@ubuntu:~/Downloads/ns-allinone-3.43/ns-3.43$ ./ns3 run scratch/test_ping.cc 
+[  0%] Building CXX object scratch/CMakeFiles/scratch_test_ping.dir/test_ping.cc.o
+[  0%] Linking CXX executable /home/vboxuser/Downloads/ns-allinone-3.43/ns-3.43/build/scratch/ns3.43-test_ping-default
+AP1 Interfaces: 
+  Interface 0address0: ::1
+  Interface 1address0: fe80::200:ff:fe00:39
+  Interface 1address1: 2001:db8::200:ff:fe00:39
+  Interface 2address0: fe80::200:ff:fe00:1
+  Interface 2address1: 2001:db8:a:0:200:ff:fe00:1
+  Interface 3address0: fe80::200:ff:fe00:6
+  Interface 3address1: 2001:db8:c:0:200:ff:fe00:6
+AP2 Interfaces: 
+  Interface: 0address 0: ::1
+  Interface: 1address 0: fe80::200:ff:fe00:6c
+  Interface: 1address 1: 2001:db8:1:0:200:ff:fe00:6c
+  Interface: 2address 0: fe80::200:ff:fe00:2
+  Interface: 2address 1: 2001:db8:a:0:200:ff:fe00:2
+  Interface: 3address 0: fe80::200:ff:fe00:3
+  Interface: 3address 1: 2001:db8:b:0:200:ff:fe00:3
+AP3 Interfaces: 
+  Interface: 0address 0: ::1
+  Interface: 1address 0: fe80::200:ff:fe00:9f
+  Interface: 1address 1: 2001:db8:2:0:200:ff:fe00:9f
+  Interface: 2address 0: fe80::200:ff:fe00:4
+  Interface: 2address 1: 2001:db8:b:0:200:ff:fe00:4
+  Interface: 3address 0: fe80::200:ff:fe00:5
+  Interface: 3address 1: 2001:db8:c:0:200:ff:fe00:5
+numero de endereços no nó staGroup1 : 50
+endereço ap1 :fe80::200:ff:fe00:1
+PING 2001:db8:1:0:200:ff:fe00:6c - 512 bytes of data; 560 bytes including ICMP and IPv6 headers.
+m_seq=0
+NS_ASSERT failed, cond="index >= 0", msg="Can not find an outgoing interface for a packet with src :: and dst ff02::1", +30.002000000s 1 file=/home/vboxuser/Downloads/ns-allinone-3.43/ns-3.43/src/internet/model/ipv6-l3-protocol.cc, line=969
+NS_FATAL, terminating
+terminate called without an active exception
+Command 'build/scratch/ns3.43-test_ping-default' died with <Signals.SIGABRT: 6>.
+vboxuser@ubuntu:~/Downloads/ns-allinone-3.43/ns-3.43$ ./ns3 run scratch/test_ping.cc 
+[  0%] Building CXX object scratch/CMakeFiles/scratch_test_ping.dir/test_ping.cc.o
+[  0%] Linking CXX executable /home/vboxuser/Downloads/ns-allinone-3.43/ns-3.43/build/scratch/ns3.43-test_ping-default
+AP1 Interfaces: 
+  Interface 0address0: ::1
+  Interface 1address0: fe80::200:ff:fe00:39
+  Interface 1address1: 2001:db8::200:ff:fe00:39
+  Interface 2address0: fe80::200:ff:fe00:1
+  Interface 2address1: 2001:db8:a:0:200:ff:fe00:1
+  Interface 3address0: fe80::200:ff:fe00:6
+  Interface 3address1: 2001:db8:c:0:200:ff:fe00:6
+AP2 Interfaces: 
+  Interface: 0address 0: ::1
+  Interface: 1address 0: fe80::200:ff:fe00:6c
+  Interface: 1address 1: 2001:db8:1:0:200:ff:fe00:6c
+  Interface: 2address 0: fe80::200:ff:fe00:2
+  Interface: 2address 1: 2001:db8:a:0:200:ff:fe00:2
+  Interface: 3address 0: fe80::200:ff:fe00:3
+  Interface: 3address 1: 2001:db8:b:0:200:ff:fe00:3
+AP3 Interfaces: 
+  Interface: 0address 0: ::1
+  Interface: 1address 0: fe80::200:ff:fe00:9f
+  Interface: 1address 1: 2001:db8:2:0:200:ff:fe00:9f
+  Interface: 2address 0: fe80::200:ff:fe00:4
+  Interface: 2address 1: 2001:db8:b:0:200:ff:fe00:4
+  Interface: 3address 0: fe80::200:ff:fe00:5
+  Interface: 3address 1: 2001:db8:c:0:200:ff:fe00:5
+numero de endereços no nó staGroup1 : 50
+endereço ap1 :fe80::200:ff:fe00:1
+PING 2001:db8:1:0:200:ff:fe00:6c - 512 bytes of data; 560 bytes including ICMP and IPv6 headers.
+m_seq=0
+m_seq=1
+m_seq=2
+m_seq=3
+m_seq=4
+Received Destination Unreachable from 2001:db8::200:ff:fe00:8
+m_seq=5
+m_seq=6
+m_seq=7
+m_seq=8
+Received Destination Unreachable from 2001:db8::200:ff:fe00:8
+m_seq=9
+
+--- 2001:db8:1:0:200:ff:fe00:6c ping statistics ---
+10 packets transmitted, 0 received, 100% packet loss, time 10000ms
+

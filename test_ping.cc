@@ -234,8 +234,9 @@ int main() {
 
         Ipv6Address gateway = apIfs1.GetAddress(0,1);
 
-        // staticRoutingSta->SetDefaultRoute(gateway, ifAP1);
-
+        Ptr<Ipv6StaticRouting> sta1StaticRouting = routingHelper.GetStaticRouting(staGroup1.Get(i)->GetObject<Ipv6>());
+        sta1StaticRouting->AddNetworkRouteTo(Ipv6Address("2001:db8:1::"), Ipv6Prefix(64), 
+                                            Ipv6Address("2001:db8:0::"), 1);
     }
     
     for (uint32_t i = 0; i < staGroup2.GetN(); i++) {
@@ -250,10 +251,8 @@ int main() {
     }
     
     
-    
     Ptr<Ipv6StaticRouting> sta1StaticRouting = routingHelper.GetStaticRouting(staGroup1.Get(1)->GetObject<Ipv6>());
-    sta1StaticRouting->AddNetworkRouteTo(Ipv6Address("2001:db8:1::1"), Ipv6Prefix(64), 
-                                        p2pIfs1.GetAddress(0,1), 1, 1);
+    
 
     // sta1StaticRouting->SetDefaultRoute(apIfs3.GetAddress(0,1), 1);
 
