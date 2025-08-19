@@ -238,7 +238,7 @@ int main() {
 
         Ptr<Ipv6StaticRouting> sta1StaticRouting = routingHelper.GetStaticRouting(staGroup1.Get(1)->GetObject<Ipv6>());
         sta1StaticRouting->AddNetworkRouteTo(Ipv6Address("2001:db8:1::"), Ipv6Prefix(64), 
-                                            Ipv6Address("2001:db8:0::1"), 2, 0);
+                                            Ipv6Address("2001:db8:0::"), 1);
 
         // Ptr<Ipv6StaticRouting> ap2StaticRouting = routingHelper.GetStaticRouting(ap2.Get(0)->GetObject<Ipv6>());
         // ap2StaticRouting->AddNetworkRouteTo(Ipv6Address("2001:db8:0::"), Ipv6Prefix(64),
