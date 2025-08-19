@@ -1,0 +1,6 @@
+PING 2001:db8:1:0:200:ff:fe00:6c - 512 bytes of data; 560 bytes including ICMP and IPv6 headers.
+m_seq=0
+NS_ASSERT failed, cond="m_ptr", msg="Attempted to dereference zero pointer", +30.000000000s 1 file=/home/vboxuser/Downloads/ns-allinone-3.43/ns-3.43/src/core/model/ptr.h, line=707
+NS_FATAL, terminating
+terminate called without an active exception
+Command 'build/scratch/ns3.43-test_ping-default' died with <Signals.SIGABRT: 6>.
