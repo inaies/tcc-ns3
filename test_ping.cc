@@ -189,20 +189,21 @@ int main() {
     Ptr<Ipv6StaticRouting> staticRoutingAp3 = routingHelper.GetStaticRouting(Ipv6AP3);
 
     // AP1 (interfaces são 0=lo, 1=wifi, 2=p2p_ap2, 3=p2p_ap3)
-    //AP1 -> AP2
+    // AP1 -> AP2                               endereço da rede AP2 - staGroup2
     staticRoutingAp1->AddNetworkRouteTo(Ipv6Address("2001:db8:1::"), Ipv6Prefix(64), 
-                                        p2pIfs1.GetAddress(1,1), 2, 10);
+                                        p2pIfs1.GetAddress(1,1), 2, 0);
     //AP1 -> AP3
     staticRoutingAp1->AddNetworkRouteTo(Ipv6Address("2001:db8:2::"), Ipv6Prefix(64), 
                                         p2pIfs3.GetAddress(0,1), 3, 10);
+                                    //  endereço 
 
 
     // staticRoutingAp1->AddNetworkRouteTo(Ipv6Address("2001:db8:0::"), Ipv6Prefix(64), 
     //                                     Ipv6Address::GetZero(), 1, 0);
 
-    //AP2 -> AP1
+    //AP2 -> AP1            
     staticRoutingAp2->AddNetworkRouteTo(Ipv6Address("2001:db8:0::"), Ipv6Prefix(64), 
-                                        p2pIfs1.GetAddress(0,1), 1, 10);
+                                        p2pIfs1.GetAddress(0,1), 1, 0);
     
     //AP2 -> AP3
     staticRoutingAp2->AddNetworkRouteTo(Ipv6Address("2001:db8:2::"), Ipv6Prefix(64), 
@@ -231,12 +232,17 @@ int main() {
     // uint32_t ifAP1 = ap1_Ipv6->GetInterfaceForAddress(apIfs1.GetAddress(0,1));
     for (uint32_t i = 0; i < staGroup1.GetN(); i++) {
         Ptr<Ipv6StaticRouting> staticRoutingSta = routingHelper.GetStaticRouting(staGroup1.Get(i)->GetObject<Ipv6>());
+        staticRoutingSta->SetDefaultRoute(apIfs1.GetAddress(0,1), 1);
 
-        Ipv6Address gateway = apIfs1.GetAddress(0,1);
+        // Ipv6Address gateway = apIfs1.GetAddress(0,1);
 
-        Ptr<Ipv6StaticRouting> sta1StaticRouting = routingHelper.GetStaticRouting(staGroup1.Get(i)->GetObject<Ipv6>());
+        Ptr<Ipv6StaticRouting> sta1StaticRouting = routingHelper.GetStaticRouting(staGroup1.Get(1)->GetObject<Ipv6>());
         sta1StaticRouting->AddNetworkRouteTo(Ipv6Address("2001:db8:1::"), Ipv6Prefix(64), 
-                                            Ipv6Address("2001:db8:0::"), 1);
+                                            Ipv6Address("2001:db8:0::1"), 2, 0);
+
+        // Ptr<Ipv6StaticRouting> ap2StaticRouting = routingHelper.GetStaticRouting(ap2.Get(0)->GetObject<Ipv6>());
+        // ap2StaticRouting->AddNetworkRouteTo(Ipv6Address("2001:db8:0::"), Ipv6Prefix(64),
+        //                                   p2pIfs1.GetAddress(0,1), 0);
     }
     
     for (uint32_t i = 0; i < staGroup2.GetN(); i++) {
@@ -271,7 +277,7 @@ int main() {
    //p2pIfs3 -> p2pDevs3 -> ap3ap1
 
     // Ping de um nó da rede 1 para um nó da rede 3
-    PingHelper ping(apIfs2.GetAddress(0,1));
+    PingHelper ping(apIfs2.GetAddress(0, 1));
     ping.SetAttribute("Interval", TimeValue(Seconds(1.0)));
     ping.SetAttribute("Size", UintegerValue(512));
     ping.SetAttribute("Count", UintegerValue(10));
