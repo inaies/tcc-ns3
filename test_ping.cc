@@ -23,6 +23,10 @@ int main() {
     staGroup3.Create(50);
     ap3.Create(1);
 
+    staGroup1.Add(ap1.Get(0));
+    staGroup2.Add(ap2.Get(0));
+    staGroup3.Add(ap3.Get(0));
+
     NodeContainer ap1ap2(ap1.Get(0), ap2.Get(0));
     NodeContainer ap2ap3(ap2.Get(0), ap3.Get(0));
     NodeContainer ap3ap1(ap3.Get(0), ap1.Get(0));
@@ -121,24 +125,30 @@ int main() {
     ip.SetBase(Ipv6Address("2001:db8:0::"), Ipv6Prefix(64));
     Ipv6InterfaceContainer staIfs1 = ip.Assign(staDevs1);
     Ipv6InterfaceContainer apIfs1 = ip.Assign(apDev1);
+    staIfs1.SetForwarding(0, true);
 
     ip.SetBase(Ipv6Address("2001:db8:1::"), Ipv6Prefix(64));
     Ipv6InterfaceContainer staIfs2 = ip.Assign(staDevs2);
     Ipv6InterfaceContainer apIfs2 = ip.Assign(apDev2);
+    staIfs2.SetForwarding(0, true);
 
     ip.SetBase(Ipv6Address("2001:db8:2::"), Ipv6Prefix(64));
     Ipv6InterfaceContainer staIfs3 = ip.Assign(staDevs3);
     Ipv6InterfaceContainer apIfs3 = ip.Assign(apDev3);
+    staIfs3.SetForwarding(0, true);
 
     // Links point-to-point entre APs
     ip.SetBase(Ipv6Address("2001:db8:a::"), Ipv6Prefix(64));
     Ipv6InterfaceContainer p2pIfs1 = ip.Assign(p2pDevs1);
+    p2pIfs1.SetForwarding(0, true);
 
     ip.SetBase(Ipv6Address("2001:db8:b::"), Ipv6Prefix(64));
     Ipv6InterfaceContainer p2pIfs2 = ip.Assign(p2pDevs2);
+    p2pIfs2.SetForwarding(0, true);
 
     ip.SetBase(Ipv6Address("2001:db8:c::"), Ipv6Prefix(64));
     Ipv6InterfaceContainer p2pIfs3 = ip.Assign(p2pDevs3);
+    p2pIfs3.SetForwarding(0, true);
 
     p2p.EnablePcapAll("p2p-trace");
     phy1.EnablePcap("wifi1", staDevs1.Get(0));
@@ -229,20 +239,20 @@ int main() {
         
     // Rotas default para as estações da rede 1
     Ptr<Ipv6> ap1_Ipv6 = ap1.Get(0)->GetObject<Ipv6>();
-    // uint32_t ifAP1 = ap1_Ipv6->GetInterfaceForAddress(apIfs1.GetAddress(0,1));
+    uint32_t ifAP1 = ap1_Ipv6->GetInterfaceForAddress(apIfs1.GetAddress(0,1));
     for (uint32_t i = 0; i < staGroup1.GetN(); i++) {
         Ptr<Ipv6StaticRouting> staticRoutingSta = routingHelper.GetStaticRouting(staGroup1.Get(i)->GetObject<Ipv6>());
         staticRoutingSta->SetDefaultRoute(apIfs1.GetAddress(0,1), 1);
 
         // Ipv6Address gateway = apIfs1.GetAddress(0,1);
 
-        Ptr<Ipv6StaticRouting> sta1StaticRouting = routingHelper.GetStaticRouting(staGroup1.Get(1)->GetObject<Ipv6>());
-        sta1StaticRouting->AddNetworkRouteTo(Ipv6Address("2001:db8:1::"), Ipv6Prefix(64), 
-                                            Ipv6Address("2001:db8:0::"), 1);
+        Ptr<Ipv6StaticRouting> sta1StaticRouting = routingHelper.GetStaticRouting(staGroup1.Get(i)->GetObject<Ipv6>());
+        sta1StaticRouting->AddNetworkRouteTo(Ipv6Address("2001:db8:a::"), Ipv6Prefix(64), 
+                                            apIfs1.GetAddress(0,1), 1);
 
-        // Ptr<Ipv6StaticRouting> ap2StaticRouting = routingHelper.GetStaticRouting(ap2.Get(0)->GetObject<Ipv6>());
-        // ap2StaticRouting->AddNetworkRouteTo(Ipv6Address("2001:db8:0::"), Ipv6Prefix(64),
-        //                                   p2pIfs1.GetAddress(0,1), 0);
+        Ptr<Ipv6StaticRouting> ap2StaticRouting = routingHelper.GetStaticRouting(ap2.Get(0)->GetObject<Ipv6>());
+        ap2StaticRouting->AddNetworkRouteTo(Ipv6Address("2001:db8:0::"), Ipv6Prefix(64),
+                                          p2pIfs1.GetAddress(1,1), p2pIfs1.GetInterfaceIndex(0));
     }
     
     for (uint32_t i = 0; i < staGroup2.GetN(); i++) {
@@ -277,13 +287,13 @@ int main() {
    //p2pIfs3 -> p2pDevs3 -> ap3ap1
 
     // Ping de um nó da rede 1 para um nó da rede 3
-    PingHelper ping(apIfs2.GetAddress(0, 1));
+    PingHelper ping(p2pIfs1.GetAddress(1, 1));
     ping.SetAttribute("Interval", TimeValue(Seconds(1.0)));
     ping.SetAttribute("Size", UintegerValue(512));
     ping.SetAttribute("Count", UintegerValue(10));
 
     // Ptr<Node> apNode = ap1.Get(0);
-    ApplicationContainer pingApp = ping.Install(staGroup1.Get(1));
+    ApplicationContainer pingApp = ping.Install(staGroup1.Get(0));
     pingApp.Start(Seconds(30.0));
     pingApp.Stop(Seconds(110.0));
 

@@ -5,6 +5,7 @@
 #include "ns3/point-to-point-module.h"
 #include "ns3/applications-module.h"
 #include "ns3/ipv4-global-routing-helper.h"
+#include "ns3/ping-helper.h"
 
 using namespace ns3;
 
@@ -67,6 +68,8 @@ main (int argc, char *argv[])
 {
   CommandLine cmd;
 
+  LogComponentEnable("Ping", LOG_LEVEL_INFO);
+
   uint32_t n1 = 4;
   uint32_t n2 = 4;
 
@@ -74,6 +77,7 @@ main (int argc, char *argv[])
   cmd.AddValue ("n2", "Number of LAN 2 nodes", n2);
 
   cmd.Parse (argc, argv);
+
 
   //LogComponentEnable("UdpEchoClientApplication", LOG_LEVEL_INFO);
   //LogComponentEnable("UdpEchoServerApplication", LOG_LEVEL_INFO);
@@ -138,67 +142,62 @@ main (int argc, char *argv[])
   address.SetBase ("10.1.100.0", "255.255.255.0");
   Ipv4InterfaceContainer routerInterfaces;
   routerInterfaces = address.Assign (routerDevices);
-  // routerInterfaces.SetForwarding(0, true);
 
-    // for (auto node : {router_nodes.Get(0)}) {
-    //     Ptr<Ipv4> ipv4 = node->GetObject<Ipv4>();
-    //     for (uint32_t i = 0; i < ipv4->GetNInterfaces(); ++i) {
-    //         ipv4->SetForwarding(i, true);
-    //     }
-    // }
+  PingHelper ping(lan1interfaces.GetAddress(2));
+  ping.SetAttribute("Interval", TimeValue(Seconds(1.0)));
+  ping.SetAttribute("Size", UintegerValue(512));
+  ping.SetAttribute("Count", UintegerValue(10));
 
-    // for (auto node : {router_nodes.Get(1)}) {
-    //     Ptr<Ipv4> ipv4 = node->GetObject<Ipv4>();
-    //     for (uint32_t i = 0; i < ipv4->GetNInterfaces(); ++i) {
-    //         ipv4->SetForwarding(i, true);
-    //     }
-    // }
+  // Ptr<Node> apNode = ap1.Get(0); 
+  ApplicationContainer pingApp = ping.Install(router_nodes.Get(0));
+  pingApp.Start(Seconds(30.0));
+  pingApp.Stop(Seconds(110.0));
 
   //Let's install a UdpEchoServer on all nodes of LAN2
-  UdpEchoServerHelper echoServer (9);
-  ApplicationContainer serverApps = echoServer.Install (lan2_nodes);
-  serverApps.Start (Seconds (0));
-  serverApps.Stop (Seconds (10));
+  // UdpEchoServerHelper echoServer (9);
+  // ApplicationContainer serverApps = echoServer.Install (lan2_nodes);
+  // serverApps.Start (Seconds (0));
+  // serverApps.Stop (Seconds (10));
 
-  //Let's create UdpEchoClients in all LAN1 nodes.
-  UdpEchoClientHelper echoClient (lan2interfaces.GetAddress (0), 9);
-  echoClient.SetAttribute ("MaxPackets", UintegerValue (100));
-  echoClient.SetAttribute ("Interval", TimeValue (MilliSeconds (200)));
-  echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
+  // //Let's create UdpEchoClients in all LAN1 nodes.
+  // UdpEchoClientHelper echoClient (lan2interfaces.GetAddress (0), 9);
+  // echoClient.SetAttribute ("MaxPackets", UintegerValue (100));
+  // echoClient.SetAttribute ("Interval", TimeValue (MilliSeconds (200)));
+  // echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
 
-  //We'll install UdpEchoClient on two nodes in lan1 nodes
-  NodeContainer clientNodes (lan1_nodes.Get(0), lan1_nodes.Get(1));
+  // //We'll install UdpEchoClient on two nodes in lan1 nodes
+  // NodeContainer clientNodes (lan1_nodes.Get(0), lan1_nodes.Get(1));
 
-  ApplicationContainer clientApps = echoClient.Install (clientNodes);
-  clientApps.Start (Seconds (1));
-  clientApps.Stop (Seconds (10));
+  // ApplicationContainer clientApps = echoClient.Install (clientNodes);
+  // clientApps.Start (Seconds (1));
+  // clientApps.Stop (Seconds (10));
 
-  //For routers to be able to forward packets, they need to have routing rules.
-  Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
+  // //For routers to be able to forward packets, they need to have routing rules.
+  // Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
 
-  csma1.EnablePcap("lan1", lan1Devices);
-  csma2.EnablePcap("lan2", lan2Devices);
-  pointToPoint.EnablePcapAll("routers");
-  pointToPoint.EnableAscii("ascii-p2p", router_nodes);
+  // csma1.EnablePcap("lan1", lan1Devices);
+  // csma2.EnablePcap("lan2", lan2Devices);
+  // pointToPoint.EnablePcapAll("routers");
+  // pointToPoint.EnableAscii("ascii-p2p", router_nodes);
 
   //Config::Connect("/NodeList/*/DeviceList/*/$ns3::PointToPointNetDevice/TxQueue/PacketsInQueue", MakeCallback(&CheckQueueSize));
   //Config::Connect("/NodeList/*/DeviceList/*/$ns3::CsmaNetDevice/TxQueue/PacketsInQueue", MakeCallback(&CheckQueueSize));
 
 
-  Config::Connect("/NodeList/*/DeviceList/*/$ns3::CsmaNetDevice/MacTxBackoff", MakeCallback(&BackoffTrace));
+  // Config::Connect("/NodeList/*/DeviceList/*/$ns3::CsmaNetDevice/MacTxBackoff", MakeCallback(&BackoffTrace));
 
-  Config::Connect("/NodeList/*/ApplicationList/*/$ns3::UdpEchoClient/Tx", MakeCallback(&ClientTx));
-  Config::Connect("/NodeList/*/ApplicationList/*/$ns3::UdpEchoClient/Rx", MakeCallback(&ClientRx));
-  //Config::Connect("/NodeList/*/ApplicationList/*/$ns3::UdpEchoServer/Tx", MakeCallback(&ServerTx));
-  Config::Connect("/NodeList/*/ApplicationList/*/$ns3::UdpEchoServer/Rx", MakeCallback(&ServerRx));
+  // Config::Connect("/NodeList/*/ApplicationList/*/$ns3::UdpEchoClient/Tx", MakeCallback(&ClientTx));
+  // Config::Connect("/NodeList/*/ApplicationList/*/$ns3::UdpEchoClient/Rx", MakeCallback(&ClientRx));
+  // //Config::Connect("/NodeList/*/ApplicationList/*/$ns3::UdpEchoServer/Tx", MakeCallback(&ServerTx));
+  // Config::Connect("/NodeList/*/ApplicationList/*/$ns3::UdpEchoServer/Rx", MakeCallback(&ServerRx));
 
 
 
-  Simulator::Stop (Seconds (20));
+  Simulator::Stop (Seconds (120));
   Simulator::Run ();
 
-  std::cout << "Client Tx: " << total_client_tx << "\tClient Rx: " << total_client_rx << std::endl;
-  std::cout << "Server Rx: " << total_server_rx << std::endl;
+  // std::cout << "Client Tx: " << total_client_tx << "\tClient Rx: " << total_client_rx << std::endl;
+  // std::cout << "Server Rx: " << total_server_rx << std::endl;
 
   Simulator::Destroy ();
   return 0;
