@@ -1,18 +1,4 @@
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
-
+// ... (mesmos includes)
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
 #include "ns3/csma-module.h"
@@ -23,17 +9,6 @@
 #include "ns3/ping-helper.h"
 #include "ns3/ssid.h"
 #include "ns3/yans-wifi-helper.h"
-
-// Default Network Topology
-//
-//   Wifi 10.1.3.0
-//                 AP
-//  *    *    *    *
-//  |    |    |    |    10.1.1.0
-// n5   n6   n7   n0 -------------- n1   n2   n3   n4
-//                   point-to-point  |    |    |    |
-//                                   ================
-//                                     LAN 10.1.2.0
 
 using namespace ns3;
 
@@ -103,37 +78,41 @@ main(int argc, char* argv[])
     wifiStaNodes2.Create(nWifi);
 
     NodeContainer wifiApNode = p2pNodes.Get(0);
-    
+
     NodeContainer wifiApNode2 = p2pNodes.Get(2);
 
-    YansWifiChannelHelper channel = YansWifiChannelHelper::Default();
-    YansWifiPhyHelper phy;
-    phy.SetChannel(channel.Create());
+    // Troque o bloco de canal/phy único por DOIS canais/phys:
+    YansWifiChannelHelper channel1 = YansWifiChannelHelper::Default();
+    YansWifiPhyHelper     phy1;
+    phy1.SetChannel(channel1.Create());
+
+    YansWifiChannelHelper channel2 = YansWifiChannelHelper::Default();
+    YansWifiPhyHelper     phy2;
+    phy2.SetChannel(channel2.Create());
 
     WifiMacHelper mac;
-    Ssid ssid = Ssid("ns-3-ssid");
+    Ssid ssid1 = Ssid("ns-3-ssid-1");
+    Ssid ssid2 = Ssid("ns-3-ssid-2"); // opcional, mas ajuda
 
     WifiHelper wifi;
 
+    // --- Primeira rede Wi-Fi (wifiStaNodes <-> wifiApNode) ---
     NetDeviceContainer staDevices;
-    mac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid), "ActiveProbing", BooleanValue(false));
-    //rede wifi
-    staDevices = wifi.Install(phy, mac, wifiStaNodes);
-
-    NetDeviceContainer staDevices2;
-    mac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid), "ActiveProbing", BooleanValue(false));
-    //rede wifi
-    staDevices2 = wifi.Install(phy, mac, wifiStaNodes2);
+    mac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid1), "ActiveProbing", BooleanValue(false));
+    staDevices = wifi.Install(phy1, mac, wifiStaNodes);
 
     NetDeviceContainer apDevices;
-    mac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid));
-    //rede wifi com roteador 0
-    apDevices = wifi.Install(phy, mac, wifiApNode);
+    mac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid1));
+    apDevices = wifi.Install(phy1, mac, wifiApNode);
+
+    // --- Segunda rede Wi-Fi (wifiStaNodes2 <-> wifiApNode2) ---
+    NetDeviceContainer staDevices2;
+    mac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid2), "ActiveProbing", BooleanValue(false));
+    staDevices2 = wifi.Install(phy2, mac, wifiStaNodes2);
 
     NetDeviceContainer apDevices2;
-    mac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid));
-    //rede wifi com roteador 0
-    apDevices2 = wifi.Install(phy, mac, wifiApNode2);
+    mac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid2));
+    apDevices2 = wifi.Install(phy2, mac, wifiApNode2);
 
     MobilityHelper mobility;
 
@@ -169,29 +148,32 @@ main(int argc, char* argv[])
     stack.Install(wifiStaNodes2);
 
     Ipv4AddressHelper address;
-    
+
+    // p2p e CSMA como estavam
     address.SetBase("10.1.1.0", "255.255.255.0");
     Ipv4InterfaceContainer ap1ap2Interfaces = address.Assign(ap1ap2);
 
     address.SetBase("10.1.2.0", "255.255.255.0");
-    Ipv4InterfaceContainer csmaInterfaces;
-    csmaInterfaces = address.Assign(csmaDevices);
+    Ipv4InterfaceContainer csmaInterfaces = address.Assign(csmaDevices);
 
-    address.SetBase("10.1.a.0", "255.255.255.0");
+    // *** CORRIGIR AQUI: sub-rede válida para a 1ª rede Wi-Fi ***
+    address.SetBase("10.1.4.0", "255.255.255.0");
     Ipv4InterfaceContainer wifiInterfaces = address.Assign(staDevices);
     Ipv4InterfaceContainer apInterfaces   = address.Assign(apDevices);
 
+    // 2ª rede Wi-Fi fica em outra sub-rede (já estava ok)
     address.SetBase("10.1.3.0", "255.255.255.0");
     Ipv4InterfaceContainer wifiInterfaces2 = address.Assign(staDevices2);
     Ipv4InterfaceContainer apInterfaces2   = address.Assign(apDevices2);
 
+    // p2p restantes como estavam
     address.SetBase("10.1.11.0", "255.255.255.0");
     Ipv4InterfaceContainer ap1ap3Interfaces = address.Assign(ap1ap3);
 
     address.SetBase("10.1.12.0", "255.255.255.0");
     Ipv4InterfaceContainer ap2ap3Interfaces = address.Assign(ap2ap3);
 
-    PingHelper ping(wifiInterfaces.GetAddress(0));
+    PingHelper ping(ap2ap3Interfaces.GetAddress(1));
     ping.SetAttribute("Interval", TimeValue(Seconds(1.0)));
     ping.SetAttribute("Size", UintegerValue(512));
     ping.SetAttribute("Count", UintegerValue(10));
@@ -222,9 +204,9 @@ main(int argc, char* argv[])
 
     if (tracing)
     {
-        phy.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
+        phy1.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
         pointToPoint.EnablePcapAll("third");
-        phy.EnablePcap("third", apDevices.Get(0));
+        phy1.EnablePcap("third", apDevices.Get(0));
         csma.EnablePcap("third", csmaDevices.Get(0), true);
     }
 
