@@ -141,25 +141,28 @@ main(int argc, char* argv[])
     ap1ap2Interfaces.SetForwarding(0, true);
     ap1ap2Interfaces.SetForwarding(1, true);
     ap1ap2Interfaces.SetDefaultRouteInAllNodes(0);
+    ap1ap2Interfaces.SetDefaultRouteInAllNodes(1);
 
     address.SetBase(Ipv6Address("2001:2::"), Ipv6Prefix(64));
     Ipv6InterfaceContainer csmaInterfaces = address.Assign(csmaDevices);
-    for (uint32_t i = 0; i < csmaInterfaces.GetN(); ++i)
+    csmaInterfaces.SetForwarding(0, true);
+    Ipv6Address gatewayAddr = csmaInterfaces.GetAddress(0,1);
+
+    for (uint32_t i = 1; i < csmaNodes.GetN(); i++)
     {
-        csmaInterfaces.SetForwarding(i, true);
-        csmaInterfaces.SetDefaultRouteInAllNodes(i);
+        Ptr<Ipv6> ipv6 = csmaNodes.Get(i)->GetObject<Ipv6>();
+        Ptr<Ipv6StaticRouting> sr = ipv6RoutingHelper.GetStaticRouting(ipv6);
+        sr->SetDefaultRoute(gatewayAddr, 1);
     }
 
     address.SetBase(Ipv6Address("2001:3::"), Ipv6Prefix(64));
     Ipv6InterfaceContainer wifiInterfaces = address.Assign(staDevices);
     Ipv6InterfaceContainer apInterfaces   = address.Assign(apDevices);
-    wifiInterfaces.SetForwarding(0, true);
     apInterfaces.SetForwarding(0, true);
 
     address.SetBase(Ipv6Address("2001:4::"), Ipv6Prefix(64));
     Ipv6InterfaceContainer wifiInterfaces2 = address.Assign(staDevices2);
     Ipv6InterfaceContainer apInterfaces2   = address.Assign(apDevices2);
-    wifiInterfaces2.SetForwarding(0, true);
     apInterfaces2.SetForwarding(0, true);
 
     address.SetBase(Ipv6Address("2001:5::"), Ipv6Prefix(64));
@@ -182,7 +185,24 @@ main(int argc, char* argv[])
     pingApp.Start(Seconds(30.0));
     pingApp.Stop(Seconds(110.0));
 
-    Ipv6GlobalRoutingHelper::PopulateRoutingTables();
+//   Wifi 2001:3::
+//                 AP
+//  *    *    *    *     ap1ap2
+//  |    |    |    |    2001:1::
+// n5   n6   n7   n0 -------------- n1   n2   n3   n4
+//                   point-to-point  |    |    |    |
+//                  |                ================
+//        2001:5::  |               |  LAN 2001:2:: - CSMA
+//        ap1ap3    |               |  
+//                  |               |  2001:6::
+//                  |               |  ap2ap3
+// Wifi2 2001:4::   |               |  
+//                 AP               | 
+//  *    *    *    *                |
+//  |    |    |    |                |
+// n5   n6   n7   n0 -------------- |
+
+    // Ipv6GlobalRoutingHelper::PopulateRoutingTables();
 
     Simulator::Stop(Seconds(120.0));
 
