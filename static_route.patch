@@ -1,0 +1,18 @@
+Ipv6StaticRoutingHelper ipv6RoutingHelper;
+
+// STA → envia para AP1 como default
+Ptr<Ipv6> ipv6Sta = staGroup1.Get(0)->GetObject<Ipv6>();
+Ptr<Ipv6StaticRouting> staticSta = ipv6RoutingHelper.GetStaticRouting(ipv6Sta);
+staticSta->SetDefaultRoute(ap1ap2Interfaces.GetAddress(0,1), 1);
+
+// AP1 → sabe como chegar em AP2 via link ponto-a-ponto
+Ptr<Ipv6> ipv6Ap1 = ap1->GetObject<Ipv6>();
+Ptr<Ipv6StaticRouting> staticAp1 = ipv6RoutingHelper.GetStaticRouting(ipv6Ap1);
+staticAp1->AddHostRouteTo(ap2Address, ap1ap2Interfaces.GetAddress(1,1), 1);
+
+// AP2 → rota de volta para a rede do STA via AP1
+Ptr<Ipv6> ipv6Ap2 = ap2->GetObject<Ipv6>();
+Ptr<Ipv6StaticRouting> staticAp2 = ipv6RoutingHelper.GetStaticRouting(ipv6Ap2);
+staticAp2->AddNetworkRouteTo(Ipv6Address("2001:3::"), Ipv6Prefix(64),
+                             ap1ap2Interfaces.GetAddress(0,1), 1);
+
