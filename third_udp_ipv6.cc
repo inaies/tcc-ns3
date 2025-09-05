@@ -123,9 +123,16 @@ main(int argc, char* argv[])
     mobility.Install(wifiApNode);
     mobility.Install(wifiApNode2);
 
+
+    RipNgHelper ripNg;
+    Ipv6ListRoutingHelper listRh;
+    listRh.Add(ripNg, 0);
+
+    // InternetStackHelper stack;
     // *** PILHA IPv6 ***
     InternetStackHelper stack;
     Ipv6StaticRoutingHelper ipv6RoutingHelper;
+    stack.SetRoutingHelper(listRh);    
     stack.SetRoutingHelper(ipv6RoutingHelper);
     stack.Install(csmaNodes);
     stack.Install(wifiApNode);
@@ -146,14 +153,6 @@ main(int argc, char* argv[])
     address.SetBase(Ipv6Address("2001:2::"), Ipv6Prefix(64));
     Ipv6InterfaceContainer csmaInterfaces = address.Assign(csmaDevices);
     csmaInterfaces.SetForwarding(0, true);
-    Ipv6Address gatewayAddr = csmaInterfaces.GetAddress(0,1);
-
-    for (uint32_t i = 1; i < csmaNodes.GetN(); i++)
-    {
-        Ptr<Ipv6> ipv6 = csmaNodes.Get(i)->GetObject<Ipv6>();
-        Ptr<Ipv6StaticRouting> sr = ipv6RoutingHelper.GetStaticRouting(ipv6);
-        sr->SetDefaultRoute(gatewayAddr, 1);
-    }
 
     address.SetBase(Ipv6Address("2001:3::"), Ipv6Prefix(64));
     Ipv6InterfaceContainer wifiInterfaces = address.Assign(staDevices);
@@ -175,13 +174,48 @@ main(int argc, char* argv[])
     ap2ap3Interfaces.SetForwarding(0, true);
     ap2ap3Interfaces.SetForwarding(1, true);
 
+    Ipv6Address gatewayAddr = csmaInterfaces.GetAddress(0,1);
+
+    for (uint32_t i = 1; i < csmaNodes.GetN(); i++)
+    {
+        Ptr<Ipv6> ipv6 = csmaNodes.Get(i)->GetObject<Ipv6>();
+        Ptr<Ipv6StaticRouting> sr = ipv6RoutingHelper.GetStaticRouting(ipv6);
+        sr->SetDefaultRoute(gatewayAddr, 1);
+    }
+
+    for (uint32_t i = 0; i < wifiStaNodes.GetN(); i++)
+    {
+        Ptr<Ipv6> ipv6 = wifiStaNodes.Get(i)->GetObject<Ipv6>();
+        Ptr<Ipv6StaticRouting> sr = ipv6RoutingHelper.GetStaticRouting(ipv6);
+        sr->SetDefaultRoute(apInterfaces.GetAddress(0,1), 1);
+    }
+
+    for (uint32_t i = 0; i < wifiStaNodes2.GetN(); i++)
+    {
+        Ptr<Ipv6> ipv6 = wifiStaNodes2.Get(i)->GetObject<Ipv6>();
+        Ptr<Ipv6StaticRouting> sr = ipv6RoutingHelper.GetStaticRouting(ipv6);
+        sr->SetDefaultRoute(apInterfaces2.GetAddress(0,1), 1);
+    }
+
+    // AP1 →rota para rede CSMA (2001:2::/64)
+    Ptr<Ipv6> ipv6Ap1 = wifiApNode.Get(0)->GetObject<Ipv6>();
+    Ptr<Ipv6StaticRouting> srAp1 = ipv6RoutingHelper.GetStaticRouting(ipv6Ap1);
+    srAp1->AddNetworkRouteTo(Ipv6Address("2001:2::"), Ipv6Prefix(64),
+                                ap1ap2Interfaces.GetAddress(1,1), 1);
+
+    // AP2 → rota de volta para a rede do STA via AP1
+    Ptr<Ipv6> ipv6Ap2 = p2pNodes.Get(1)->GetObject<Ipv6>();
+    Ptr<Ipv6StaticRouting> srAp2 = ipv6RoutingHelper.GetStaticRouting(ipv6Ap2);
+    srAp2->AddNetworkRouteTo(Ipv6Address("2001:3::"), Ipv6Prefix(64),
+                                ap1ap2Interfaces.GetAddress(0,1), 1);
+
     // *** PING IPv6 ***
-    PingHelper ping(ap2ap3Interfaces.GetAddress(1, 1)); // endereço global do nó
+    PingHelper ping(csmaInterfaces.GetAddress(0, 1)); // endereço global do nó
     ping.SetAttribute("Interval", TimeValue(Seconds(1.0)));
     ping.SetAttribute("Size", UintegerValue(512));
     ping.SetAttribute("Count", UintegerValue(10));
 
-    ApplicationContainer pingApp = ping.Install(csmaNodes.Get(0));
+    ApplicationContainer pingApp = ping.Install(wifiApNode.Get(0));
     pingApp.Start(Seconds(30.0));
     pingApp.Stop(Seconds(110.0));
 
