@@ -147,8 +147,6 @@ main(int argc, char* argv[])
     Ipv6InterfaceContainer ap1ap2Interfaces = address.Assign(ap1ap2);
     ap1ap2Interfaces.SetForwarding(0, true);
     ap1ap2Interfaces.SetForwarding(1, true);
-    ap1ap2Interfaces.SetDefaultRouteInAllNodes(0);
-    ap1ap2Interfaces.SetDefaultRouteInAllNodes(1);
 
     address.SetBase(Ipv6Address("2001:2::"), Ipv6Prefix(64));
     Ipv6InterfaceContainer csmaInterfaces = address.Assign(csmaDevices);
@@ -187,24 +185,28 @@ main(int argc, char* argv[])
     {
         Ptr<Ipv6> ipv6 = wifiStaNodes.Get(i)->GetObject<Ipv6>();
         Ptr<Ipv6StaticRouting> sr = ipv6RoutingHelper.GetStaticRouting(ipv6);
-        sr->SetDefaultRoute(apInterfaces.GetAddress(0,1), 1);
+        uint32_t ifSta = ipv6->GetInterfaceForDevice(staDevices.Get(i));
+        sr->SetDefaultRoute(apInterfaces.GetAddress(0,1), ifSta);
     }
 
     for (uint32_t i = 0; i < wifiStaNodes2.GetN(); i++)
     {
         Ptr<Ipv6> ipv6 = wifiStaNodes2.Get(i)->GetObject<Ipv6>();
         Ptr<Ipv6StaticRouting> sr = ipv6RoutingHelper.GetStaticRouting(ipv6);
-        sr->SetDefaultRoute(apInterfaces2.GetAddress(0,1), 1);
+        uint32_t ifSta = ipv6->GetInterfaceForDevice(staDevices2.Get(i));
+        sr->SetDefaultRoute(apInterfaces2.GetAddress(0,1), ifSta);
     }
 
     // AP1 →rota para rede CSMA (2001:2::/64)
     Ptr<Ipv6> ipv6Ap1 = wifiApNode.Get(0)->GetObject<Ipv6>();
+    uint32_t ifAp1ToAp2 = ipv6Ap1->GetInterfaceForDevice(ap1ap2.Get(0));
     Ptr<Ipv6StaticRouting> srAp1 = ipv6RoutingHelper.GetStaticRouting(ipv6Ap1);
     srAp1->AddNetworkRouteTo(Ipv6Address("2001:2::"), Ipv6Prefix(64),
                                 ap1ap2Interfaces.GetAddress(1,1), 1);
 
     // AP2 → rota de volta para a rede do STA via AP1
     Ptr<Ipv6> ipv6Ap2 = p2pNodes.Get(1)->GetObject<Ipv6>();
+    uint32_t ifAp2ToAp1 = ipv6Ap1->GetInterfaceForDevice(ap1ap2.Get(1));
     Ptr<Ipv6StaticRouting> srAp2 = ipv6RoutingHelper.GetStaticRouting(ipv6Ap2);
     srAp2->AddNetworkRouteTo(Ipv6Address("2001:3::"), Ipv6Prefix(64),
                                 ap1ap2Interfaces.GetAddress(0,1), 1);
@@ -215,7 +217,7 @@ main(int argc, char* argv[])
     ping.SetAttribute("Size", UintegerValue(512));
     ping.SetAttribute("Count", UintegerValue(10));
 
-    ApplicationContainer pingApp = ping.Install(wifiApNode.Get(0));
+    ApplicationContainer pingApp = ping.Install(wifiStaNodes.Get(0));
     pingApp.Start(Seconds(30.0));
     pingApp.Stop(Seconds(110.0));
 
