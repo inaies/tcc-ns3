@@ -21,23 +21,22 @@ main(int argc, char* argv[])
 
     bool verbose = true;
     uint32_t nCsma = 3;
-    uint32_t nWifi = 3;
     bool tracing = false;
 
     CommandLine cmd(__FILE__);
     cmd.AddValue("nCsma", "Number of \"extra\" CSMA nodes/devices", nCsma);
-    cmd.AddValue("nWifi", "Number of wifi STA devices", nWifi);
+    // cmd.AddValue("nWifi", "Number of wifi STA devices", nWifi);
     cmd.AddValue("verbose", "Tell echo applications to log if true", verbose);
     cmd.AddValue("tracing", "Enable pcap tracing", tracing);
 
     cmd.Parse(argc, argv);
 
-    if (nWifi > 18)
-    {
-        std::cout << "nWifi should be 18 or less; otherwise grid layout exceeds the bounding box"
-                  << std::endl;
-        return 1;
-    }
+    // if (nWifi > 18)
+    // {
+    //     std::cout << "nWifi should be 18 or less; otherwise grid layout exceeds the bounding box"
+    //               << std::endl;
+    //     return 1;
+    // }
 
     NodeContainer p2pNodes;
     p2pNodes.Create(3);
@@ -94,6 +93,20 @@ main(int argc, char* argv[])
     Ipv6InterfaceContainer ap1ap2Interfaces = address.Assign(ap1ap2);
     ap1ap2Interfaces.SetForwarding(0, true);
     ap1ap2Interfaces.SetForwarding(1, true);
+    ap1ap2Interfaces.SetDefaultRouteInAllNodes(0);
+    ap1ap2Interfaces.SetDefaultRouteInAllNodes(1);
+
+    std::cout << "ap1ap2Interfaces:" << std::endl;
+    for (uint32_t i = 0; i < ap1ap2Interfaces.GetN(); i++){
+        for (uint32_t j = 0; j < 2; j++){
+            if (ap1ap2Interfaces.GetAddress(i, j).IsInitialized()){
+                std::cout << " Node " << i
+                          << " addr[" << j << "] ="
+                          << ap1ap2Interfaces.GetAddress(i, j) << std::endl;
+            }
+        }
+    }
+
 
     address.SetBase(Ipv6Address("2001:2::"), Ipv6Prefix(64));
     Ipv6InterfaceContainer csmaInterfaces = address.Assign(csmaDevices);
@@ -111,11 +124,16 @@ main(int argc, char* argv[])
     Ipv6InterfaceContainer ap1ap3Interfaces = address.Assign(ap1ap3);
     ap1ap3Interfaces.SetForwarding(0, true);
     ap1ap3Interfaces.SetForwarding(1, true);
+    ap1ap3Interfaces.SetDefaultRouteInAllNodes(1);
+    ap1ap3Interfaces.SetDefaultRouteInAllNodes(1);
+
 
     address.SetBase(Ipv6Address("2001:6::"), Ipv6Prefix(64));
     Ipv6InterfaceContainer ap2ap3Interfaces = address.Assign(ap2ap3);
     ap2ap3Interfaces.SetForwarding(0, true);
     ap2ap3Interfaces.SetForwarding(1, true);
+    ap2ap3Interfaces.SetDefaultRouteInAllNodes(1);
+    ap2ap3Interfaces.SetDefaultRouteInAllNodes(1);
 
 
     for (uint32_t i = 1; i < csmaNodes.GetN(); i++)
@@ -152,17 +170,17 @@ main(int argc, char* argv[])
     Ptr<Ipv6StaticRouting> srAp2 = ipv6RoutingHelper.GetStaticRouting(ipv6Ap2);
 
     srAp2->AddNetworkRouteTo(Ipv6Address("2001:2::"), Ipv6Prefix(64),
-                            ap1ap2Interfaces.GetAddress(0,1), ipv6Ap1->GetInterfaceForDevice(ap1ap2.Get(1)));
+                            ap1ap2Interfaces.GetAddress(0,1), ipv6Ap2->GetInterfaceForDevice(ap1ap2.Get(1)));
     srAp2->AddNetworkRouteTo(Ipv6Address("2001:4::"), Ipv6Prefix(64),
-                            ap2ap3Interfaces.GetAddress(1,1), ipv6Ap1->GetInterfaceForDevice(ap2ap3.Get(0)));
+                            ap2ap3Interfaces.GetAddress(1,1), ipv6Ap2->GetInterfaceForDevice(ap2ap3.Get(0)));
 
     Ptr<Ipv6> ipv6Ap3 = p2pNodes.Get(2)->GetObject<Ipv6>();
     Ptr<Ipv6StaticRouting> srAp3 = ipv6RoutingHelper.GetStaticRouting(ipv6Ap3);
 
     srAp3->AddNetworkRouteTo(Ipv6Address("2001:2::"), Ipv6Prefix(64),
-                            ap1ap3Interfaces.GetAddress(0,1), ipv6Ap1->GetInterfaceForDevice(ap1ap3.Get(1)));
+                            ap1ap3Interfaces.GetAddress(0,1), ipv6Ap3->GetInterfaceForDevice(ap1ap3.Get(1)));
     srAp3->AddNetworkRouteTo(Ipv6Address("2001:3::"), Ipv6Prefix(64),
-                            ap2ap3Interfaces.GetAddress(0,1), ipv6Ap1->GetInterfaceForDevice(ap2ap3.Get(1)));
+                            ap2ap3Interfaces.GetAddress(0,1), ipv6Ap3->GetInterfaceForDevice(ap2ap3.Get(1)));
 
     // *** PING IPv6 ***
     PingHelper ping(ap1ap2Interfaces.GetAddress(0, 1)); // endereço global do nó
@@ -195,14 +213,6 @@ main(int argc, char* argv[])
     // Ipv6GlobalRoutingHelper::PopulateRoutingTables();
 
     Simulator::Stop(Seconds(120.0));
-
-    // if (tracing)
-    // {
-    //     phy1.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
-    //     pointToPoint.EnablePcapAll("third");
-    //     phy1.EnablePcap("third", csmaDevices2.Get(0));
-    //     csma.EnablePcap("third", csmaDevices.Get(0), true);
-    // }
 
     Simulator::Run();
     Simulator::Destroy();
