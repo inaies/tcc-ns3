@@ -1,0 +1,10 @@
+vboxuser@ubuntu:~/Downloads/ns-allinone-3.40/ns-3.40$ ./ns3 run scratch/third_csma.cc 
+[  0%] Building CXX object scratch/CMakeFiles/scratch_third_csma.dir/third_csma.cc.o
+[  0%] Linking CXX executable /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/build/scratch/ns3.40-third_csma-default
+PING 2001:1::200:ff:fe00:1 - 512 bytes of data; 560 bytes including ICMP and IPv6 headers.
+m_seq=0
+Received Echo Reply size  = 520 bytes from 2001:1::200:ff:fe00:1 id =  48879 seq = 0 Hop Count = 64
+terminate called after throwing an instance of 'std::out_of_range'
+  what():  vector::_M_range_check: __n (which is 0) >= this->size() (which is 0)
+Command 'build/scratch/ns3.40-third_csma-default' died with <Signals.SIGABRT: 6>.
+

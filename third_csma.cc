@@ -76,86 +76,16 @@ main(int argc, char* argv[])
     NetDeviceContainer csmaDevices3;
     csmaDevices3 = csma.Install(csmaNodes3);
 
-    // NodeContainer wifiStaNodes;
-    // wifiStaNodes.Create(nWifi);
 
-    // NodeContainer wifiStaNodes2;
-    // wifiStaNodes2.Create(nWifi);
-
-    // NodeContainer wifiApNode = p2pNodes.Get(0);
-    // NodeContainer wifiApNode2 = p2pNodes.Get(2);
-
-    // Dois canais Wi-Fi separados
-    YansWifiChannelHelper channel1 = YansWifiChannelHelper::Default();
-    YansWifiPhyHelper phy1;
-    phy1.SetChannel(channel1.Create());
-
-    YansWifiChannelHelper channel2 = YansWifiChannelHelper::Default();
-    YansWifiPhyHelper phy2;
-    phy2.SetChannel(channel2.Create());
-
-    // WifiMacHelper mac;
-    // WifiHelper wifi;
-
-    // Ssid ssid1 = Ssid("ns-3-ssid-1");
-    // Ssid ssid2 = Ssid("ns-3-ssid-2");
-
-    // // --- Primeira rede Wi-Fi ---
-    // NetDeviceContainer staDevices;
-    // mac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid1), "ActiveProbing", BooleanValue(false));
-    // staDevices = wifi.Install(phy1, mac, wifiStaNodes);
-
-    // NetDeviceContainer apDevices;
-    // mac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid1));
-    // apDevices = wifi.Install(phy1, mac, wifiApNode);
-
-    // // --- Segunda rede Wi-Fi ---
-    // NetDeviceContainer staDevices2;
-    // mac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid2), "ActiveProbing", BooleanValue(false));
-    // staDevices2 = wifi.Install(phy2, mac, wifiStaNodes2);
-
-    // NetDeviceContainer apDevices2;
-    // mac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid2));
-    // apDevices2 = wifi.Install(phy2, mac, wifiApNode2);
-
-    // Mobilidade
-    // MobilityHelper mobility;
-    // mobility.SetPositionAllocator("ns3::GridPositionAllocator",
-    //                               "MinX", DoubleValue(0.0),
-    //                               "MinY", DoubleValue(0.0),
-    //                               "DeltaX", DoubleValue(5.0),
-    //                               "DeltaY", DoubleValue(10.0),
-    //                               "GridWidth", UintegerValue(3),
-    //                               "LayoutType", StringValue("RowFirst"));
-
-    // mobility.SetMobilityModel("ns3::RandomWalk2dMobilityModel",
-    //                           "Bounds", RectangleValue(Rectangle(-50, 50, -50, 50)));
-    // mobility.Install(wifiStaNodes);
-    // mobility.Install(wifiStaNodes2);
-
-    // mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
-    // mobility.Install(wifiApNode);
-    // mobility.Install(wifiApNode2);
-
-
-    // RipNgHelper ripNg;
-    // Ipv6ListRoutingHelper listRh;
     Ipv6StaticRoutingHelper ipv6RoutingHelper;
-    // listRh.Add(ripNg, 0);
-    // listRh.Add(ipv6RoutingHelper, 5);
 
-    // InternetStackHelper stack;
     // *** PILHA IPv6 ***
     InternetStackHelper stack;
-    // stack.SetRoutingHelper(listRh);    
     stack.SetRoutingHelper(ipv6RoutingHelper);
     stack.Install(csmaNodes);
     stack.Install(csmaNodes2);
     stack.Install(csmaNodes3);
-    // stack.Install(wifiApNode);
-    // stack.Install(wifiApNode2);
-    // stack.Install(wifiStaNodes);
-    // stack.Install(wifiStaNodes2);
+
 
     // *** ENDEREÇAMENTO IPv6 ***
     Ipv6AddressHelper address;
@@ -209,37 +139,30 @@ main(int argc, char* argv[])
         sr->SetDefaultRoute(csmaInterfaces3.GetAddress(0,1), 1);
     }
 
+    Ptr<Ipv6> ipv6Ap1 = p2pNodes.Get(0)->GetObject<Ipv6>();
+    Ptr<Ipv6StaticRouting> srAp1 = ipv6RoutingHelper.GetStaticRouting(ipv6Ap1);
 
-    // for (uint32_t i = 0; i < wifiStaNodes.GetN(); i++)
-    // {
-    //     Ptr<Ipv6> ipv6 = wifiStaNodes.Get(i)->GetObject<Ipv6>();
-    //     Ptr<Ipv6StaticRouting> sr = ipv6RoutingHelper.GetStaticRouting(ipv6);
-    //     uint32_t ifSta = ipv6->GetInterfaceForDevice(staDevices.Get(i));
-    //     sr->SetDefaultRoute(apInterfaces.GetAddress(0,1), ifSta);
-    // }
+    srAp1->AddNetworkRouteTo(Ipv6Address("2001:3::"), Ipv6Prefix(64),
+                            ap1ap2Interfaces.GetAddress(1,1), ipv6Ap1->GetInterfaceForDevice(ap1ap2.Get(0)));
 
-    // for (uint32_t i = 0; i < wifiStaNodes2.GetN(); i++)
-    // {
-    //     Ptr<Ipv6> ipv6 = wifiStaNodes2.Get(i)->GetObject<Ipv6>();
-    //     Ptr<Ipv6StaticRouting> sr = ipv6RoutingHelper.GetStaticRouting(ipv6);
-    //     uint32_t ifSta2 = ipv6->GetInterfaceForDevice(staDevices2.Get(i));
-    //     sr->SetDefaultRoute(apInterfaces2.GetAddress(0,1), ifSta2);
-    // }
+    srAp1->AddNetworkRouteTo(Ipv6Address("2001:4::"), Ipv6Prefix(64),
+                            ap1ap3Interfaces.GetAddress(1,1), ipv6Ap1->GetInterfaceForDevice(ap1ap3.Get(0)));
 
-    // AP1 →rota para rede CSMA (2001:2::/64)
-    // Ptr<Ipv6> ipv6Ap1 = wifiApNode.Get(0)->GetObject<Ipv6>();
-    // uint32_t ifAp1ToAp2 = ipv6Ap1->GetInterfaceForDevice(ap1ap2.Get(0));
-    // Ptr<Ipv6StaticRouting> srAp1 = ipv6RoutingHelper.GetStaticRouting(ipv6Ap1);
-    // // srAp1->SetDefaultRoute(ap1ap2Interfaces.GetAddress(1,1), ifAp1ToAp2);
-    // srAp1->AddNetworkRouteTo(Ipv6Address("2001:2::"), Ipv6Prefix(64),
-    //                             ap1ap2Interfaces.GetAddress(1,1), 1);
+    Ptr<Ipv6> ipv6Ap2 = p2pNodes.Get(1)->GetObject<Ipv6>();
+    Ptr<Ipv6StaticRouting> srAp2 = ipv6RoutingHelper.GetStaticRouting(ipv6Ap2);
 
-    // // AP2 → rota de volta para a rede do STA via AP1
-    // Ptr<Ipv6> ipv6Ap2 = p2pNodes.Get(1)->GetObject<Ipv6>();
-    // uint32_t ifAp2ToAp1 = ipv6Ap1->GetInterfaceForDevice(ap1ap2.Get(1));
-    // Ptr<Ipv6StaticRouting> srAp2 = ipv6RoutingHelper.GetStaticRouting(ipv6Ap2);
-    // srAp2->AddNetworkRouteTo(Ipv6Address("2001:3::"), Ipv6Prefix(64),
-    //                             ap1ap2Interfaces.GetAddress(0,1), 1);
+    srAp2->AddNetworkRouteTo(Ipv6Address("2001:2::"), Ipv6Prefix(64),
+                            ap1ap2Interfaces.GetAddress(0,1), ipv6Ap1->GetInterfaceForDevice(ap1ap2.Get(1)));
+    srAp2->AddNetworkRouteTo(Ipv6Address("2001:4::"), Ipv6Prefix(64),
+                            ap2ap3Interfaces.GetAddress(1,1), ipv6Ap1->GetInterfaceForDevice(ap2ap3.Get(0)));
+
+    Ptr<Ipv6> ipv6Ap3 = p2pNodes.Get(2)->GetObject<Ipv6>();
+    Ptr<Ipv6StaticRouting> srAp3 = ipv6RoutingHelper.GetStaticRouting(ipv6Ap3);
+
+    srAp3->AddNetworkRouteTo(Ipv6Address("2001:2::"), Ipv6Prefix(64),
+                            ap1ap3Interfaces.GetAddress(0,1), ipv6Ap1->GetInterfaceForDevice(ap1ap3.Get(1)));
+    srAp3->AddNetworkRouteTo(Ipv6Address("2001:3::"), Ipv6Prefix(64),
+                            ap2ap3Interfaces.GetAddress(0,1), ipv6Ap1->GetInterfaceForDevice(ap2ap3.Get(1)));
 
     // *** PING IPv6 ***
     PingHelper ping(ap1ap2Interfaces.GetAddress(0, 1)); // endereço global do nó
@@ -250,16 +173,6 @@ main(int argc, char* argv[])
     ApplicationContainer pingApp = ping.Install(csmaNodes.Get(0));
     pingApp.Start(Seconds(30.0));
     pingApp.Stop(Seconds(110.0));
-
-
-    // for (uint32_t i = 0; i < NodeList::GetNNodes(); i++)
-    // {
-    //     Ptr<Node> node = NodeList::GetNode(i);
-    //     Ptr<OutputStreamWrapper> routingStream = 
-    //         Create<OutputStreamWrapper> ("routing-" + std::to_string(i) + ".txt", std::ios::out);
-        
-    //     ipv6RoutingHelper.PrintRoutingTableAt (Seconds (100.0), node, routingStream);
-    // }
 
 
 //   Wifi 2001:3::
@@ -283,13 +196,13 @@ main(int argc, char* argv[])
 
     Simulator::Stop(Seconds(120.0));
 
-    if (tracing)
-    {
-        phy1.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
-        pointToPoint.EnablePcapAll("third");
-        phy1.EnablePcap("third", csmaDevices2.Get(0));
-        csma.EnablePcap("third", csmaDevices.Get(0), true);
-    }
+    // if (tracing)
+    // {
+    //     phy1.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
+    //     pointToPoint.EnablePcapAll("third");
+    //     phy1.EnablePcap("third", csmaDevices2.Get(0));
+    //     csma.EnablePcap("third", csmaDevices.Get(0), true);
+    // }
 
     Simulator::Run();
     Simulator::Destroy();
