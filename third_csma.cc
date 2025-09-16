@@ -183,12 +183,12 @@ main(int argc, char* argv[])
                             ap2ap3Interfaces.GetAddress(0,1), ipv6Ap3->GetInterfaceForDevice(ap2ap3.Get(1)));
 
     // *** PING IPv6 ***
-    PingHelper ping(ap1ap2Interfaces.GetAddress(0, 1)); // endereço global do nó
+    PingHelper ping(csmaInterfaces2.GetAddress(0, 1)); // endereço global do nó
     ping.SetAttribute("Interval", TimeValue(Seconds(1.0)));
     ping.SetAttribute("Size", UintegerValue(512));
     ping.SetAttribute("Count", UintegerValue(10));
 
-    ApplicationContainer pingApp = ping.Install(csmaNodes.Get(0));
+    ApplicationContainer pingApp = ping.Install(csmaNodes3.Get(0));
     pingApp.Start(Seconds(30.0));
     pingApp.Stop(Seconds(110.0));
 
