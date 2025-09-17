@@ -54,12 +54,12 @@ main(int argc, char* argv[])
     csma.SetChannelAttribute("DataRate", StringValue("100Mbps"));
     csma.SetChannelAttribute("Delay", TimeValue(NanoSeconds(6560)));
 
-    NodeContainer csmaNodes;
-    csmaNodes.Add(p2pNodes.Get(0));
-    csmaNodes.Create(nCsma);
+    NodeContainer csmaNodes1;
+    csmaNodes1.Add(p2pNodes.Get(0));
+    csmaNodes1.Create(nCsma);
 
-    NetDeviceContainer csmaDevices;
-    csmaDevices = csma.Install(csmaNodes);
+    NetDeviceContainer csmaDevices1;
+    csmaDevices1 = csma.Install(csmaNodes1);
 
     NodeContainer csmaNodes2;
     csmaNodes2.Add(p2pNodes.Get(1));
@@ -81,7 +81,7 @@ main(int argc, char* argv[])
     // *** PILHA IPv6 ***
     InternetStackHelper stack;
     stack.SetRoutingHelper(ipv6RoutingHelper);
-    stack.Install(csmaNodes);
+    stack.Install(csmaNodes1);
     stack.Install(csmaNodes2);
     stack.Install(csmaNodes3);
 
@@ -107,18 +107,20 @@ main(int argc, char* argv[])
         }
     }
 
-
     address.SetBase(Ipv6Address("2001:2::"), Ipv6Prefix(64));
-    Ipv6InterfaceContainer csmaInterfaces = address.Assign(csmaDevices);
-    csmaInterfaces.SetForwarding(0, true);
+    Ipv6InterfaceContainer csmaInterfaces1 = address.Assign(csmaDevices1);
+    csmaInterfaces1.SetForwarding(0, true);
+    csmaInterfaces1.SetDefaultRouteInAllNodes(0);
 
     address.SetBase(Ipv6Address("2001:3::"), Ipv6Prefix(64));
     Ipv6InterfaceContainer csmaInterfaces2 = address.Assign(csmaDevices2);
     csmaInterfaces2.SetForwarding(0, true);
+    csmaInterfaces2.SetDefaultRouteInAllNodes(0);
 
     address.SetBase(Ipv6Address("2001:4::"), Ipv6Prefix(64));
     Ipv6InterfaceContainer csmaInterfaces3 = address.Assign(csmaDevices3);
     csmaInterfaces3.SetForwarding(0, true);
+    csmaInterfaces3.SetDefaultRouteInAllNodes(0);
 
     address.SetBase(Ipv6Address("2001:5::"), Ipv6Prefix(64));
     Ipv6InterfaceContainer ap1ap3Interfaces = address.Assign(ap1ap3);
@@ -126,7 +128,6 @@ main(int argc, char* argv[])
     ap1ap3Interfaces.SetForwarding(1, true);
     ap1ap3Interfaces.SetDefaultRouteInAllNodes(1);
     ap1ap3Interfaces.SetDefaultRouteInAllNodes(1);
-
 
     address.SetBase(Ipv6Address("2001:6::"), Ipv6Prefix(64));
     Ipv6InterfaceContainer ap2ap3Interfaces = address.Assign(ap2ap3);
@@ -136,11 +137,11 @@ main(int argc, char* argv[])
     ap2ap3Interfaces.SetDefaultRouteInAllNodes(1);
 
 
-    for (uint32_t i = 1; i < csmaNodes.GetN(); i++)
+    for (uint32_t i = 1; i < csmaNodes1.GetN(); i++)
     {
-        Ptr<Ipv6> ipv6 = csmaNodes.Get(i)->GetObject<Ipv6>();
+        Ptr<Ipv6> ipv6 = csmaNodes1.Get(i)->GetObject<Ipv6>();
         Ptr<Ipv6StaticRouting> sr = ipv6RoutingHelper.GetStaticRouting(ipv6);
-        sr->SetDefaultRoute(csmaInterfaces.GetAddress(0,1), 1);
+        sr->SetDefaultRoute(csmaInterfaces1.GetAddress(0,1), 1);
     }
 
     for (uint32_t i = 1; i < csmaNodes2.GetN(); i++)
@@ -183,12 +184,12 @@ main(int argc, char* argv[])
                             ap2ap3Interfaces.GetAddress(0,1), ipv6Ap3->GetInterfaceForDevice(ap2ap3.Get(1)));
 
     // *** PING IPv6 ***
-    PingHelper ping(csmaInterfaces2.GetAddress(0, 1)); // endereço global do nó
+    PingHelper ping(ap1ap2Interfaces.GetAddress(1, 1)); // endereço global do nó
     ping.SetAttribute("Interval", TimeValue(Seconds(1.0)));
     ping.SetAttribute("Size", UintegerValue(512));
     ping.SetAttribute("Count", UintegerValue(10));
 
-    ApplicationContainer pingApp = ping.Install(csmaNodes3.Get(0));
+    ApplicationContainer pingApp = ping.Install(csmaNodes1.Get(1));
     pingApp.Start(Seconds(30.0));
     pingApp.Stop(Seconds(110.0));
 
