@@ -20,8 +20,8 @@ main(int argc, char* argv[])
     LogComponentEnable("Ping", LOG_LEVEL_INFO);
 
     bool verbose = true;
-    uint32_t nCsma = 3;
-    uint32_t nWifi = 3;
+    uint32_t nCsma = 20;
+    uint32_t nWifi = 13;
     bool tracing = false;
 
     CommandLine cmd(__FILE__);
@@ -35,12 +35,12 @@ main(int argc, char* argv[])
     // The underlying restriction of 18 is due to the grid position
     // allocator's configuration; the grid layout will exceed the
     // bounding box if more than 18 nodes are provided.
-    if (nWifi > 18)
-    {
-        std::cout << "nWifi should be 18 or less; otherwise grid layout exceeds the bounding box"
-                  << std::endl;
-        return 1;
-    }
+    // if (nWifi > 18)
+    // {
+    //     std::cout << "nWifi should be 18 or less; otherwise grid layout exceeds the bounding box"
+    //               << std::endl;
+    //     return 1;
+    // }
 
     if (verbose)
     {
@@ -122,17 +122,17 @@ main(int argc, char* argv[])
                                   "MinY",
                                   DoubleValue(0.0),
                                   "DeltaX",
-                                  DoubleValue(5.0),
+                                  DoubleValue(10.0),
                                   "DeltaY",
                                   DoubleValue(10.0),
                                   "GridWidth",
-                                  UintegerValue(3),
+                                  UintegerValue(20),
                                   "LayoutType",
                                   StringValue("RowFirst"));
 
     mobility.SetMobilityModel("ns3::RandomWalk2dMobilityModel",
                               "Bounds",
-                              RectangleValue(Rectangle(-50, 50, -50, 50)));
+                              RectangleValue(Rectangle(-400, 400, -400, 400)));
     mobility.Install(wifiStaNodes);
     mobility.Install(wifiStaNodes2);
 
@@ -157,46 +157,63 @@ main(int argc, char* argv[])
     Ipv4InterfaceContainer csmaInterfaces = address.Assign(csmaDevices);
 
     // *** CORRIGIR AQUI: sub-rede válida para a 1ª rede Wi-Fi ***
-    address.SetBase("10.1.4.0", "255.255.255.0");
+    address.SetBase("10.1.3.0", "255.255.255.0");
     Ipv4InterfaceContainer wifiInterfaces = address.Assign(staDevices);
     Ipv4InterfaceContainer apInterfaces   = address.Assign(apDevices);
 
     // 2ª rede Wi-Fi fica em outra sub-rede (já estava ok)
-    address.SetBase("10.1.3.0", "255.255.255.0");
+    address.SetBase("10.1.4.0", "255.255.255.0");
     Ipv4InterfaceContainer wifiInterfaces2 = address.Assign(staDevices2);
     Ipv4InterfaceContainer apInterfaces2   = address.Assign(apDevices2);
 
     // p2p restantes como estavam
-    address.SetBase("10.1.11.0", "255.255.255.0");
+    address.SetBase("10.1.5.0", "255.255.255.0");
     Ipv4InterfaceContainer ap1ap3Interfaces = address.Assign(ap1ap3);
 
-    address.SetBase("10.1.12.0", "255.255.255.0");
+    address.SetBase("10.1.6.0", "255.255.255.0");
     Ipv4InterfaceContainer ap2ap3Interfaces = address.Assign(ap2ap3);
 
-    PingHelper ping(ap2ap3Interfaces.GetAddress(1));
-    ping.SetAttribute("Interval", TimeValue(Seconds(1.0)));
-    ping.SetAttribute("Size", UintegerValue(512));
-    ping.SetAttribute("Count", UintegerValue(10));
+//   Wifi 10:1:3:0
+//                 AP
+//  *    *    *    *     ap1ap2
+//  |    |    |    |     10:1:1:0
+// n5   n6   n7   n0 -------------- n1   n2   n3   n4
+//                   point-to-point  |    |    |    |
+//                  |                ================
+//        10:1:5:0  |               |  LAN 2001:2:: - CSMA
+//        ap1ap3    |               |  
+//                  |               |   10:1:6:0
+//                  |               |  ap2ap3
+// Wifi2 10:1:4:0   |               |  
+//                 AP               | 
+//  *    *    *    *                |
+//  |    |    |    |                |
+// n5   n6   n7   n0 -------------- |
 
-    // Ptr<Node> apNode = ap1.Get(0);
-    ApplicationContainer pingApp = ping.Install(csmaNodes.Get(0));
-    pingApp.Start(Seconds(30.0));
-    pingApp.Stop(Seconds(110.0));
+    // PingHelper ping(wifiInterfaces2.GetAddress(0));
+    // ping.SetAttribute("Interval", TimeValue(Seconds(1.0)));
+    // ping.SetAttribute("Size", UintegerValue(512));
+    // ping.SetAttribute("Count", UintegerValue(10));
 
-    // UdpEchoServerHelper echoServer(9);
+    // // Ptr<Node> apNode = ap1.Get(0);
+    // ApplicationContainer pingApp = ping.Install(csmaNodes.Get(0));
+    // pingApp.Start(Seconds(30.0));
+    // pingApp.Stop(Seconds(110.0));
 
-    // ApplicationContainer serverApps = echoServer.Install(csmaNodes.Get(nCsma));
-    // serverApps.Start(Seconds(1.0));
-    // serverApps.Stop(Seconds(10.0));
+    UdpEchoServerHelper echoServer(9);
 
-    // UdpEchoClientHelper echoClient(csmaInterfaces.GetAddress(nCsma), 9);
-    // echoClient.SetAttribute("MaxPackets", UintegerValue(1));
-    // echoClient.SetAttribute("Interval", TimeValue(Seconds(1.0)));
-    // echoClient.SetAttribute("PacketSize", UintegerValue(1024));
+    ApplicationContainer serverApps = echoServer.Install(csmaNodes.Get(0));
+    serverApps.Start(Seconds(1.0));
+    serverApps.Stop(Seconds(10.0));
 
-    // ApplicationContainer clientApps = echoClient.Install(wifiStaNodes.Get(nWifi - 1));
-    // clientApps.Start(Seconds(2.0));
-    // clientApps.Stop(Seconds(10.0));
+    UdpEchoClientHelper echoClient(csmaInterfaces.GetAddress(0), 9);
+    echoClient.SetAttribute("MaxPackets", UintegerValue(1));
+    echoClient.SetAttribute("Interval", TimeValue(Seconds(1.0)));
+    echoClient.SetAttribute("PacketSize", UintegerValue(1024));
+
+    ApplicationContainer clientApps = echoClient.Install(wifiStaNodes.Get(2));
+    clientApps.Start(Seconds(2.0));
+    clientApps.Stop(Seconds(10.0));
 
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
