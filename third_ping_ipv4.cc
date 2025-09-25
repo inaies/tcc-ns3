@@ -21,7 +21,7 @@ main(int argc, char* argv[])
 
     bool verbose = true;
     uint32_t nCsma = 200;
-    uint32_t nWifi = 80;
+    uint32_t nWifi = 200;
     bool tracing = false;
 
     CommandLine cmd(__FILE__);
@@ -84,18 +84,18 @@ main(int argc, char* argv[])
     // Troque o bloco de canal/phy único por DOIS canais/phys:
     YansWifiChannelHelper channel1 = YansWifiChannelHelper::Default();
     YansWifiPhyHelper     phy1;
-    // phy1.Set("TxPowerStart", DoubleValue(20.0));
-    // phy1.Set("TxPowerEnd", DoubleValue(20.0));
-    // phy1.Set("RxGain", DoubleValue(0));
-    // phy1.Set("CcaEdThreshold", DoubleValue(-62.0));
+    phy1.Set("TxPowerStart", DoubleValue(20.0));
+    phy1.Set("TxPowerEnd", DoubleValue(20.0));
+    phy1.Set("RxGain", DoubleValue(0));
+    phy1.Set("CcaEdThreshold", DoubleValue(-62.0));
     phy1.SetChannel(channel1.Create());
 
     YansWifiChannelHelper channel2 = YansWifiChannelHelper::Default();
     YansWifiPhyHelper     phy2;
-    // phy2.Set("TxPowerStart", DoubleValue(20.0));
-    // phy2.Set("TxPowerEnd", DoubleValue(20.0));
-    // phy2.Set("RxGain", DoubleValue(0));
-    // phy2.Set("CcaEdThreshold", DoubleValue(-62.0));
+    phy2.Set("TxPowerStart", DoubleValue(20.0));
+    phy2.Set("TxPowerEnd", DoubleValue(20.0));
+    phy2.Set("RxGain", DoubleValue(0));
+    phy2.Set("CcaEdThreshold", DoubleValue(-62.0));
     phy2.SetChannel(channel2.Create());
 
     WifiMacHelper mac;
@@ -123,21 +123,19 @@ main(int argc, char* argv[])
     apDevices2 = wifi.Install(phy2, mac, wifiApNode2);
 
     MobilityHelper mobility;
+    Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator>();
+    // positionAlloc->Add(Vector(10 + 5, 0.0, 0.0));
+    // positionAlloc->Add(Vector(20 + 5, 0.0, 0.0));
 
-    mobility.SetPositionAllocator("ns3::GridPositionAllocator",
-                                  "MinX",
-                                  DoubleValue(0.0),
-                                  "MinY",
-                                  DoubleValue(0.0),
-                                  "DeltaX",
-                                  DoubleValue(10.0),
-                                  "DeltaY",
-                                  DoubleValue(10.0),
-                                  "GridWidth",
-                                  UintegerValue(20),
-                                  "LayoutType",
-                                  StringValue("RowFirst"));
-
+    
+    for (uint32_t i = 0; i < 200; i++)
+    {
+        double x = (i % 10) * 10.0;
+        double y = (i / 10) * 10.0;
+        positionAlloc->Add(Vector(x, y, 0.0));
+    }
+    
+    mobility.SetPositionAllocator(positionAlloc);
 
     mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
     mobility.Install(wifiStaNodes);
