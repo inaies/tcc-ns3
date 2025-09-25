@@ -20,8 +20,8 @@ main(int argc, char* argv[])
     LogComponentEnable("Ping", LOG_LEVEL_INFO);
 
     bool verbose = true;
-    uint32_t nCsma = 20;
-    uint32_t nWifi = 13;
+    uint32_t nCsma = 200;
+    uint32_t nWifi = 80;
     bool tracing = false;
 
     CommandLine cmd(__FILE__);
@@ -75,7 +75,7 @@ main(int argc, char* argv[])
     wifiStaNodes.Create(nWifi);
 
     NodeContainer wifiStaNodes2;
-    wifiStaNodes2.Create(nWifi);
+    wifiStaNodes2.Create(16);
 
     NodeContainer wifiApNode = p2pNodes.Get(0);
 
@@ -84,10 +84,18 @@ main(int argc, char* argv[])
     // Troque o bloco de canal/phy único por DOIS canais/phys:
     YansWifiChannelHelper channel1 = YansWifiChannelHelper::Default();
     YansWifiPhyHelper     phy1;
+    // phy1.Set("TxPowerStart", DoubleValue(20.0));
+    // phy1.Set("TxPowerEnd", DoubleValue(20.0));
+    // phy1.Set("RxGain", DoubleValue(0));
+    // phy1.Set("CcaEdThreshold", DoubleValue(-62.0));
     phy1.SetChannel(channel1.Create());
 
     YansWifiChannelHelper channel2 = YansWifiChannelHelper::Default();
     YansWifiPhyHelper     phy2;
+    // phy2.Set("TxPowerStart", DoubleValue(20.0));
+    // phy2.Set("TxPowerEnd", DoubleValue(20.0));
+    // phy2.Set("RxGain", DoubleValue(0));
+    // phy2.Set("CcaEdThreshold", DoubleValue(-62.0));
     phy2.SetChannel(channel2.Create());
 
     WifiMacHelper mac;
@@ -130,13 +138,11 @@ main(int argc, char* argv[])
                                   "LayoutType",
                                   StringValue("RowFirst"));
 
-    mobility.SetMobilityModel("ns3::RandomWalk2dMobilityModel",
-                              "Bounds",
-                              RectangleValue(Rectangle(-400, 400, -400, 400)));
+
+    mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
     mobility.Install(wifiStaNodes);
     mobility.Install(wifiStaNodes2);
 
-    mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
     mobility.Install(wifiApNode);
     mobility.Install(wifiApNode2);
 
@@ -204,16 +210,16 @@ main(int argc, char* argv[])
 
     ApplicationContainer serverApps = echoServer.Install(csmaNodes.Get(0));
     serverApps.Start(Seconds(1.0));
-    serverApps.Stop(Seconds(10.0));
+    serverApps.Stop(Seconds(50.0));
 
     UdpEchoClientHelper echoClient(csmaInterfaces.GetAddress(0), 9);
     echoClient.SetAttribute("MaxPackets", UintegerValue(1));
     echoClient.SetAttribute("Interval", TimeValue(Seconds(1.0)));
     echoClient.SetAttribute("PacketSize", UintegerValue(1024));
 
-    ApplicationContainer clientApps = echoClient.Install(wifiStaNodes.Get(2));
+    ApplicationContainer clientApps = echoClient.Install(wifiStaNodes.Get(0));
     clientApps.Start(Seconds(2.0));
-    clientApps.Stop(Seconds(10.0));
+    clientApps.Stop(Seconds(50.0));
 
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
