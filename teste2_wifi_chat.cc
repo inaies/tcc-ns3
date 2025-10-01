@@ -30,9 +30,14 @@ CreateGridPositionAllocator (uint32_t nNodes, double spacing, double offsetX, do
 int
 main (int argc, char *argv[])
 {
-  bool tracing = false;
-  uint32_t nWifi = 80; // per network (default). Change via --nWifi
+  bool tracing = true;
+  uint32_t nWifi = 150; // per network (default). Change via --nWifi
   uint32_t nAp = 3;    // number of APs / networks
+
+  LogComponentEnable("Ping", LOG_LEVEL_INFO);
+
+  LogComponentEnable("UdpEchoClientApplication", LOG_LEVEL_INFO);
+  LogComponentEnable("UdpEchoServerApplication", LOG_LEVEL_INFO);
 
   CommandLine cmd;
   cmd.AddValue ("nWifi", "Number of WiFi STA nodes per network", nWifi);
@@ -69,20 +74,19 @@ main (int argc, char *argv[])
 
   // Create independent channels and phys for each Wi-Fi network
   YansWifiChannelHelper channel1 = YansWifiChannelHelper::Default ();
-  YansWifiPhyHelper phy1 = YansWifiPhyHelper::Default ();
+  YansWifiPhyHelper phy1;
   phy1.SetChannel (channel1.Create ());
 
   YansWifiChannelHelper channel2 = YansWifiChannelHelper::Default ();
-  YansWifiPhyHelper phy2 = YansWifiPhyHelper::Default ();
+  YansWifiPhyHelper phy2;
   phy2.SetChannel (channel2.Create ());
 
   YansWifiChannelHelper channel3 = YansWifiChannelHelper::Default ();
-  YansWifiPhyHelper phy3 = YansWifiPhyHelper::Default ();
+  YansWifiPhyHelper phy3;
   phy3.SetChannel (channel3.Create ());
 
   // Wifi helpers & MAC config (reuse WifiHelper but different phys)
-  WifiHelper wifi = WifiHelper::Default ();
-  wifi.SetStandard (WIFI_PHY_STANDARD_80211g);
+  WifiHelper wifi;
 
   WifiMacHelper mac;
   Ssid ssid1 = Ssid ("net-ssid-1");
@@ -196,8 +200,8 @@ main (int argc, char *argv[])
   serverApps.Stop (Seconds (50.0));
 
   UdpEchoClientHelper echoClient (ifSta3.GetAddress (0), 9);
-  echoClient.SetAttribute ("MaxPackets", UintegerValue (2));
-  echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
+  echoClient.SetAttribute ("MaxPackets", UintegerValue (1));
+  echoClient.SetAttribute ("Interval", TimeValue (Seconds (10.0)));
   echoClient.SetAttribute ("PacketSize", UintegerValue (64));
 
   // ping some STAs from net1 and net2 to the server on net3
@@ -205,9 +209,9 @@ main (int argc, char *argv[])
   clientApps1.Start (Seconds (2.0));
   clientApps1.Stop (Seconds (50.0));
 
-  ApplicationContainer clientApps2 = echoClient.Install (staNet2.Get (0));
-  clientApps2.Start (Seconds (2.5));
-  clientApps2.Stop (Seconds (50.0));
+  // ApplicationContainer clientApps2 = echoClient.Install (staNet2.Get (0));
+  // clientApps2.Start (Seconds (2.5));
+  // clientApps2.Stop (Seconds (50.0));
 
   // optional pcap tracing for debugging (be careful: many STAs => big pcap)
   if (tracing)
