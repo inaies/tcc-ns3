@@ -31,7 +31,7 @@ int
 main (int argc, char *argv[])
 {
   bool tracing = true;
-  uint32_t nWifi = 150; // per network (default). Change via --nWifi
+  uint32_t nWifi = 120; // per network (default). Change via --nWifi
   uint32_t nAp = 3;    // number of APs / networks
 
   LogComponentEnable("Ping", LOG_LEVEL_INFO);
@@ -200,14 +200,19 @@ main (int argc, char *argv[])
   serverApps.Stop (Seconds (50.0));
 
   UdpEchoClientHelper echoClient (ifSta3.GetAddress (0), 9);
-  echoClient.SetAttribute ("MaxPackets", UintegerValue (1));
-  echoClient.SetAttribute ("Interval", TimeValue (Seconds (10.0)));
+  echoClient.SetAttribute ("MaxPackets", UintegerValue (2));
+  echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
   echoClient.SetAttribute ("PacketSize", UintegerValue (64));
 
   // ping some STAs from net1 and net2 to the server on net3
-  ApplicationContainer clientApps1 = echoClient.Install (staNet1.Get (0));
+  ApplicationContainer clientApps1 = echoClient.Install (staNet1.Get (5));
   clientApps1.Start (Seconds (2.0));
   clientApps1.Stop (Seconds (50.0));
+
+    Ptr<Node> n1 = staNet1.Get(5);
+    Ptr<Ipv4> ipv41 = n1->GetObject<Ipv4>();
+
+  Simulator::Schedule(Seconds(2), &Ipv4::SetDown, ipv41, 1);
 
   // ApplicationContainer clientApps2 = echoClient.Install (staNet2.Get (0));
   // clientApps2.Start (Seconds (2.5));
