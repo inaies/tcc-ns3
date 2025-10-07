@@ -57,6 +57,15 @@ main(int argc, char* argv[])
     // *** SUBSTITUIÇÃO CSMA POR WiFi 3 ***
     // --------------------------------------------------------------------------------
 
+    NodeContainer wifiStaNodes1;
+    wifiStaNodes1.Create(nWifi);
+
+    NodeContainer wifiStaNodes2;
+    wifiStaNodes2.Create(nWifi);
+
+    NodeContainer wifiApNode = p2pNodes.Get(0);
+    NodeContainer wifiApNode2 = p2pNodes.Get(2);
+
     // 1. Criar nós STA para a nova WiFi 3
     NodeContainer wifiStaNodes3;
     wifiStaNodes3.Create(nWifiCsma); // nCsma agora são STAs
@@ -87,7 +96,7 @@ main(int argc, char* argv[])
     // WiFi 1 (AP1)
     NetDeviceContainer staDevices1;
     mac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid1), "ActiveProbing", BooleanValue(false));
-    staDevices1 = wifi.Install(phy1, mac, wifiStaNodes); // Renomeado para staDevices1
+    staDevices1 = wifi.Install(phy1, mac, wifiStaNodes1); // Renomeado para staDevices1
 
     NetDeviceContainer apDevices1;
     mac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid1));
@@ -121,7 +130,7 @@ main(int argc, char* argv[])
 
     mobility.SetMobilityModel("ns3::RandomWalk2dMobilityModel",
                               "Bounds", RectangleValue(Rectangle(-50, 50, -50, 50)));
-    mobility.Install(wifiStaNodes);
+    mobility.Install(wifiStaNodes1);
     mobility.Install(wifiStaNodes2);
     mobility.Install(wifiStaNodes3); // Instalar mobilidade nos novos nós
 
@@ -148,7 +157,7 @@ main(int argc, char* argv[])
     InternetStackHelper staStack;
     staStack.SetRoutingHelper(ipv6StaticRouting);
 
-    staStack.Install(wifiStaNodes);
+    staStack.Install(wifiStaNodes1);
     staStack.Install(wifiStaNodes2);
     staStack.Install(wifiStaNodes3); // Instalar nos novos STAs
     
@@ -183,8 +192,26 @@ main(int argc, char* argv[])
     for (uint32_t i = 0; i < p2pNodes.GetN(); ++i)
     {
         Ptr<Ipv6> ipv6 = p2pNodes.Get(i)->GetObject<Ipv6>();
-        ipv6->SetForwarding(true);
+        ipv6->SetForwarding(0, true);
     }
+
+//   Wifi 2001:3::
+//                 AP
+//  *    *    *    *     ap1ap2
+//  |    |    |    |    2001:1::
+// n5   n6   n7   n0 -------------- n1   n2   n3   n4
+//                   point-to-point  |    |    |    |
+//                  |                ================
+//        2001:5::  |               |  Wifi3 2001:7:: 
+//        ap1ap3    |               |  
+//                  |               |  2001:6::
+//                  |               |  ap2ap3
+// Wifi2 2001:4::   |               |  
+//                 AP               | 
+//  *    *    *    *                |
+//  |    |    |    |                |
+// n5   n6   n7   n0 -------------- |
+
 
     // --------------------------------------------------------------------------------
     // *** CONFIGURAÇÃO DAS ROTAS ESTÁTICAS (Nós Finais) ***
@@ -192,9 +219,9 @@ main(int argc, char* argv[])
 
     // 1. Nós WiFi STA (Rede 1) apontam para o AP1 (nó 0)
     Ipv6Address ap1Addr = apInterfaces1.GetAddress(0, 1); 
-    for (uint32_t i = 0; i < wifiStaNodes.GetN(); i++)
+    for (uint32_t i = 0; i < wifiStaNodes1.GetN(); i++)
     {
-        Ptr<Ipv6> ipv6 = wifiStaNodes.Get(i)->GetObject<Ipv6>();
+        Ptr<Ipv6> ipv6 = wifiStaNodes1.Get(i)->GetObject<Ipv6>();
         Ptr<Ipv6StaticRouting> sr = ipv6StaticRouting.GetStaticRouting(ipv6);
         uint32_t ifSta = ipv6->GetInterfaceForDevice(staDevices1.Get(i));
         sr->SetDefaultRoute(ap1Addr, ifSta);
@@ -223,8 +250,13 @@ main(int argc, char* argv[])
     // *** PING IPv6: WiFi 3 -> WiFi 1 ***
     // Ping do primeiro STA da WiFi 3 (ex-CSMA) para o segundo STA da WiFi 1.
     
+    Ptr<Ipv6> ipv6 = wifiApNode.Get(0)->GetObject<Ipv6>();
+    int32_t ifIndex = ipv6->GetInterfaceForDevice(apDevices1.Get(0));
+    Simulator::Schedule(Seconds(5), &Ipv6::SetDown, ipv6, ifIndex);
+
+    
     // Endereço de destino: Endereço do segundo nó STA da Rede 1 (2001:3::)
-    Ipv6Address pingDestination = wifiInterfaces1.GetAddress(1, 1); 
+    Ipv6Address pingDestination = wifiInterfaces2.GetAddress(0, 1); 
     
     // PingHelper configurado para enviar para o endereço de destino
     PingHelper ping(pingDestination); 
@@ -233,7 +265,7 @@ main(int argc, char* argv[])
     ping.SetAttribute("Count", UintegerValue(10));
 
     // Nó Fonte: O primeiro STA da nova rede WiFi 3 (índice 0)
-    ApplicationContainer pingApp = ping.Install(wifiStaNodes3.Get(0));
+    ApplicationContainer pingApp = ping.Install(wifiStaNodes1.Get(2));
     pingApp.Start(Seconds(30.0));
     pingApp.Stop(Seconds(110.0));
 
