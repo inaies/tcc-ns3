@@ -180,7 +180,7 @@ main(int argc, char* argv[])
     for (uint32_t i = 0; i < p2pNodes.GetN(); ++i)
     {
         Ptr<Ipv6> ipv6 = p2pNodes.Get(i)->GetObject<Ipv6>();
-        ipv6->SetForwarding(true);
+        ipv6->SetForwarding(0, true);
     }
 
     // --------------------------------------------------------------------------------
@@ -218,18 +218,15 @@ main(int argc, char* argv[])
         sr->SetDefaultRoute(ap3Addr, ifSta);
     }
     
-    // Forçar a convergência do RIPng imediatamente
-    // Isso garante que os roteadores (n0, n1, n2) conheçam as rotas antes do ping.
-    Ipv6GlobalRoutingHelper::PopulateRoutingTables(); 
 
     // *** PING IPv6 ***
     // Ping do primeiro STA (Rede 1) para o nó CSMA Gateway (nó 1 da CSMA LAN)
-    PingHelper ping(csmaInterfaces.GetAddress(0, 1)); 
+    PingHelper ping(wifiInterfaces.GetAddress(1,1)); 
     ping.SetAttribute("Interval", TimeValue(Seconds(1.0)));
     ping.SetAttribute("Size", UintegerValue(512));
     ping.SetAttribute("Count", UintegerValue(10));
 
-    ApplicationContainer pingApp = ping.Install(wifiStaNodes.Get(0));
+    ApplicationContainer pingApp = ping.Install(wifiStaNodes2.Get(2));
     pingApp.Start(Seconds(30.0));
     pingApp.Stop(Seconds(110.0));
 
