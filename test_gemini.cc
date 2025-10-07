@@ -8,7 +8,7 @@
 #include "ns3/ping-helper.h"
 #include "ns3/ssid.h"
 #include "ns3/yans-wifi-helper.h"
-#include "ns3/ripng-helper.h" // Incluído para garantir o RIPng
+#include "ns3/ripng-helper.h" // Necessário para o roteamento dinâmico IPv6
 
 using namespace ns3;
 
@@ -71,7 +71,7 @@ main(int argc, char* argv[])
     NodeContainer wifiApNode = p2pNodes.Get(0);
     NodeContainer wifiApNode2 = p2pNodes.Get(2);
 
-    // Dois canais Wi-Fi separados
+    // Configuração Wi-Fi (Canais, PHY, MAC, APs e STAs)
     YansWifiChannelHelper channel1 = YansWifiChannelHelper::Default();
     YansWifiPhyHelper phy1;
     phy1.SetChannel(channel1.Create());
@@ -86,7 +86,7 @@ main(int argc, char* argv[])
     Ssid ssid1 = Ssid("ns-3-ssid-1");
     Ssid ssid2 = Ssid("ns-3-ssid-2");
 
-    // --- Primeira rede Wi-Fi ---
+    // --- Primeira rede Wi-Fi (AP1 - n0) ---
     NetDeviceContainer staDevices;
     mac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid1), "ActiveProbing", BooleanValue(false));
     staDevices = wifi.Install(phy1, mac, wifiStaNodes);
@@ -95,7 +95,7 @@ main(int argc, char* argv[])
     mac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid1));
     apDevices = wifi.Install(phy1, mac, wifiApNode);
 
-    // --- Segunda rede Wi-Fi ---
+    // --- Segunda rede Wi-Fi (AP3 - n2) ---
     NetDeviceContainer staDevices2;
     mac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid2), "ActiveProbing", BooleanValue(false));
     staDevices2 = wifi.Install(phy2, mac, wifiStaNodes2);
@@ -104,15 +104,12 @@ main(int argc, char* argv[])
     mac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid2));
     apDevices2 = wifi.Install(phy2, mac, wifiApNode2);
 
-    // Mobilidade (Configuração omitida para brevidade, mas mantida no código)
+    // Mobilidade
     MobilityHelper mobility;
     mobility.SetPositionAllocator("ns3::GridPositionAllocator",
-                                  "MinX", DoubleValue(0.0),
-                                  "MinY", DoubleValue(0.0),
-                                  "DeltaX", DoubleValue(5.0),
-                                  "DeltaY", DoubleValue(10.0),
-                                  "GridWidth", UintegerValue(3),
-                                  "LayoutType", StringValue("RowFirst"));
+                                  "MinX", DoubleValue(0.0), "MinY", DoubleValue(0.0),
+                                  "DeltaX", DoubleValue(5.0), "DeltaY", DoubleValue(10.0),
+                                  "GridWidth", UintegerValue(3), "LayoutType", StringValue("RowFirst"));
 
     mobility.SetMobilityModel("ns3::RandomWalk2dMobilityModel",
                               "Bounds", RectangleValue(Rectangle(-50, 50, -50, 50)));
@@ -124,10 +121,10 @@ main(int argc, char* argv[])
     mobility.Install(wifiApNode2);
 
     // --------------------------------------------------------------------------------
-    // *** CORREÇÃO DO ERRO: SEPARAÇÃO DE ROTAS ESTÁTICAS E DINÂMICAS ***
+    // *** INSTALAÇÃO DAS PILHAS DE ROTEAMENTO ***
     // --------------------------------------------------------------------------------
 
-    // 1. Roteadores (n0, n1, n2) usam RIPng para descobrir rotas
+    // 1. Roteadores (n0, n1, n2) usam RIPng
     RipNgHelper ripNg;
     Ipv6ListRoutingHelper listRh;
     listRh.Add(ripNg, 0);
@@ -143,8 +140,7 @@ main(int argc, char* argv[])
     InternetStackHelper staStack;
     staStack.SetRoutingHelper(ipv6StaticRouting);
 
-    // Instalar Ipv6StaticRouting nos nós finais
-    // Nós CSMA "extras" (começando do índice 1 de csmaNodes)
+    // Separar nós CSMA "extras" (começando do índice 1 de csmaNodes)
     NodeContainer csmaExtras;
     for (uint32_t i = 1; i < csmaNodes.GetN(); ++i)
     {
@@ -196,8 +192,9 @@ main(int argc, char* argv[])
     for (uint32_t i = 1; i < csmaNodes.GetN(); i++)
     {
         Ptr<Ipv6> ipv6 = csmaNodes.Get(i)->GetObject<Ipv6>();
-        Ptr<Ipv6StaticRouting> sr = ipv6StaticRouting.GetStaticRouting(ipv6);
-        // O índice 1 é a interface CSMA para os nós extras (depois da Loopback)
+        // GetStaticRouting funciona aqui porque instalamos staStack com ipv6StaticRouting
+        Ptr<Ipv6StaticRouting> sr = ipv6StaticRouting.GetStaticRouting(ipv6); 
+        // O índice 1 é a interface CSMA para os nós extras
         sr->SetDefaultRoute(csmaGatewayAddr, 1); 
     }
 
@@ -221,15 +218,12 @@ main(int argc, char* argv[])
         sr->SetDefaultRoute(ap3Addr, ifSta);
     }
     
-    // O RIPng cuida de todas as rotas entre AP1, AP2 e AP3.
-    // As rotas estáticas inter-roteadores foram removidas para evitar conflito com o RIPng.
-    
-    // Forçar a convergência do RIPng no início
+    // Forçar a convergência do RIPng imediatamente
+    // Isso garante que os roteadores (n0, n1, n2) conheçam as rotas antes do ping.
     Ipv6GlobalRoutingHelper::PopulateRoutingTables(); 
 
     // *** PING IPv6 ***
     // Ping do primeiro STA (Rede 1) para o nó CSMA Gateway (nó 1 da CSMA LAN)
-    // O nó 1 (AP2) é o primeiro nó da csmaDevices (índice 0). Endereço global dele é o [1]
     PingHelper ping(csmaInterfaces.GetAddress(0, 1)); 
     ping.SetAttribute("Interval", TimeValue(Seconds(1.0)));
     ping.SetAttribute("Size", UintegerValue(512));
