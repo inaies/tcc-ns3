@@ -14,31 +14,49 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("ThirdScriptExample");
 
+static Ptr<ListPositionAllocator>
+CreateGridPositionAllocator (uint32_t nNodes, double spacing, double offsetX, double offsetY)
+{
+  Ptr<ListPositionAllocator> allocator = CreateObject<ListPositionAllocator> ();
+  uint32_t cols = std::ceil(std::sqrt(static_cast<double>(nNodes)));
+  for (uint32_t i = 0; i < nNodes; ++i)
+    {
+      uint32_t row = i / cols;
+      uint32_t col = i % cols;
+      double x = offsetX + col * spacing;
+      double y = offsetY + row * spacing;
+      allocator->Add (Vector (x, y, 0.0));
+    }
+  return allocator;
+}
+
 int
 main(int argc, char* argv[])
 {
     LogComponentEnable("Ping", LOG_LEVEL_INFO);
     LogComponentEnable("ThirdScriptExample", LOG_LEVEL_INFO); // Adicionado para debug
 
+    LogComponentEnable("UdpEchoClientApplication", LOG_LEVEL_INFO);
+    LogComponentEnable("UdpEchoServerApplication", LOG_LEVEL_INFO);
+
     bool verbose = true;
-    uint32_t nWifiCsma = 3; // nCsma renomeado para nWifiCsma
-    uint32_t nWifi = 3;
+    uint32_t nWifi = 80;
     bool tracing = false;
 
     CommandLine cmd(__FILE__);
-    cmd.AddValue("nWifiCsma", "Number of STA devices in the new WiFi 3 network", nWifiCsma);
+    // cmd.AddValue("nWifiCsma", "Number of STA devices in the new WiFi 3 network", nWifiCsma);
     cmd.AddValue("nWifi", "Number of STA devices in WiFi 1 and 2", nWifi);
     cmd.AddValue("verbose", "Tell echo applications to log if true", verbose);
     cmd.AddValue("tracing", "Enable pcap tracing", tracing);
 
     cmd.Parse(argc, argv);
 
-    if (nWifi > 18)
-    {
-        std::cout << "nWifi should be 18 or less; otherwise grid layout exceeds the bounding box"
-                  << std::endl;
-        return 1;
-    }
+    // if (nWifi > 18)
+    // {
+    //     std::cout << "nWifi should be 18 or less; otherwise grid layout exceeds the bounding box"
+    //               << std::endl;
+    //     return 1;
+    // }
 
     NodeContainer p2pNodes;
     p2pNodes.Create(3); // n0=AP1, n1=AP2/WiFi3 AP, n2=AP3
@@ -68,7 +86,7 @@ main(int argc, char* argv[])
 
     // 1. Criar nós STA para a nova WiFi 3
     NodeContainer wifiStaNodes3;
-    wifiStaNodes3.Create(nWifiCsma); // nCsma agora são STAs
+    wifiStaNodes3.Create(nWifi); // nCsma agora são STAs
     
     // O AP da WiFi 3 é o nó p2pNodes.Get(1) (n1)
     NodeContainer wifiApNode3 = p2pNodes.Get(1); 
@@ -120,24 +138,43 @@ main(int argc, char* argv[])
     mac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid3));
     apDevices3 = wifi.Install(phy3, mac, wifiApNode3); // AP é o nó 1 (n1)
 
-    // Mobilidade
+    // Mobility: create separate position allocators so networks don't overlap
     MobilityHelper mobility;
-    // ... (Configuração Grid) ...
-    mobility.SetPositionAllocator("ns3::GridPositionAllocator",
-                                  "MinX", DoubleValue(0.0), "MinY", DoubleValue(0.0),
-                                  "DeltaX", DoubleValue(5.0), "DeltaY", DoubleValue(10.0),
-                                  "GridWidth", UintegerValue(3), "LayoutType", StringValue("RowFirst"));
 
-    mobility.SetMobilityModel("ns3::RandomWalk2dMobilityModel",
-                              "Bounds", RectangleValue(Rectangle(-50, 50, -50, 50)));
-    mobility.Install(wifiStaNodes1);
-    mobility.Install(wifiStaNodes2);
-    mobility.Install(wifiStaNodes3); // Instalar mobilidade nos novos nós
+    // spacing & offsets chosen so each WiFi network occupies a distinct area
+    double spacing = 5.0;
+    // compute grid allocator for each STA network
+    Ptr<ListPositionAllocator> alloc1 = CreateGridPositionAllocator (nWifi, spacing, 0.0, 0.0);
+    Ptr<ListPositionAllocator> alloc2 = CreateGridPositionAllocator (nWifi, spacing, 0.0, 1000.0); // offset Y far away
+    Ptr<ListPositionAllocator> alloc3 = CreateGridPositionAllocator (nWifi, spacing, 1000.0, 0.0); // offset X far away
 
-    mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
-    mobility.Install(wifiApNode);
-    mobility.Install(wifiApNode2);
-    mobility.Install(wifiApNode3); // Instalar posição constante no novo AP
+    // set positions for STA nodes
+    mobility.SetPositionAllocator (alloc1);
+    mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+    mobility.Install (wifiStaNodes1);
+
+    mobility.SetPositionAllocator (alloc2);
+    mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+    mobility.Install (wifiStaNodes2);
+
+    mobility.SetPositionAllocator (alloc3);
+    mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+    mobility.Install (wifiStaNodes3);
+
+    // place APs near centers of their corresponding STA grids
+    Ptr<ListPositionAllocator> apAlloc = CreateObject<ListPositionAllocator> ();
+    // AP1 center (approx)
+    apAlloc->Add (Vector ( (std::sqrt(nWifi) * spacing) / 2.0, (std::sqrt(nWifi) * spacing) / 2.0, 0.0 )); // near origin
+    // AP2 center (offset Y)
+    apAlloc->Add (Vector ( (std::sqrt(nWifi) * spacing) / 2.0, 1000.0 + (std::sqrt(nWifi) * spacing) / 2.0, 0.0 ));
+    // AP3 center (offset X)
+    apAlloc->Add (Vector ( 1000.0 + (std::sqrt(nWifi) * spacing) / 2.0, (std::sqrt(nWifi) * spacing) / 2.0, 0.0 ));
+
+    mobility.SetPositionAllocator (apAlloc);
+    mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+    mobility.Install (wifiApNode);
+    mobility.Install (wifiApNode2);
+    mobility.Install (wifiApNode3);
 
     // --------------------------------------------------------------------------------
     // *** INSTALAÇÃO DAS PILHAS DE ROTEAMENTO ***
@@ -250,24 +287,40 @@ main(int argc, char* argv[])
     // *** PING IPv6: WiFi 3 -> WiFi 1 ***
     // Ping do primeiro STA da WiFi 3 (ex-CSMA) para o segundo STA da WiFi 1.
     
-    Ptr<Ipv6> ipv6 = wifiApNode.Get(0)->GetObject<Ipv6>();
-    int32_t ifIndex = ipv6->GetInterfaceForDevice(apDevices1.Get(0));
-    Simulator::Schedule(Seconds(5), &Ipv6::SetDown, ipv6, ifIndex);
+    // Ptr<Ipv6> ipv6 = wifiApNode.Get(0)->GetObject<Ipv6>();
+    // int32_t ifIndex = ipv6->GetInterfaceForDevice(apDevices1.Get(0));
+    // Simulator::Schedule(Seconds(5), &Ipv6::SetDown, ipv6, ifIndex);
 
-    
+    // Install a very light server/client to test connectivity (one per network)
+    UdpEchoServerHelper echoServer (9);
+    ApplicationContainer serverApps = echoServer.Install (wifiStaNodes3.Get(0)); // server on net3 first STA
+    serverApps.Start (Seconds (1.0));
+    serverApps.Stop (Seconds (50.0));
+
+    UdpEchoClientHelper echoClient (wifiInterfaces2.GetAddress(0, 1), 9);
+    echoClient.SetAttribute ("MaxPackets", UintegerValue (2));
+    echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
+    echoClient.SetAttribute ("PacketSize", UintegerValue (64));
+
+    // ping some STAs from net1 and net2 to the server on net3
+    ApplicationContainer clientApps1 = echoClient.Install (wifiStaNodes1.Get(5));
+    clientApps1.Start (Seconds (2.0));
+    clientApps1.Stop (Seconds (50.0));
+
+
     // Endereço de destino: Endereço do segundo nó STA da Rede 1 (2001:3::)
-    Ipv6Address pingDestination = wifiInterfaces2.GetAddress(0, 1); 
+    // Ipv6Address pingDestination = wifiInterfaces2.GetAddress(0, 1); 
     
-    // PingHelper configurado para enviar para o endereço de destino
-    PingHelper ping(pingDestination); 
-    ping.SetAttribute("Interval", TimeValue(Seconds(1.0)));
-    ping.SetAttribute("Size", UintegerValue(512));
-    ping.SetAttribute("Count", UintegerValue(10));
+    // // PingHelper configurado para enviar para o endereço de destino
+    // PingHelper ping(pingDestination); 
+    // ping.SetAttribute("Interval", TimeValue(Seconds(1.0)));
+    // ping.SetAttribute("Size", UintegerValue(512));
+    // ping.SetAttribute("Count", UintegerValue(10));
 
-    // Nó Fonte: O primeiro STA da nova rede WiFi 3 (índice 0)
-    ApplicationContainer pingApp = ping.Install(wifiStaNodes1.Get(2));
-    pingApp.Start(Seconds(30.0));
-    pingApp.Stop(Seconds(110.0));
+    // // Nó Fonte: O primeiro STA da nova rede WiFi 3 (índice 0)
+    // ApplicationContainer pingApp = ping.Install(wifiStaNodes1.Get(2));
+    // pingApp.Start(Seconds(30.0));
+    // pingApp.Stop(Seconds(110.0));
 
     Simulator::Stop(Seconds(120.0));
 
