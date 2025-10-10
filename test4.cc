@@ -14,41 +14,57 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("ThirdScriptExample");
 
+// Função adaptada para criar um ListPositionAllocator para N nós
+static Ptr<ListPositionAllocator>
+CreateGridPositionAllocator (uint32_t nNodes, double spacing, double offsetX, double offsetY)
+{
+    Ptr<ListPositionAllocator> allocator = CreateObject<ListPositionAllocator> ();
+    // cols = número de colunas necessário para acomodar nNodes em um quadrado/retângulo
+    uint32_t cols = static_cast<uint32_t>(std::ceil(std::sqrt(static_cast<double>(nNodes))));
+    
+    // Garantir que 120 nós usem pelo menos 11x11 (121) ou 12x10 (120)
+    if (nNodes > 100 && cols < 11) {
+        cols = 11;
+    }
+    
+    for (uint32_t i = 0; i < nNodes; ++i)
+    {
+        uint32_t row = i / cols;
+        uint32_t col = i % cols;
+        double x = offsetX + col * spacing;
+        double y = offsetY + row * spacing;
+        allocator->Add (Vector (x, y, 0.0));
+    }
+    return allocator;
+}
+
 int
 main(int argc, char* argv[])
 {
     LogComponentEnable("Ping", LOG_LEVEL_INFO);
     LogComponentEnable("ThirdScriptExample", LOG_LEVEL_INFO); 
 
+    LogComponentEnable("UdpEchoClientApplication", LOG_LEVEL_INFO);
+    LogComponentEnable("UdpEchoServerApplication", LOG_LEVEL_INFO);
+
     bool verbose = true;
-    // Alterado os valores default para testar com 120 nós
-    uint32_t nWifiCsma = 120; // WiFi 3 (nós STAs)
-    uint32_t nWifi = 120;     // WiFi 1 e WiFi 2 (nós STAs)
+    uint32_t nWifi = 120; // Alterado o valor padrão para 120
     bool tracing = false;
     
-    // Configurações para o grid de mobilidade
-    uint32_t gridWidth = 12; // 12 * 10 = 120 STAs
+    // Spacing para garantir que a área seja grande o suficiente
+    double sta_spacing = 5.0; // Distância entre os nós STA
 
     CommandLine cmd(__FILE__);
-    cmd.AddValue("nWifiCsma", "Number of STA devices in the new WiFi 3 network", nWifiCsma);
-    cmd.AddValue("nWifi", "Number of STA devices in WiFi 1 and 2", nWifi);
+    cmd.AddValue("nWifi", "Number of STA devices per WiFi network (up to 120)", nWifi);
     cmd.AddValue("verbose", "Tell echo applications to log if true", verbose);
     cmd.AddValue("tracing", "Enable pcap tracing", tracing);
-    cmd.AddValue("gridWidth", "Grid width for mobility (must be >= 12 for 120 nodes)", gridWidth);
 
     cmd.Parse(argc, argv);
 
-    // Permitindo 120 nós (3 * 120 = 360 nós STA + 3 roteadores)
-    if (nWifi > 120 || nWifiCsma > 120) 
-    {
-        std::cout << "Número de nós excede 120 por rede." << std::endl;
-        return 1;
-    }
-    
-    // AVISO: A largura mínima deve ser 12 para 120 nós.
-    if (nWifi > gridWidth * gridWidth) 
-    {
-        NS_LOG_WARN("GridWidth pode ser muito pequeno para o número de nós. Tentando continuar...");
+    // Se o usuário especificar um número muito alto, limitamos
+    if (nWifi > 120) {
+        NS_LOG_WARN("nWifi limitado a 120 dispositivos por rede para esta simulação.");
+        nWifi = 120;
     }
 
     NodeContainer p2pNodes;
@@ -65,7 +81,7 @@ main(int argc, char* argv[])
     ap2ap3 = pointToPoint.Install(p2pNodes.Get(1), p2pNodes.Get(2));
 
     // --------------------------------------------------------------------------------
-    // *** SETUP WIFI NODES (1, 2, 3) ***
+    // *** CRIAÇÃO DOS NÓS WIFI (NÓS CRIADOS com base em nWifi) ***
     // --------------------------------------------------------------------------------
 
     NodeContainer wifiStaNodes1;
@@ -75,13 +91,15 @@ main(int argc, char* argv[])
     wifiStaNodes2.Create(nWifi);
 
     NodeContainer wifiStaNodes3;
-    wifiStaNodes3.Create(nWifiCsma); 
+    wifiStaNodes3.Create(nWifi); 
     
     NodeContainer wifiApNode = p2pNodes.Get(0);
     NodeContainer wifiApNode2 = p2pNodes.Get(2);
     NodeContainer wifiApNode3 = p2pNodes.Get(1); 
 
-    // Configuração de canais, PHY, MAC para as 3 redes (mantida)
+    // --------------------------------------------------------------------------------
+    // *** SETUP WIFI DEVICES (Canais, PHY, MAC) ***
+    // --------------------------------------------------------------------------------
     YansWifiChannelHelper channel1 = YansWifiChannelHelper::Default(); 
     YansWifiPhyHelper phy1;
     phy1.SetChannel(channel1.Create());
@@ -101,7 +119,7 @@ main(int argc, char* argv[])
     Ssid ssid2 = Ssid("ns-3-ssid-2");
     Ssid ssid3 = Ssid("ns-3-ssid-3"); 
 
-    // WiFi 1 (AP1 - n0)
+    // WiFi 1 (AP1)
     NetDeviceContainer staDevices1;
     mac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid1), "ActiveProbing", BooleanValue(false));
     staDevices1 = wifi.Install(phy1, mac, wifiStaNodes1); 
@@ -109,8 +127,8 @@ main(int argc, char* argv[])
     NetDeviceContainer apDevices1;
     mac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid1));
     apDevices1 = wifi.Install(phy1, mac, wifiApNode); 
-    
-    // WiFi 2 (AP3 - n2)
+
+    // WiFi 2 (AP3)
     NetDeviceContainer staDevices2;
     mac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid2), "ActiveProbing", BooleanValue(false));
     staDevices2 = wifi.Install(phy2, mac, wifiStaNodes2);
@@ -119,7 +137,7 @@ main(int argc, char* argv[])
     mac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid2));
     apDevices2 = wifi.Install(phy2, mac, wifiApNode2);
 
-    // WiFi 3 (AP2 - n1)
+    // WiFi 3 (AP2)
     NetDeviceContainer staDevices3;
     mac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid3), "ActiveProbing", BooleanValue(false));
     staDevices3 = wifi.Install(phy3, mac, wifiStaNodes3);
@@ -129,31 +147,49 @@ main(int argc, char* argv[])
     apDevices3 = wifi.Install(phy3, mac, wifiApNode3); 
 
     // --------------------------------------------------------------------------------
-    // *** MOBILITY (AUMENTADO O TAMANHO DO GRID) ***
+    // *** MOBILITY (POSICIONAMENTO AJUSTADO PARA NÓS) ***
     // --------------------------------------------------------------------------------
-    MobilityHelper mobility;
     
-    // Aumenta o DeltaX e DeltaY para cobrir uma área maior para 120 nós
-    mobility.SetPositionAllocator("ns3::GridPositionAllocator",
-                                  "MinX", DoubleValue(0.0), "MinY", DoubleValue(0.0),
-                                  "DeltaX", DoubleValue(20.0), // Aumentado
-                                  "DeltaY", DoubleValue(20.0), // Aumentado
-                                  "GridWidth", UintegerValue(gridWidth), 
-                                  "LayoutType", StringValue("RowFirst"));
+    MobilityHelper mobility;
 
-    mobility.SetMobilityModel("ns3::RandomWalk2dMobilityModel",
-                              "Bounds", RectangleValue(Rectangle(-100, 300, -100, 300))); // Aumentado o Bounds
-    mobility.Install(wifiStaNodes1);
-    mobility.Install(wifiStaNodes2);
-    mobility.Install(wifiStaNodes3); 
+    // Calcular a dimensão da grid para nWifi nós
+    double grid_size = std::ceil(std::sqrt(static_cast<double>(nWifi)));
+    double grid_length = grid_size * sta_spacing;
+    
+    // Offsets de separação grandes para garantir que as redes não se sobreponham
+    double offset_separation = 1000.0; 
 
-    mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
-    mobility.Install(wifiApNode);
-    mobility.Install(wifiApNode2);
-    mobility.Install(wifiApNode3); 
+    Ptr<ListPositionAllocator> alloc1 = CreateGridPositionAllocator (wifiStaNodes1.GetN(), sta_spacing, 0.0, 0.0);
+    Ptr<ListPositionAllocator> alloc2 = CreateGridPositionAllocator (wifiStaNodes2.GetN(), sta_spacing, offset_separation, 0.0); // Offset X
+    Ptr<ListPositionAllocator> alloc3 = CreateGridPositionAllocator (wifiStaNodes3.GetN(), sta_spacing, 0.0, offset_separation); // Offset Y
+
+    // STAs
+    mobility.SetPositionAllocator (alloc1);
+    mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+    mobility.Install (wifiStaNodes1);
+
+    mobility.SetPositionAllocator (alloc2);
+    mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+    mobility.Install (wifiStaNodes2);
+
+    mobility.SetPositionAllocator (alloc3);
+    mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+    mobility.Install (wifiStaNodes3);
+
+    // APs (posicionados perto do centro de suas respectivas grids)
+    Ptr<ListPositionAllocator> apAlloc = CreateObject<ListPositionAllocator> ();
+    apAlloc->Add (Vector (grid_length / 2.0, grid_length / 2.0, 0.0 ));                             // AP1 (Rede 1)
+    apAlloc->Add (Vector (offset_separation + grid_length / 2.0, grid_length / 2.0, 0.0 ));        // AP2 (Rede 2)
+    apAlloc->Add (Vector (grid_length / 2.0, offset_separation + grid_length / 2.0, 0.0 ));        // AP3 (Rede 3)
+
+    mobility.SetPositionAllocator (apAlloc);
+    mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+    mobility.Install (wifiApNode);
+    mobility.Install (wifiApNode2);
+    mobility.Install (wifiApNode3);
 
     // --------------------------------------------------------------------------------
-    // *** INSTALAÇÃO DAS PILHAS DE ROTEAMENTO ***
+    // *** INSTALAÇÃO DAS PILHAS DE ROTEAMENTO E ENDEREÇAMENTO ***
     // --------------------------------------------------------------------------------
 
     // 1. Roteadores (n0, n1, n2) usam RIPng
@@ -172,50 +208,32 @@ main(int argc, char* argv[])
 
     staStack.Install(wifiStaNodes1);
     staStack.Install(wifiStaNodes2);
-    staStack.Install(wifiStaNodes3);
+    staStack.Install(wifiStaNodes3); 
     
-    // --------------------------------------------------------------------------------
-    // *** ENDEREÇAMENTO IPv6 ***
-    // --------------------------------------------------------------------------------
-
+    // Endereçamento IPv6
     Ipv6AddressHelper address;
 
-    address.SetBase(Ipv6Address("2001:1::"), Ipv6Prefix(64)); // AP1-AP2
-    Ipv6InterfaceContainer ap1ap2Interfaces = address.Assign(ap1ap2);
-
-    address.SetBase(Ipv6Address("2001:3::"), Ipv6Prefix(64)); // WiFi1 (AP1)
-    Ipv6InterfaceContainer wifiInterfaces1 = address.Assign(staDevices1);
-    Ipv6InterfaceContainer apInterfaces1   = address.Assign(apDevices1);
-
-    address.SetBase(Ipv6Address("2001:4::"), Ipv6Prefix(64)); // WiFi2 (AP3)
-    Ipv6InterfaceContainer wifiInterfaces2 = address.Assign(staDevices2);
-    Ipv6InterfaceContainer apInterfaces2   = address.Assign(apDevices2);
-
-    address.SetBase(Ipv6Address("2001:7::"), Ipv6Prefix(64)); // WiFi3 (AP2)
-    Ipv6InterfaceContainer wifiInterfaces3 = address.Assign(staDevices3);
-    Ipv6InterfaceContainer apInterfaces3   = address.Assign(apDevices3);
-
-    address.SetBase(Ipv6Address("2001:5::"), Ipv6Prefix(64)); // AP1-AP3
-    Ipv6InterfaceContainer ap1ap3Interfaces = address.Assign(ap1ap3);
-
-    address.SetBase(Ipv6Address("2001:6::"), Ipv6Prefix(64)); // AP2-AP3
-    Ipv6InterfaceContainer ap2ap3Interfaces = address.Assign(ap2ap3);
+    address.SetBase(Ipv6Address("2001:1::"), Ipv6Prefix(64)); ap1ap2 = address.Assign(ap1ap2);
+    address.SetBase(Ipv6Address("2001:3::"), Ipv6Prefix(64)); wifiInterfaces1 = address.Assign(staDevices1); apInterfaces1 = address.Assign(apDevices1);
+    address.SetBase(Ipv6Address("2001:4::"), Ipv6Prefix(64)); wifiInterfaces2 = address.Assign(staDevices2); apInterfaces2 = address.Assign(apDevices2);
+    address.SetBase(Ipv6Address("2001:7::"), Ipv6Prefix(64)); wifiInterfaces3 = address.Assign(staDevices3); apInterfaces3 = address.Assign(apDevices3);
+    address.SetBase(Ipv6Address("2001:5::"), Ipv6Prefix(64)); ap1ap3 = address.Assign(ap1ap3);
+    address.SetBase(Ipv6Address("2001:6::"), Ipv6Prefix(64)); ap2ap3 = address.Assign(ap2ap3);
     
-    // Habilitar Forwarding (Roteamento) nos Roteadores (p2pNodes)
+    // Habilitar Forwarding nos Roteadores (n0, n1, n2)
     for (uint32_t i = 0; i < p2pNodes.GetN(); ++i)
     {
         Ptr<Ipv6> ipv6 = p2pNodes.Get(i)->GetObject<Ipv6>();
-        // Correção: SetForwarding(0, true) estava errado. Deve ser SetForwarding(true) ou sem o índice.
-        ipv6->SetForwarding(true); 
+        ipv6->SetForwarding(true);
     }
 
     // --------------------------------------------------------------------------------
-    // *** CONFIGURAÇÃO DAS ROTAS ESTÁTICAS (Nós Finais) ***
+    // *** CONFIGURAÇÃO DAS ROTAS ESTÁTICAS (LAÇOS CORRIGIDOS) ***
     // --------------------------------------------------------------------------------
 
-    // 1. Nós WiFi STA (Rede 1) apontam para o AP1 (nó 0)
-    Ipv6Address ap1Addr = apInterfaces1.GetAddress(0, 1); 
-    for (uint32_t i = 0; i < wifiStaNodes1.GetN(); i++)
+    // 1. WiFi 1 (Nós apontam para AP1)
+    Ipv6Address ap1Addr = apInterfaces1.GetAddress(0, 1);
+    for (uint32_t i = 0; i < wifiStaNodes1.GetN(); i++) // Usa GetN() que é igual a nWifi
     {
         Ptr<Ipv6> ipv6 = wifiStaNodes1.Get(i)->GetObject<Ipv6>();
         Ptr<Ipv6StaticRouting> sr = ipv6StaticRouting.GetStaticRouting(ipv6);
@@ -223,9 +241,9 @@ main(int argc, char* argv[])
         sr->SetDefaultRoute(ap1Addr, ifSta);
     }
 
-    // 2. Nós WiFi STA (Rede 2) apontam para o AP3 (nó 2)
+    // 2. WiFi 2 (Nós apontam para AP3)
     Ipv6Address ap3Addr = apInterfaces2.GetAddress(0, 1);
-    for (uint32_t i = 0; i < wifiStaNodes2.GetN(); i++)
+    for (uint32_t i = 0; i < wifiStaNodes2.GetN(); i++) // Usa GetN()
     {
         Ptr<Ipv6> ipv6 = wifiStaNodes2.Get(i)->GetObject<Ipv6>();
         Ptr<Ipv6StaticRouting> sr = ipv6StaticRouting.GetStaticRouting(ipv6);
@@ -233,9 +251,9 @@ main(int argc, char* argv[])
         sr->SetDefaultRoute(ap3Addr, ifSta);
     }
 
-    // 3. Nós WiFi STA (Rede 3) apontam para o AP2 (nó 1)
+    // 3. WiFi 3 (Nós apontam para AP2)
     Ipv6Address ap2Addr = apInterfaces3.GetAddress(0, 1);
-    for (uint32_t i = 0; i < wifiStaNodes3.GetN(); i++)
+    for (uint32_t i = 0; i < wifiStaNodes3.GetN(); i++) // Usa GetN()
     {
         Ptr<Ipv6> ipv6 = wifiStaNodes3.Get(i)->GetObject<Ipv6>();
         Ptr<Ipv6StaticRouting> sr = ipv6StaticRouting.GetStaticRouting(ipv6);
@@ -244,35 +262,27 @@ main(int argc, char* argv[])
     }
     
     // --------------------------------------------------------------------------------
-    // *** AGENDAMENTO DA FALHA (AP WiFi 1 = Nó 0) ***
+    // *** APLICAÇÃO (UdpEcho) E SINCRONIZAÇÃO ***
     // --------------------------------------------------------------------------------
-    
-    Ptr<Ipv6> ipv6 = wifiApNode.Get(0)->GetObject<Ipv6>();
-    // Obtém o índice da interface Wi-Fi do AP1 (nó 0)
-    int32_t ifIndex = ipv6->GetInterfaceForDevice(apDevices1.Get(0)); 
-    
-    // Agenda a desativação da interface usando o método correto Ipv6::SetDown
-    Simulator::Schedule(Seconds(5.0), &Ipv6::SetDown, ipv6, ifIndex);
 
-    NS_LOG_INFO("Interface do AP da WiFi 1 (Node 0) agendada para cair em 5.0s (IfIndex: " << ifIndex << ")");
+    // Server on net3 first STA (Node: wifiStaNodes3.Get(0))
+    UdpEchoServerHelper echoServer (9);
+    ApplicationContainer serverApps = echoServer.Install (wifiStaNodes3.Get(0)); 
+    serverApps.Start (Seconds (1.0));
+    serverApps.Stop (Seconds (50.0));
 
-    // *** PING IPv6: WiFi 3 (Fonte) -> WiFi 2 (Destino) ***
-    // O ping agora testa o roteamento passando por AP1 ou AP3/AP2 (o RIPng deve se ajustar)
-    // Se o ping for da WiFi 3 (AP2) para WiFi 2 (AP3), a rota principal é AP2 -> AP3.
-    // A rota AP2 -> AP1 -> AP3 é a rota de backup.
-    
-    // Vamos mudar para WiFi 3 (Fonte) -> WiFi 2 (Destino). Endereço do primeiro STA da Rede 2.
-    Ipv6Address pingDestination = wifiInterfaces2.GetAddress(0, 1); 
-    
-    PingHelper ping(pingDestination); 
-    ping.SetAttribute("Interval", TimeValue(Seconds(1.0)));
-    ping.SetAttribute("Size", UintegerValue(512));
-    ping.SetAttribute("Count", UintegerValue(10));
+    // Client from net1 STA (Node: wifiStaNodes1.Get(5)) to server on net3
+    // O endereço de destino deve ser o endereço da STA em net3
+    Ipv6Address serverAddress = wifiInterfaces3.GetAddress(0, 1); 
 
-    // Nó Fonte: O primeiro STA da nova rede WiFi 3 (índice 0)
-    ApplicationContainer pingApp = ping.Install(wifiStaNodes3.Get(0)); 
-    pingApp.Start(Seconds(30.0));
-    pingApp.Stop(Seconds(110.0));
+    UdpEchoClientHelper echoClient (serverAddress, 9);
+    echoClient.SetAttribute ("MaxPackets", UintegerValue (2));
+    echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
+    echoClient.SetAttribute ("PacketSize", UintegerValue (64));
+
+    ApplicationContainer clientApps1 = echoClient.Install (wifiStaNodes1.Get(5));
+    clientApps1.Start (Seconds (2.0));
+    clientApps1.Stop (Seconds (50.0));
 
     Simulator::Stop(Seconds(120.0));
 
