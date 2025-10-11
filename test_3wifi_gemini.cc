@@ -22,8 +22,8 @@ main(int argc, char* argv[])
     LogComponentEnable("ThirdScriptExampleImproved", LOG_LEVEL_INFO);
 
     bool verbose = true;
-    uint32_t nWifiCsma = 20; // agora maior por padrão
-    uint32_t nWifi = 20;
+    uint32_t nWifiCsma = 3; // agora maior por padrão
+    uint32_t nWifi = 3;
     bool tracing = false;
 
     CommandLine cmd(__FILE__);
@@ -71,40 +71,42 @@ main(int argc, char* argv[])
     YansWifiChannelHelper channel1 = YansWifiChannelHelper::Default();
     channel1.AddPropagationLoss("ns3::LogDistancePropagationLossModel");
     channel1.SetPropagationDelay("ns3::ConstantSpeedPropagationDelayModel");
-    YansWifiPhyHelper phy1 = YansWifiPhyHelper::Default();
+    YansWifiPhyHelper phy1;
     phy1.SetChannel(channel1.Create());
 
     YansWifiChannelHelper channel2 = YansWifiChannelHelper::Default();
     channel2.AddPropagationLoss("ns3::LogDistancePropagationLossModel");
     channel2.SetPropagationDelay("ns3::ConstantSpeedPropagationDelayModel");
-    YansWifiPhyHelper phy2 = YansWifiPhyHelper::Default();
+    YansWifiPhyHelper phy2;
     phy2.SetChannel(channel2.Create());
 
     YansWifiChannelHelper channel3 = YansWifiChannelHelper::Default();
     channel3.AddPropagationLoss("ns3::LogDistancePropagationLossModel");
     channel3.SetPropagationDelay("ns3::ConstantSpeedPropagationDelayModel");
-    YansWifiPhyHelper phy3 = YansWifiPhyHelper::Default();
+    YansWifiPhyHelper phy3;
     phy3.SetChannel(channel3.Create());
 
     // Aumentar potência Tx e sensibilidade para melhorar alcance e robustez
     phy1.Set("TxPowerStart", DoubleValue(20.0));
     phy1.Set("TxPowerEnd", DoubleValue(20.0));
-    // 'RxSensitivity' não é um atributo definível via Set() em algumas versões do ns-3
-    // em vez disso usamos thresholds globais para o YansWifiPhy
-    Config::SetDefault("ns3::YansWifiPhy::EnergyDetectionThreshold", DoubleValue(-96.0));
-    Config::SetDefault("ns3::YansWifiPhy::CcaMode1Threshold", DoubleValue(-99.0));
+    phy1.Set("RxGain", DoubleValue(5.0));
+    phy1.Set("RxNoiseFigure", DoubleValue(7.0));
+    Config::SetDefault("ns3::WifiPhy::CcaEdThreshold", DoubleValue(-99.0));
+    Config::SetDefault("ns3::WifiPhy::RxSensitivity", DoubleValue(-96.0));
 
     phy2.Set("TxPowerStart", DoubleValue(20.0));
     phy2.Set("TxPowerEnd", DoubleValue(20.0));
-    // Ajustes via Config para o PHY
-    Config::SetDefault("ns3::YansWifiPhy::EnergyDetectionThreshold", DoubleValue(-96.0));
-    Config::SetDefault("ns3::YansWifiPhy::CcaMode1Threshold", DoubleValue(-99.0));
+    phy2.Set("RxGain", DoubleValue(5.0));
+    phy2.Set("RxNoiseFigure", DoubleValue(7.0));
+    Config::SetDefault("ns3::WifiPhy::CcaEdThreshold", DoubleValue(-99.0));
+    Config::SetDefault("ns3::WifiPhy::RxSensitivity", DoubleValue(-96.0));
 
     phy3.Set("TxPowerStart", DoubleValue(20.0));
     phy3.Set("TxPowerEnd", DoubleValue(20.0));
-    // Ajustes via Config para o PHY
-    Config::SetDefault("ns3::YansWifiPhy::EnergyDetectionThreshold", DoubleValue(-96.0));
-    Config::SetDefault("ns3::YansWifiPhy::CcaMode1Threshold", DoubleValue(-99.0));
+    phy3.Set("RxGain", DoubleValue(5.0));
+    phy3.Set("RxNoiseFigure", DoubleValue(7.0));
+    Config::SetDefault("ns3::WifiPhy::CcaEdThreshold", DoubleValue(-99.0));
+    Config::SetDefault("ns3::WifiPhy::RxSensitivity", DoubleValue(-96.0));
 
     // Isolar canais entre as redes (1, 6, 11 são não sobrepostos em 2.4GHz)
     // Configure channel number via WifiPhy's ChannelNumber attribute when available
@@ -161,18 +163,18 @@ main(int argc, char* argv[])
     mobility.SetPositionAllocator("ns3::GridPositionAllocator",
                                   "MinX", DoubleValue(0.0),
                                   "MinY", DoubleValue(0.0),
-                                  "DeltaX", DoubleValue(60.0),
-                                  "DeltaY", DoubleValue(60.0),
-                                  "GridWidth", UintegerValue(10),
+                                  "DeltaX", DoubleValue(5.0),
+                                  "DeltaY", DoubleValue(5.0),
+                                  "GridWidth", UintegerValue(5),
                                   "LayoutType", StringValue("RowFirst"));
 
-    mobility.SetMobilityModel("ns3::RandomWalk2dMobilityModel",
-                              "Bounds", RectangleValue(Rectangle(-500, 500, -500, 500)));
+    // mobility.SetMobilityModel("ns3::RandomWalk2dMobilityModel",
+    //                           "Bounds", RectangleValue(Rectangle(-500, 500, -500, 500)));
+    
+    mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
     mobility.Install(wifiStaNodes1);
     mobility.Install(wifiStaNodes2);
     mobility.Install(wifiStaNodes3);
-
-    mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
     mobility.Install(wifiApNode);
     mobility.Install(wifiApNode2);
     mobility.Install(wifiApNode3);
@@ -285,7 +287,7 @@ main(int argc, char* argv[])
     // Client targeting server's IPv6
     Ipv6Address serverAddr = wifiInterfaces3.GetAddress(0, 1);
     UdpEchoClientHelper echoClient (serverAddr, 9);
-    echoClient.SetAttribute ("MaxPackets", UintegerValue (50));
+    echoClient.SetAttribute ("MaxPackets", UintegerValue (2));
     echoClient.SetAttribute ("Interval", TimeValue (Seconds (2.0))); // espaçar para reduzir congestionamento
     echoClient.SetAttribute ("PacketSize", UintegerValue (128));
 
@@ -297,17 +299,17 @@ main(int argc, char* argv[])
         Ptr<Node> node = wifiStaNodes1.Get(i);
         clientApps1.Add(echoClient.Install(node));
     }
-    clientsPerNet = std::min<uint32_t>(wifiStaNodes2.GetN(), 20);
-    for (uint32_t i = 0; i < clientsPerNet; ++i)
-    {
-        Ptr<Node> node = wifiStaNodes2.Get(i);
-        clientApps2.Add(echoClient.Install(node));
-    }
+    // clientsPerNet = std::min<uint32_t>(wifiStaNodes2.GetN(), 20);
+    // for (uint32_t i = 0; i < clientsPerNet; ++i)
+    // {
+    //     Ptr<Node> node = wifiStaNodes2.Get(i);
+    //     clientApps2.Add(echoClient.Install(node));
+    // }
 
     clientApps1.Start(Seconds(15.0));
-    clientApps1.Stop(Seconds(190.0));
+    // clientApps1.Stop(Seconds(190.0));
     clientApps2.Start(Seconds(16.0));
-    clientApps2.Stop(Seconds(190.0));
+    // clientApps2.Stop(Seconds(190.0));
 
     Simulator::Stop(Seconds(200.0));
 
