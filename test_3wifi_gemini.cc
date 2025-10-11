@@ -89,21 +89,29 @@ main(int argc, char* argv[])
     // Aumentar potência Tx e sensibilidade para melhorar alcance e robustez
     phy1.Set("TxPowerStart", DoubleValue(20.0));
     phy1.Set("TxPowerEnd", DoubleValue(20.0));
-    phy1.Set("RxSensitivity", DoubleValue(-90.0));
+    // 'RxSensitivity' não é um atributo definível via Set() em algumas versões do ns-3
+    // em vez disso usamos thresholds globais para o YansWifiPhy
+    Config::SetDefault("ns3::YansWifiPhy::EnergyDetectionThreshold", DoubleValue(-96.0));
+    Config::SetDefault("ns3::YansWifiPhy::CcaMode1Threshold", DoubleValue(-99.0));
 
     phy2.Set("TxPowerStart", DoubleValue(20.0));
     phy2.Set("TxPowerEnd", DoubleValue(20.0));
-    phy2.Set("RxSensitivity", DoubleValue(-90.0));
+    // Ajustes via Config para o PHY
+    Config::SetDefault("ns3::YansWifiPhy::EnergyDetectionThreshold", DoubleValue(-96.0));
+    Config::SetDefault("ns3::YansWifiPhy::CcaMode1Threshold", DoubleValue(-99.0));
 
     phy3.Set("TxPowerStart", DoubleValue(20.0));
     phy3.Set("TxPowerEnd", DoubleValue(20.0));
-    phy3.Set("RxSensitivity", DoubleValue(-90.0));
+    // Ajustes via Config para o PHY
+    Config::SetDefault("ns3::YansWifiPhy::EnergyDetectionThreshold", DoubleValue(-96.0));
+    Config::SetDefault("ns3::YansWifiPhy::CcaMode1Threshold", DoubleValue(-99.0));
 
     // Isolar canais entre as redes (1, 6, 11 são não sobrepostos em 2.4GHz)
     // Configure channel number via WifiPhy's ChannelNumber attribute when available
-    phy1.Set("ChannelNumber", UintegerValue(1));
-    phy2.Set("ChannelNumber", UintegerValue(6));
-    phy3.Set("ChannelNumber", UintegerValue(11));
+    // Nem todas as versões do ns-3 permitem definir ChannelNumber via Set() diretamente no helper.
+    // Se precisar controlar canais, defina canais separados criando YansWifiPhy e YansWifiChannel separados
+    // para cada rede (já fazemos isso) e, se suportado, use o atributo ChannelNumber no phy criado.
+    // Mantemos os canais separados pela criação de objetos de canal distintos acima.
 
     // Wifi helper: usar 802.11g e ConstantRate para reduzir tempo de ocupação do canal
     WifiHelper wifi;
