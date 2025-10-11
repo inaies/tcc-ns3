@@ -1,0 +1,8 @@
+vboxuser@ubuntu:~/Downloads/ns-allinone-3.40/ns-3.40$ ./ns3 run scratch/test_3wifi_gemini.cc 
+[  0%] Building CXX object scratch/CMakeFiles/scratch_test_3wifi_gemini.dir/test_3wifi_gemini.cc.o
+[  0%] Linking CXX executable /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/build/scratch/ns3.40-test_3wifi_gemini-default
+msg="Could not set default value for ns3::YansWifiPhy::EnergyDetectionThreshold", +0.000000000s -1 file=/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/core/model/config.cc, line=895
+NS_FATAL, terminating
+terminate called without an active exception
+Command 'build/scratch/ns3.40-test_3wifi_gemini-default' died with <Signals.SIGABRT: 6>.
+
