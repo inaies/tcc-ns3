@@ -45,8 +45,8 @@ main(int argc, char* argv[])
     LogComponentEnable("UdpEchoServerApplication", LOG_LEVEL_INFO);
 
     bool verbose = true;
-    uint32_t nWifiCsma = 7; // nCsma renomeado para nWifiCsma
-    uint32_t nWifi = 7;
+    uint32_t nWifiCsma = 40; // nCsma renomeado para nWifiCsma
+    uint32_t nWifi = 40;
     bool tracing = false;
 
     CommandLine cmd(__FILE__);
@@ -91,6 +91,8 @@ main(int argc, char* argv[])
     // PHY/MAC (idem ao original)
     YansWifiChannelHelper channel1 = YansWifiChannelHelper::Default();
     YansWifiPhyHelper phy1; phy1.SetChannel(channel1.Create());
+    // Config::SetDefault("ns3::WifiMacQueue::MaxPacketNumber", UintegerValue(2000));
+    // Config::SetDefault("ns3::WifiMacQueue::MaxDelay", TimeValue(Seconds(10)));
 
     YansWifiChannelHelper channel2 = YansWifiChannelHelper::Default();
     YansWifiPhyHelper phy2; phy2.SetChannel(channel2.Create());
