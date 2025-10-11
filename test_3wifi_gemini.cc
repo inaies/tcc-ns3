@@ -88,35 +88,7 @@ main(int argc, char* argv[])
 
     WifiMacHelper mac;
     WifiHelper wifi;
-    
-    // Configurações de ALTA CAPACIDADE (802.11ac - VHT)
-    // --------------------------------------------------------------------------------
-    wifi.SetStandard(WIFI_PHY_STANDARD_80211ac);
-    
-    // Configuração VHT (802.11ac) para o Channel Helper (TODAS AS REDES)
-    // 80 MHz de largura de banda do canal (Valor padrão para 802.11ac é 80 MHz, mas é bom setar)
-    wifi.SetRemoteStationManager("ns3::IdealWifiManager", 
-                                "ChannelWidth", UintegerValue(80)); 
-    
-    // Configuração de MIMO: 2 Antenas, 2 Spatial Streams (para todas as redes)
-    // Isso deve ser feito em CADA YansWifiPhyHelper antes de instalar os dispositivos.
-    
-    // Configurando PHY 1
-    phy1.Set("Antennas", UintegerValue(2));
-    phy1.Set("MaxSupportedTxSpatialStreams", UintegerValue(2));
-    phy1.Set("MaxSupportedRxSpatialStreams", UintegerValue(2));
 
-    // Configurando PHY 2
-    phy2.Set("Antennas", UintegerValue(2));
-    phy2.Set("MaxSupportedTxSpatialStreams", UintegerValue(2));
-    phy2.Set("MaxSupportedRxSpatialStreams", UintegerValue(2));
-
-    // Configurando PHY 3
-    phy3.Set("Antennas", UintegerValue(2));
-    phy3.Set("MaxSupportedTxSpatialStreams", UintegerValue(2));
-    phy3.Set("MaxSupportedRxSpatialStreams", UintegerValue(2));
-    // --------------------------------------------------------------------------------
-    
     Ssid ssid1 = Ssid("ns-3-ssid-1");
     Ssid ssid2 = Ssid("ns-3-ssid-2");
     Ssid ssid3 = Ssid("ns-3-ssid-3"); // Novo SSID
@@ -222,7 +194,25 @@ main(int argc, char* argv[])
         Ptr<Ipv6> ipv6 = p2pNodes.Get(i)->GetObject<Ipv6>();
         ipv6->SetForwarding(0, true);
     }
-    
+
+//   Wifi 2001:3::
+//                 AP
+//  *    *    *    *     ap1ap2
+//  |    |    |    |    2001:1::
+// n5   n6   n7   n0 -------------- n1   n2   n3   n4
+//                   point-to-point  |    |    |    |
+//                  |                ================
+//        2001:5::  |               |  Wifi3 2001:7:: 
+//        ap1ap3    |               |  
+//                  |               |  2001:6::
+//                  |               |  ap2ap3
+// Wifi2 2001:4::   |               |  
+//                 AP               | 
+//  *    *    *    *                |
+//  |    |    |    |                |
+// n5   n6   n7   n0 -------------- |
+
+
     // --------------------------------------------------------------------------------
     // *** CONFIGURAÇÃO DAS ROTAS ESTÁTICAS (Nós Finais) ***
     // --------------------------------------------------------------------------------
@@ -260,12 +250,12 @@ main(int argc, char* argv[])
     // *** PING IPv6: WiFi 3 -> WiFi 1 ***
     // Ping do primeiro STA da WiFi 3 (ex-CSMA) para o segundo STA da WiFi 1.
     
-    Ptr<Ipv6> ipv6_n0 = wifiApNode.Get(0)->GetObject<Ipv6>();
-    int32_t ifIndex = ipv6_n0->GetInterfaceForDevice(apDevices1.Get(0));
-    Simulator::Schedule(Seconds(5), &Ipv6::SetDown, ipv6_n0, ifIndex);
+    Ptr<Ipv6> ipv6 = wifiApNode.Get(0)->GetObject<Ipv6>();
+    int32_t ifIndex = ipv6->GetInterfaceForDevice(apDevices1.Get(0));
+    Simulator::Schedule(Seconds(5), &Ipv6::SetDown, ipv6, ifIndex);
 
     
-    // Endereço de destino: Endereço do segundo nó STA da Rede 2 (2001:4::)
+    // Endereço de destino: Endereço do segundo nó STA da Rede 1 (2001:3::)
     Ipv6Address pingDestination = wifiInterfaces2.GetAddress(0, 1); 
     
     // PingHelper configurado para enviar para o endereço de destino
@@ -274,7 +264,7 @@ main(int argc, char* argv[])
     ping.SetAttribute("Size", UintegerValue(512));
     ping.SetAttribute("Count", UintegerValue(10));
 
-    // Nó Fonte: O terceiro STA da rede WiFi 1 (índice 2)
+    // Nó Fonte: O primeiro STA da nova rede WiFi 3 (índice 0)
     ApplicationContainer pingApp = ping.Install(wifiStaNodes1.Get(2));
     pingApp.Start(Seconds(30.0));
     pingApp.Stop(Seconds(110.0));
