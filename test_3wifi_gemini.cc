@@ -20,9 +20,12 @@ main(int argc, char* argv[])
     LogComponentEnable("Ping", LOG_LEVEL_INFO);
     LogComponentEnable("ThirdScriptExample", LOG_LEVEL_INFO); // Adicionado para debug
 
+    LogComponentEnable("UdpEchoClientApplication", LOG_LEVEL_INFO);
+    LogComponentEnable("UdpEchoServerApplication", LOG_LEVEL_INFO);
+
     bool verbose = true;
-    uint32_t nWifiCsma = 3; // nCsma renomeado para nWifiCsma
-    uint32_t nWifi = 3;
+    uint32_t nWifiCsma = 7; // nCsma renomeado para nWifiCsma
+    uint32_t nWifi = 7;
     bool tracing = false;
 
     CommandLine cmd(__FILE__);
@@ -124,12 +127,15 @@ main(int argc, char* argv[])
     MobilityHelper mobility;
     // ... (Configuração Grid) ...
     mobility.SetPositionAllocator("ns3::GridPositionAllocator",
-                                  "MinX", DoubleValue(0.0), "MinY", DoubleValue(0.0),
-                                  "DeltaX", DoubleValue(5.0), "DeltaY", DoubleValue(10.0),
-                                  "GridWidth", UintegerValue(3), "LayoutType", StringValue("RowFirst"));
+                                  "MinX", DoubleValue(0.0), 
+                                  "MinY", DoubleValue(0.0),
+                                  "DeltaX", DoubleValue(20.0),
+                                  "DeltaY", DoubleValue(10.0),
+                                  "GridWidth", UintegerValue(3), 
+                                  "LayoutType", StringValue("RowFirst"));
 
-    mobility.SetMobilityModel("ns3::RandomWalk2dMobilityModel",
-                              "Bounds", RectangleValue(Rectangle(-50, 50, -50, 50)));
+    // mobility.SetMobilityModel("ns3::RandomWalk2dMobilityModel",
+    //                           "Bounds", RectangleValue(Rectangle(-200, 200, -200, 200)));
     mobility.Install(wifiStaNodes1);
     mobility.Install(wifiStaNodes2);
     mobility.Install(wifiStaNodes3); // Instalar mobilidade nos novos nós
@@ -250,24 +256,40 @@ main(int argc, char* argv[])
     // *** PING IPv6: WiFi 3 -> WiFi 1 ***
     // Ping do primeiro STA da WiFi 3 (ex-CSMA) para o segundo STA da WiFi 1.
     
-    Ptr<Ipv6> ipv6 = wifiApNode.Get(0)->GetObject<Ipv6>();
-    int32_t ifIndex = ipv6->GetInterfaceForDevice(apDevices1.Get(0));
-    Simulator::Schedule(Seconds(5), &Ipv6::SetDown, ipv6, ifIndex);
+    // Ptr<Ipv6> ipv6 = wifiApNode.Get(0)->GetObject<Ipv6>();
+    // int32_t ifIndex = ipv6->GetInterfaceForDevice(apDevices1.Get(0));
+    // Simulator::Schedule(Seconds(5), &Ipv6::SetDown, ipv6, ifIndex);
 
     
     // Endereço de destino: Endereço do segundo nó STA da Rede 1 (2001:3::)
     Ipv6Address pingDestination = wifiInterfaces2.GetAddress(0, 1); 
     
-    // PingHelper configurado para enviar para o endereço de destino
-    PingHelper ping(pingDestination); 
-    ping.SetAttribute("Interval", TimeValue(Seconds(1.0)));
-    ping.SetAttribute("Size", UintegerValue(512));
-    ping.SetAttribute("Count", UintegerValue(10));
+    UdpEchoServerHelper echoServer (9);
+    ApplicationContainer serverApps = echoServer.Install (wifiStaNodes3.Get (0)); // server on net3 first STA
+    serverApps.Start (Seconds (1.0));
+    serverApps.Stop (Seconds (50.0));
 
-    // Nó Fonte: O primeiro STA da nova rede WiFi 3 (índice 0)
-    ApplicationContainer pingApp = ping.Install(wifiStaNodes1.Get(2));
-    pingApp.Start(Seconds(30.0));
-    pingApp.Stop(Seconds(110.0));
+    UdpEchoClientHelper echoClient (wifiInterfaces3.GetAddress (0, 1), 9);
+    echoClient.SetAttribute ("MaxPackets", UintegerValue (2));
+    echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
+    echoClient.SetAttribute ("PacketSize", UintegerValue (64));
+
+    // ping some STAs from net1 and net2 to the server on net3
+    ApplicationContainer clientApps1 = echoClient.Install (wifiStaNodes1.Get (2));
+    clientApps1.Start (Seconds (2.0));
+    clientApps1.Stop (Seconds (50.0));
+
+    
+    // PingHelper configurado para enviar para o endereço de destino
+    // PingHelper ping(pingDestination); 
+    // ping.SetAttribute("Interval", TimeValue(Seconds(1.0)));
+    // ping.SetAttribute("Size", UintegerValue(512));
+    // ping.SetAttribute("Count", UintegerValue(10));
+
+    // // Nó Fonte: O primeiro STA da nova rede WiFi 3 (índice 0)
+    // ApplicationContainer pingApp = ping.Install(wifiStaNodes1.Get(2));
+    // pingApp.Start(Seconds(30.0));
+    // pingApp.Stop(Seconds(110.0));
 
     Simulator::Stop(Seconds(120.0));
 
