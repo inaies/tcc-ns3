@@ -45,8 +45,8 @@ main(int argc, char* argv[])
     LogComponentEnable("UdpEchoServerApplication", LOG_LEVEL_INFO);
 
     bool verbose = true;
-    uint32_t nWifiCsma = 40; // nCsma renomeado para nWifiCsma
-    uint32_t nWifi = 40;
+    uint32_t nWifiCsma = 47; // nCsma renomeado para nWifiCsma
+    uint32_t nWifi = 47;
     bool tracing = false;
 
     CommandLine cmd(__FILE__);
@@ -91,8 +91,6 @@ main(int argc, char* argv[])
     // PHY/MAC (idem ao original)
     YansWifiChannelHelper channel1 = YansWifiChannelHelper::Default();
     YansWifiPhyHelper phy1; phy1.SetChannel(channel1.Create());
-    // Config::SetDefault("ns3::WifiMacQueue::MaxPacketNumber", UintegerValue(2000));
-    // Config::SetDefault("ns3::WifiMacQueue::MaxDelay", TimeValue(Seconds(10)));
 
     YansWifiChannelHelper channel2 = YansWifiChannelHelper::Default();
     YansWifiPhyHelper phy2; phy2.SetChannel(channel2.Create());
@@ -102,6 +100,8 @@ main(int argc, char* argv[])
 
     WifiMacHelper mac;
     WifiHelper wifi;
+    // wifi.SetStandard(WIFI_STANDARD_80211n);
+    // wifi.SetRemoteStationManager("ns3::AarfWifiManager");
 
     Ssid ssid1 = Ssid("ns-3-ssid-1");
     Ssid ssid2 = Ssid("ns-3-ssid-2");
@@ -124,6 +124,11 @@ main(int argc, char* argv[])
     NetDeviceContainer staDevices3 = wifi.Install(phy3, mac, wifiStaNodes3);
     mac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid3));
     NetDeviceContainer apDevices3 = wifi.Install(phy3, mac, wifiApNode3);
+
+    Config::SetDefault(
+        "ns3::WifiMacQueue::MaxSize",
+        QueueSizeValue(QueueSize(QueueSizeUnit::PACKETS, std::numeric_limits<uint32_t>::max())));
+    Config::SetDefault("ns3::WifiMacQueue::MaxDelay", TimeValue(Seconds(10)));
 
     // --------------------------------------------------------------------------------
     // Mobilidade ADAPTADA para aumentar capacidade (isolar células e controlar densidade)
@@ -269,7 +274,7 @@ main(int argc, char* argv[])
     UdpEchoServerHelper echoServer (9);
     ApplicationContainer serverApps = echoServer.Install (wifiStaNodes3.Get (0));
     serverApps.Start (Seconds (1.0));
-    serverApps.Stop (Seconds (50.0));
+    serverApps.Stop (Seconds (300.0));
 
     UdpEchoClientHelper echoClient (wifiInterfaces3.GetAddress (0, 1), 9);
     echoClient.SetAttribute ("MaxPackets", UintegerValue (2));
@@ -277,10 +282,10 @@ main(int argc, char* argv[])
     echoClient.SetAttribute ("PacketSize", UintegerValue (64));
 
     ApplicationContainer clientApps1 = echoClient.Install (wifiStaNodes1.Get (2));
-    clientApps1.Start (Seconds (2.0));
-    clientApps1.Stop (Seconds (50.0));
+    clientApps1.Start (Seconds (10.0));
+    clientApps1.Stop (Seconds (300.0));
 
-    Simulator::Stop(Seconds(120.0));
+    Simulator::Stop(Seconds(300.0));
 
     if (tracing)
     {
