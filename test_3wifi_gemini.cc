@@ -45,8 +45,8 @@ main(int argc, char* argv[])
     LogComponentEnable("UdpEchoServerApplication", LOG_LEVEL_INFO);
 
     bool verbose = true;
-    uint32_t nWifiCsma = 47; // nCsma renomeado para nWifiCsma
-    uint32_t nWifi = 47;
+    uint32_t nWifiCsma = 99; // nCsma renomeado para nWifiCsma
+    uint32_t nWifi = 99;
     bool tracing = false;
 
     CommandLine cmd(__FILE__);
@@ -91,17 +91,24 @@ main(int argc, char* argv[])
     // PHY/MAC (idem ao original)
     YansWifiChannelHelper channel1 = YansWifiChannelHelper::Default();
     YansWifiPhyHelper phy1; phy1.SetChannel(channel1.Create());
+    phy1.Set("ChannelSettings", StringValue("{36, 0, BAND_5GHZ, 0}"));
 
     YansWifiChannelHelper channel2 = YansWifiChannelHelper::Default();
     YansWifiPhyHelper phy2; phy2.SetChannel(channel2.Create());
+    phy2.Set("ChannelSettings", StringValue("{40, 0, BAND_5GHZ, 0}"));
 
     YansWifiChannelHelper channel3 = YansWifiChannelHelper::Default();
     YansWifiPhyHelper phy3; phy3.SetChannel(channel3.Create());
+    phy3.Set("ChannelSettings", StringValue("{44, 0, BAND_5GHZ, 0}"));
 
     WifiMacHelper mac;
     WifiHelper wifi;
-    // wifi.SetStandard(WIFI_STANDARD_80211n);
-    // wifi.SetRemoteStationManager("ns3::AarfWifiManager");
+    wifi.SetStandard(WIFI_STANDARD_80211n);
+    // wifi.SetRemoteStationManager("ns3::ConstantRateWifiManager",
+    //                              "DataMode",
+    //                              StringValue("HtMcs7"),
+    //                              "ControlMode",
+    //                              StringValue("HtMcs0"));
 
     Ssid ssid1 = Ssid("ns-3-ssid-1");
     Ssid ssid2 = Ssid("ns-3-ssid-2");
@@ -125,10 +132,10 @@ main(int argc, char* argv[])
     mac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid3));
     NetDeviceContainer apDevices3 = wifi.Install(phy3, mac, wifiApNode3);
 
-    Config::SetDefault(
-        "ns3::WifiMacQueue::MaxSize",
-        QueueSizeValue(QueueSize(QueueSizeUnit::PACKETS, std::numeric_limits<uint32_t>::max())));
-    Config::SetDefault("ns3::WifiMacQueue::MaxDelay", TimeValue(Seconds(10)));
+    // Config::SetDefault(
+    //     "ns3::WifiMacQueue::MaxSize",
+    //     QueueSizeValue(QueueSize(QueueSizeUnit::PACKETS, std::numeric_limits<uint32_t>::max())));
+    // Config::SetDefault("ns3::WifiMacQueue::MaxDelay", TimeValue(Seconds(10)));
 
     // --------------------------------------------------------------------------------
     // Mobilidade ADAPTADA para aumentar capacidade (isolar células e controlar densidade)
@@ -137,8 +144,8 @@ main(int argc, char* argv[])
     MobilityHelper mobility;
 
     // Parâmetros: espaçamento entre nós na grade e offsets para separar redes
-    double spacing = 10.0;    // distância entre STAs (m). Ajuste para maior densidade se quiser mais nós por área.
-    double offsetCell = 1000.0; // distância entre centros das células -> isola co-canal interference
+    double spacing = 7.0;    // distância entre STAs (m). Ajuste para maior densidade se quiser mais nós por área.
+    double offsetCell = 75.0; // distância entre centros das células -> isola co-canal interference
 
     // Cria alocadores de posição separados para cada rede (mantém as redes fisicamente separadas)
     Ptr<ListPositionAllocator> allocWifi1 = CreateGridPositionAllocator (nWifi, spacing, 0.0, 0.0);
