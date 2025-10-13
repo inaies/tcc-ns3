@@ -45,8 +45,8 @@ main(int argc, char* argv[])
     LogComponentEnable("UdpEchoServerApplication", LOG_LEVEL_INFO);
 
     bool verbose = true;
-    uint32_t nWifiCsma = 99; // nCsma renomeado para nWifiCsma
-    uint32_t nWifi = 99;
+    uint32_t nWifiCsma = 165; // nCsma renomeado para nWifiCsma
+    uint32_t nWifi = 165;
     bool tracing = false;
 
     CommandLine cmd(__FILE__);
@@ -104,11 +104,7 @@ main(int argc, char* argv[])
     WifiMacHelper mac;
     WifiHelper wifi;
     wifi.SetStandard(WIFI_STANDARD_80211n);
-    // wifi.SetRemoteStationManager("ns3::ConstantRateWifiManager",
-    //                              "DataMode",
-    //                              StringValue("HtMcs7"),
-    //                              "ControlMode",
-    //                              StringValue("HtMcs0"));
+    // wifi.SetRemoteStationManager("ns3::MinstrelWifiManager");
 
     Ssid ssid1 = Ssid("ns-3-ssid-1");
     Ssid ssid2 = Ssid("ns-3-ssid-2");
@@ -144,7 +140,7 @@ main(int argc, char* argv[])
     MobilityHelper mobility;
 
     // Parâmetros: espaçamento entre nós na grade e offsets para separar redes
-    double spacing = 7.0;    // distância entre STAs (m). Ajuste para maior densidade se quiser mais nós por área.
+    double spacing = 5.0;    // distância entre STAs (m). Ajuste para maior densidade se quiser mais nós por área.
     double offsetCell = 75.0; // distância entre centros das células -> isola co-canal interference
 
     // Cria alocadores de posição separados para cada rede (mantém as redes fisicamente separadas)
