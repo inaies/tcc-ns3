@@ -45,8 +45,8 @@ main(int argc, char* argv[])
     LogComponentEnable("UdpEchoServerApplication", LOG_LEVEL_INFO);
 
     bool verbose = true;
-    uint32_t nWifiCsma = 165; // nCsma renomeado para nWifiCsma
-    uint32_t nWifi = 165;
+    uint32_t nWifiCsma = 173; // nCsma renomeado para nWifiCsma
+    uint32_t nWifi = 173;
     bool tracing = false;
 
     CommandLine cmd(__FILE__);
