@@ -14,7 +14,7 @@
 #include <cmath>
 
 // Define a taxa de ataque (a mesma do código IPv4 original)
-#define ATK_RATE "20480kb/s"
+#define ATK_RATE "512kb/s"
 
 using namespace ns3;
 
@@ -99,14 +99,17 @@ main(int argc, char* argv[])
 
     // PHY/MAC (idem ao original)
     YansWifiChannelHelper channel1 = YansWifiChannelHelper::Default();
+    channel1.SetPropagationDelay("ns3::ConstantSpeedPropagationDelayModel");
     YansWifiPhyHelper phy1; phy1.SetChannel(channel1.Create());
     phy1.Set("ChannelSettings", StringValue("{36, 0, BAND_5GHZ, 0}"));
 
     YansWifiChannelHelper channel2 = YansWifiChannelHelper::Default();
+    channel2.SetPropagationDelay("ns3::ConstantSpeedPropagationDelayModel");
     YansWifiPhyHelper phy2; phy2.SetChannel(channel2.Create());
     phy2.Set("ChannelSettings", StringValue("{40, 0, BAND_5GHZ, 0}"));
 
     YansWifiChannelHelper channel3 = YansWifiChannelHelper::Default();
+    channel3.SetPropagationDelay("ns3::ConstantSpeedPropagationDelayModel");
     YansWifiPhyHelper phy3; phy3.SetChannel(channel3.Create());
     phy3.Set("ChannelSettings", StringValue("{44, 0, BAND_5GHZ, 0}"));
 
