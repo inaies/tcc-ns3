@@ -1,0 +1,21 @@
+vboxuser@ubuntu:~/Downloads/ns-allinone-3.40/ns-3.40$ ./ns3 run scratch/ddos_chat.cc 
+[  0%] Building CXX object scratch/CMakeFiles/scratch_ddos_chat.dir/ddos_chat.cc.o
+/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/scratch/ddos_chat.cc: In function ‘int main(int, char**)’:
+/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/scratch/ddos_chat.cc:170:12: warning: unused variable ‘centerOffset’ [-Wunused-variable]
+  170 |     double centerOffset = spacing * 0.5;
+      |            ^~~~~~~~~~~~
+[  0%] Linking CXX executable /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/build/scratch/ns3.40-ddos_chat-default
+At time +10s client sent 64 bytes to 2001:7::200:ff:fe00:163 port 9
+At time +10.0063s server received 64 bytes from 2001:4::200:ff:fe00:b7 port 49153
+At time +10.0063s server sent 64 bytes to 2001:4::200:ff:fe00:b7 port 49153
+At time +10.0089s client received 64 bytes from 2001:7::200:ff:fe00:163 port 9
+At time +20s client sent 64 bytes to 2001:7::200:ff:fe00:163 port 9
+At time +20.0023s server received 64 bytes from 2001:4::200:ff:fe00:b7 port 49153
+At time +20.0023s server sent 64 bytes to 2001:4::200:ff:fe00:b7 port 49153
+At time +20.0048s client received 64 bytes from 2001:7::200:ff:fe00:163 port 9
+At time +30s client sent 64 bytes to 2001:7::200:ff:fe00:163 port 9
+At time +30.0023s server received 64 bytes from 2001:4::200:ff:fe00:b7 port 49153
+At time +30.0023s server sent 64 bytes to 2001:4::200:ff:fe00:b7 port 49153
+At time +30.0048s client received 64 bytes from 2001:7::200:ff:fe00:163 port 9
+ 
+
