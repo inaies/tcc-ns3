@@ -292,9 +292,9 @@ main(int argc, char* argv[])
 
     NodeContainer attackerNodes;
     for (int i = 0; i < 20; i ++)
-      attackerNodes.Add(wifiStaNodes3.Get(i+2));
+      attackerNodes.Add(wifiStaNodes2.Get(i+2));
 
-    Ptr<Node> victim = wifiApNode3.Get(0);
+    Ptr<Node> victim = wifiApNode2.Get(0);
 
     uint16_t attackPort = 9001;
     
@@ -312,7 +312,7 @@ main(int argc, char* argv[])
         "ns3::UdpSocketFactory",
         Address(Inet6SocketAddress(wifiInterfaces3.GetAddress((i+1),1), attackPort))
       );
-      onoff.SetAttribute("DataRate", StringValue("100Mbps"));
+      onoff.SetAttribute("DataRate", StringValue("10Mbps"));
       onoff.SetAttribute("PacketSize", UintegerValue(1024));
       onoff.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=15]"));
       onoff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
