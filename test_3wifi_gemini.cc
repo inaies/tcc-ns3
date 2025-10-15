@@ -273,6 +273,13 @@ main(int argc, char* argv[])
         sr->SetDefaultRoute(ap2Addr, ifSta);
     }
 
+    Ptr<Ipv6> ipv6 = wifiApNode.Get(0)->GetObject<Ipv6>();
+    // Obtém o índice da interface Wi-Fi do AP1 (nó 0)
+    int32_t ifIndex = ipv6->GetInterfaceForDevice(apDevices1.Get(0)); 
+    
+    // Agenda a desativação da interface usando o método correto Ipv6::SetDown
+    Simulator::Schedule(Seconds(5.0), &Ipv6::SetDown, ipv6, ifIndex);
+
     // Apps de teste (idêntico ao seu original)
     UdpEchoServerHelper echoServer (9);
     ApplicationContainer serverApps = echoServer.Install (wifiStaNodes3.Get (0));
@@ -280,11 +287,11 @@ main(int argc, char* argv[])
     serverApps.Stop (Seconds (300.0));
 
     UdpEchoClientHelper echoClient (wifiInterfaces3.GetAddress (0, 1), 9);
-    echoClient.SetAttribute ("MaxPackets", UintegerValue (2));
-    echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
+    echoClient.SetAttribute ("MaxPackets", UintegerValue (5));
+    echoClient.SetAttribute ("Interval", TimeValue (Seconds (10.0)));
     echoClient.SetAttribute ("PacketSize", UintegerValue (64));
 
-    ApplicationContainer clientApps1 = echoClient.Install (wifiStaNodes1.Get (2));
+    ApplicationContainer clientApps1 = echoClient.Install (wifiStaNodes2.Get (2));
     clientApps1.Start (Seconds (10.0));
     clientApps1.Stop (Seconds (300.0));
 
