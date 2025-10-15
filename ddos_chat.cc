@@ -85,8 +85,8 @@ main(int argc, char* argv[])
     NodeContainer wifiStaNodes3; wifiStaNodes3.Create(nWifiCsma);
 
     NodeContainer wifiApNode  = p2pNodes.Get(0); // AP1
-    NodeContainer wifiApNode2 = p2pNodes.Get(2); // AP3
-    NodeContainer wifiApNode3 = p2pNodes.Get(1); // AP2 (WiFi3)
+    NodeContainer wifiApNode2 = p2pNodes.Get(1); // AP2
+    NodeContainer wifiApNode3 = p2pNodes.Get(2); // AP3 (WiFi3)
 
     // PHY/MAC (idem ao original)
     YansWifiChannelHelper channel1 = YansWifiChannelHelper::Default();
