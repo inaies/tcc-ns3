@@ -90,14 +90,17 @@ main(int argc, char* argv[])
 
     // PHY/MAC (idem ao original)
     YansWifiChannelHelper channel1 = YansWifiChannelHelper::Default();
+    channel1.SetPropagationDelay("ns3::ConstantSpeedPropagationDelayModel");
     YansWifiPhyHelper phy1; phy1.SetChannel(channel1.Create());
     phy1.Set("ChannelSettings", StringValue("{36, 0, BAND_5GHZ, 0}"));
 
     YansWifiChannelHelper channel2 = YansWifiChannelHelper::Default();
+    channel2.SetPropagationDelay("ns3::ConstantSpeedPropagationDelayModel");
     YansWifiPhyHelper phy2; phy2.SetChannel(channel2.Create());
     phy2.Set("ChannelSettings", StringValue("{40, 0, BAND_5GHZ, 0}"));
 
     YansWifiChannelHelper channel3 = YansWifiChannelHelper::Default();
+    channel3.SetPropagationDelay("ns3::ConstantSpeedPropagationDelayModel");
     YansWifiPhyHelper phy3; phy3.SetChannel(channel3.Create());
     phy3.Set("ChannelSettings", StringValue("{44, 0, BAND_5GHZ, 0}"));
 
@@ -277,24 +280,26 @@ main(int argc, char* argv[])
     UdpEchoServerHelper echoServer (9);
     ApplicationContainer serverApps = echoServer.Install (wifiStaNodes2.Get (0));
     serverApps.Start (Seconds (1.0));
-    serverApps.Stop (Seconds (300.0));
+    serverApps.Stop (Seconds (500.0));
 
     UdpEchoClientHelper echoClient (wifiInterfaces2.GetAddress (0, 1), 9);
-    echoClient.SetAttribute ("MaxPackets", UintegerValue (5));
+    echoClient.SetAttribute ("MaxPackets", UintegerValue (7));
     echoClient.SetAttribute ("Interval", TimeValue (Seconds (10.0)));
     echoClient.SetAttribute ("PacketSize", UintegerValue (64));
 
     ApplicationContainer clientApps1 = echoClient.Install (wifiStaNodes1.Get (2));
     clientApps1.Start (Seconds (10.0));
-    clientApps1.Stop (Seconds (300.0));
+    clientApps1.Stop (Seconds (500.0));
 
     //----------- ataque ddos ------------///
 
     NodeContainer attackerNodes;
     for (int i = 0; i < 20; i ++)
-      attackerNodes.Add(wifiStaNodes2.Get(i+2));
+      attackerNodes.Add(wifiStaNodes3.Get(i+2));
 
     Ptr<Node> victim = wifiApNode2.Get(0);
+    
+    Ipv6Address victimAddress = apInterfaces2.GetAddress(0, 1);
 
     uint16_t attackPort = 9001;
     
@@ -304,27 +309,27 @@ main(int argc, char* argv[])
     );
     ApplicationContainer sinkApp = udpSinkHelper.Install(victim);
     sinkApp.Start(Seconds(1.0));
-    sinkApp.Stop(Seconds(300.0));
+    sinkApp.Stop(Seconds(500.0));
   
     for (uint32_t i = 0; i < attackerNodes.GetN(); i++)
     {
       OnOffHelper onoff(
         "ns3::UdpSocketFactory",
-        Address(Inet6SocketAddress(wifiInterfaces3.GetAddress((i+1),1), attackPort))
+        Address(Inet6SocketAddress(victimAddress, attackPort))
       );
-      onoff.SetAttribute("DataRate", StringValue("10Mbps"));
+      onoff.SetAttribute("DataRate", StringValue("5Mbps"));
       onoff.SetAttribute("PacketSize", UintegerValue(1024));
       onoff.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=15]"));
       onoff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
 
       ApplicationContainer attackApp = onoff.Install(attackerNodes);
       attackApp.Start(Seconds(30.0));
-      attackApp.Stop(Seconds(300.0));
+      attackApp.Stop(Seconds(500.0));
     }
     
     // NS_LOG_INFO("Attacker (Wifi1 STA0) -> Victim (Wifi3 STA0) UDP flood configured");
 
-    Simulator::Stop(Seconds(300.0));
+    Simulator::Stop(Seconds(500.0));
 
     if (tracing)
     {
