@@ -47,7 +47,7 @@ main(int argc, char* argv[])
     bool verbose = true;
     uint32_t nWifiCsma = 173; // nCsma renomeado para nWifiCsma
     uint32_t nWifi = 173;
-    bool tracing = false;
+    bool tracing = true;
 
     CommandLine cmd(__FILE__);
     cmd.AddValue("nWifiCsma", "Number of STA devices in the new WiFi 3 network", nWifiCsma);
@@ -273,36 +273,90 @@ main(int argc, char* argv[])
         sr->SetDefaultRoute(ap2Addr, ifSta);
     }
 
-    Ptr<Ipv6> ipv6 = wifiApNode.Get(0)->GetObject<Ipv6>();
-    // Obtém o índice da interface Wi-Fi do AP1 (nó 0)
-    int32_t ifIndex = ipv6->GetInterfaceForDevice(apDevices1.Get(0)); 
+    // Ptr<Ipv6> ipv6 = wifiApNode.Get(0)->GetObject<Ipv6>();
+    // // Obtém o índice da interface Wi-Fi do AP1 (nó 0)
+    // int32_t ifIndex = ipv6->GetInterfaceForDevice(apDevices1.Get(0)); 
     
     // Agenda a desativação da interface usando o método correto Ipv6::SetDown
-    Simulator::Schedule(Seconds(5.0), &Ipv6::SetDown, ipv6, ifIndex);
+    // Simulator::Schedule(Seconds(5.0), &Ipv6::SetDown, ipv6, ifIndex);
 
     // Apps de teste (idêntico ao seu original)
-    UdpEchoServerHelper echoServer (9);
-    ApplicationContainer serverApps = echoServer.Install (wifiStaNodes3.Get (0));
-    serverApps.Start (Seconds (1.0));
-    serverApps.Stop (Seconds (300.0));
 
-    UdpEchoClientHelper echoClient (wifiInterfaces3.GetAddress (0, 1), 9);
-    echoClient.SetAttribute ("MaxPackets", UintegerValue (5));
-    echoClient.SetAttribute ("Interval", TimeValue (Seconds (10.0)));
-    echoClient.SetAttribute ("PacketSize", UintegerValue (64));
+    // 1. Configuração do Receptor (Sink) no AP2 (n1)
+    Ptr<Node> ap2_receptor = wifiApNode2.Get(0); // AP2 (n1)
+    uint16_t sinkPort = 9002;
+    
+    PacketSinkHelper sinkHelper(
+      "ns3::UdpSocketFactory",
+      Inet6SocketAddress(Ipv6Address::GetAny(), sinkPort)
+    );
+    ApplicationContainer sinkApp = sinkHelper.Install(ap2_receptor);
+    sinkApp.Start(Seconds(0.5)); // Começa cedo
+    sinkApp.Stop(Seconds(25.0)); // Para cedo
 
-    ApplicationContainer clientApps1 = echoClient.Install (wifiStaNodes2.Get (2));
-    clientApps1.Start (Seconds (10.0));
-    clientApps1.Stop (Seconds (300.0));
+    // 2. Configuração do Emissor (OnOff)
+    
+    // O AP2 está na rede 2001:4::/64. O AP2 é o sink.
+    Ipv6Address ap2_address = apInterfaces2.GetAddress(0, 1); 
 
-    Simulator::Stop(Seconds(300.0));
+    OnOffHelper onoff("ns3::UdpSocketFactory",
+        Address(Inet6SocketAddress(ap2_address, sinkPort)));
+    
+    // Taxa baixa para garantir que o AP possa receber (ex: 100kbps)
+    onoff.SetAttribute("DataRate", StringValue("100kbps"));
+    // Envia apenas UM pacote por intervalo, para garantir que o AP consiga processar
+    onoff.SetAttribute("PacketSize", UintegerValue(1000)); // Tamanho do pacote em bytes
+    // O "OnTime" será o tempo de transmissão de um único pacote (muito curto)
+    onoff.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=0.001]")); 
+    // O "OffTime" deve ser um tempo grande para o nó não repetir o envio
+    onoff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=1000]"));
+
+    // 3. Agendamento Sequencial
+    double start_offset = 1.0; // Tempo inicial de start
+    double interval = 2;     // Intervalo entre o start de cada nó (50ms)
+    
+    // Apenas nos nós da Rede 2 (wifiStaNodes2)
+    for (uint32_t i = 0; i < wifiStaNodes2.GetN(); i++)
+    {
+      // Cria uma instância do OnOffHelper para cada nó
+      ApplicationContainer clientApp = onoff.Install(wifiStaNodes2.Get(i));
+      
+      // Agenda o início da transmissão do nó 'i'
+      clientApp.Start(Seconds(start_offset + i * interval));
+      clientApp.Stop(Seconds(start_offset + i * interval + 1.0)); // Roda por 1 segundo apenas
+    }
+
+
+    Simulator::Stop(Seconds(300.0)); // Reduz o tempo total da simulação
+
+
+    // UdpEchoServerHelper echoServer (9);
+    // ApplicationContainer serverApps = echoServer.Install (wifiApNode2.Get (0));
+    // serverApps.Start (Seconds (1.0));
+    // serverApps.Stop (Seconds (300.0));
+
+    // UdpEchoClientHelper echoClient (apInterfaces2.GetAddress (0, 1), 9);
+    // echoClient.SetAttribute ("MaxPackets", UintegerValue (5));
+    // echoClient.SetAttribute ("Interval", TimeValue (Seconds (10.0)));
+    // echoClient.SetAttribute ("PacketSize", UintegerValue (64));
+
+    // ApplicationContainer clientApps1 = echoClient.Install (wifiStaNodes2.Get (2));
+    // clientApps1.Start (Seconds (10.0));
+    // clientApps1.Stop (Seconds (300.0));
+
+    // Simulator::Stop(Seconds(300.0));
 
     if (tracing)
     {
+        pointToPoint.EnablePcapAll("p2p-traffic-ddos");
+
         phy1.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
-        pointToPoint.EnablePcapAll("third");
-        phy1.EnablePcap("third", apDevices1.Get(0)); // AP1
-        phy3.EnablePcap("third", apDevices3.Get(0), true); // Novo AP2
+        phy2.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
+        phy3.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
+
+        phy1.EnablePcap("test3_ap1", apDevices1.Get(0)); // AP1
+        phy1.EnablePcap("test3_ap2", apDevices2.Get(0)); // AP1
+        phy1.EnablePcap("test3_ap2", apDevices3.Get(0)); // AP1
     }
 
     Simulator::Run();
