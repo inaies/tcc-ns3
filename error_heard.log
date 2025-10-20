@@ -1,0 +1,40 @@
+vboxuser@ubuntu:~/Downloads/ns-allinone-3.40/ns-3.40$ ./ns3 run scratch/test_4wifi_heard.cc 
+[  0%] Building CXX object scratch/CMakeFiles/scratch_test_4wifi_heard.dir/test_4wifi_heard.cc.o
+/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/scratch/test_4wifi_heard.cc: In function ‘int main(int, char**)’:
+/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/scratch/test_4wifi_heard.cc:290:12: warning: unused variable ‘centerOffset’ [-Wunused-variable]
+  290 |     double centerOffset = spacing * 0.5;
+      |            ^~~~~~~~~~~~
+In file included from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/build/include/ns3/object.h:1,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/network/model/net-device.h:29,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/network/model/node.h:23,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/network/model/application.h:23,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/build/include/ns3/application.h:1,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/network/helper/application-container.h:23,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/build/include/ns3/application-container.h:1,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/applications/helper/bulk-send-helper.h:26,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/build/include/ns3/bulk-send-helper.h:1,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/build/include/ns3/applications-module.h:6,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/scratch/test_4wifi_heard.cc:2:
+/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/core/model/object.h: In instantiation of ‘ns3::Ptr<T> ns3::CreateObject(Args&& ...) [with T = UdpSocketFactory; Args = {}]’:
+/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/scratch/test_4wifi_heard.cc:372:73:   required from here
+/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/core/model/object.h:581:30: error: invalid new-expression of abstract class type ‘ns3::UdpSocketFactory’
+  581 |     return CompleteConstruct(new T(std::forward<Args>(args)...));
+      |                              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/build/include/ns3/udp-socket-factory.h:1,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/build/include/ns3/internet-module.h:123,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/scratch/test_4wifi_heard.cc:5:
+/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/internet/model/udp-socket-factory.h:41:7: note:   because the following virtual functions are pure within ‘ns3::UdpSocketFactory’:
+   41 | class UdpSocketFactory : public SocketFactory
+      |       ^~~~~~~~~~~~~~~~
+In file included from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/build/include/ns3/socket-factory.h:1,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/internet/model/ipv4-raw-socket-factory.h:22,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/build/include/ns3/ipv4-raw-socket-factory.h:1,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/build/include/ns3/internet-module.h:48:
+/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/network/model/socket-factory.h:64:25: note:     ‘virtual ns3::Ptr<ns3::Socket> ns3::SocketFactory::CreateSocket()’
+   64 |     virtual Ptr<Socket> CreateSocket() = 0;
+      |                         ^~~~~~~~~~~~
+gmake[3]: *** [scratch/CMakeFiles/scratch_test_4wifi_heard.dir/build.make:78: scratch/CMakeFiles/scratch_test_4wifi_heard.dir/test_4wifi_heard.cc.o] Erro 1
+gmake[2]: *** [CMakeFiles/Makefile2:17663: scratch/CMakeFiles/scratch_test_4wifi_heard.dir/all] Erro 2
+gmake[1]: *** [CMakeFiles/Makefile2:17669: scratch/CMakeFiles/scratch_test_4wifi_heard.dir/rule] Erro 2
+gmake: *** [Makefile:6004: scratch_test_4wifi_heard] Erro 2
+
