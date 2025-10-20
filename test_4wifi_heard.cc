@@ -182,7 +182,157 @@ main(int argc, char* argv[])
     cmd.AddValue("tracing", "Enable pcap tracing", tracing);
 
     cmd.Parse(argc, argv);
-// ... (Criação de Nodes, P2P e WiFi Devices mantida)
+
+    NodeContainer p2pNodes;
+    p2pNodes.Create(3); // n0=AP1, n1=AP2/WiFi3 AP, n2=AP3
+
+    // Ponto-a-Ponto
+    PointToPointHelper pointToPoint;
+    pointToPoint.SetDeviceAttribute("DataRate", StringValue("5Mbps"));
+    pointToPoint.SetChannelAttribute("Delay", StringValue("2ms"));
+
+    NetDeviceContainer ap1ap2, ap1ap3, ap2ap3;
+    ap1ap2 = pointToPoint.Install(p2pNodes.Get(0), p2pNodes.Get(1));
+    ap1ap3 = pointToPoint.Install(p2pNodes.Get(0), p2pNodes.Get(2));
+    ap2ap3 = pointToPoint.Install(p2pNodes.Get(1), p2pNodes.Get(2));
+
+    // --------------------------------------------------------------------------------
+    // WiFi nodes
+    // --------------------------------------------------------------------------------
+
+    NodeContainer wifiStaNodes1; wifiStaNodes1.Create(nWifi);
+    NodeContainer wifiStaNodes2; wifiStaNodes2.Create(nWifi);
+    NodeContainer wifiStaNodes3; wifiStaNodes3.Create(nWifiCsma);
+
+    NodeContainer wifiApNode  = p2pNodes.Get(0); // AP1
+    NodeContainer wifiApNode2 = p2pNodes.Get(1); // AP3
+    NodeContainer wifiApNode3 = p2pNodes.Get(2); // AP2 (WiFi3)
+
+    // PHY/MAC (idem ao original)
+    YansWifiChannelHelper channel1 = YansWifiChannelHelper::Default();
+    YansWifiPhyHelper phy1; phy1.SetChannel(channel1.Create());
+    phy1.Set("ChannelSettings", StringValue("{36, 0, BAND_5GHZ, 0}"));
+
+    YansWifiChannelHelper channel2 = YansWifiChannelHelper::Default();
+    YansWifiPhyHelper phy2; phy2.SetChannel(channel2.Create());
+    phy2.Set("ChannelSettings", StringValue("{40, 0, BAND_5GHZ, 0}"));
+
+    YansWifiChannelHelper channel3 = YansWifiChannelHelper::Default();
+    YansWifiPhyHelper phy3; phy3.SetChannel(channel3.Create());
+    phy3.Set("ChannelSettings", StringValue("{44, 0, BAND_5GHZ, 0}"));
+
+    WifiMacHelper mac;
+    WifiHelper wifi;
+    wifi.SetStandard(WIFI_STANDARD_80211n);
+    // wifi.SetRemoteStationManager("ns3::MinstrelWifiManager");
+
+    Ssid ssid1 = Ssid("ns-3-ssid-1");
+    Ssid ssid2 = Ssid("ns-3-ssid-2");
+    Ssid ssid3 = Ssid("ns-3-ssid-3");
+
+    // WiFi 1 (AP1)
+    mac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid1), "ActiveProbing", BooleanValue(false));
+    NetDeviceContainer staDevices1 = wifi.Install(phy1, mac, wifiStaNodes1);
+    mac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid1));
+    NetDeviceContainer apDevices1 = wifi.Install(phy1, mac, wifiApNode);
+
+    // WiFi 2 (AP3)
+    mac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid2), "ActiveProbing", BooleanValue(false));
+    NetDeviceContainer staDevices2 = wifi.Install(phy2, mac, wifiStaNodes2);
+    mac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid2));
+    NetDeviceContainer apDevices2 = wifi.Install(phy2, mac, wifiApNode2);
+
+    // WiFi 3 (AP2)
+    mac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid3), "ActiveProbing", BooleanValue(false));
+    NetDeviceContainer staDevices3 = wifi.Install(phy3, mac, wifiStaNodes3);
+    mac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid3));
+    NetDeviceContainer apDevices3 = wifi.Install(phy3, mac, wifiApNode3);
+
+    // Config::SetDefault(
+    //     "ns3::WifiMacQueue::MaxSize",
+    //     QueueSizeValue(QueueSize(QueueSizeUnit::PACKETS, std::numeric_limits<uint32_t>::max())));
+    // Config::SetDefault("ns3::WifiMacQueue::MaxDelay", TimeValue(Seconds(10)));
+
+    // --------------------------------------------------------------------------------
+    // Mobilidade ADAPTADA para aumentar capacidade (isolar células e controlar densidade)
+    // --------------------------------------------------------------------------------
+
+    MobilityHelper mobility;
+
+    // Parâmetros: espaçamento entre nós na grade e offsets para separar redes
+    double spacing = 5.0;    // distância entre STAs (m). Ajuste para maior densidade se quiser mais nós por área.
+    double offsetCell = 75.0; // distância entre centros das células -> isola co-canal interference
+
+    // Cria alocadores de posição separados para cada rede (mantém as redes fisicamente separadas)
+    Ptr<ListPositionAllocator> allocWifi1 = CreateGridPositionAllocator (nWifi, spacing, 0.0, 0.0);
+    Ptr<ListPositionAllocator> allocWifi2 = CreateGridPositionAllocator (nWifi, spacing, 0.0, offsetCell);    // deslocada em Y
+    Ptr<ListPositionAllocator> allocWifi3 = CreateGridPositionAllocator (nWifiCsma, spacing, offsetCell, 0.0);  // deslocada em X
+
+    // Instala posições e modelo constante nos STAs (posições fixas na grade)
+    mobility.SetPositionAllocator (allocWifi1);
+    mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+    mobility.Install (wifiStaNodes1);
+
+    mobility.SetPositionAllocator (allocWifi2);
+    mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+    mobility.Install (wifiStaNodes2);
+
+    mobility.SetPositionAllocator (allocWifi3);
+    mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+    mobility.Install (wifiStaNodes3);
+
+    // Coloca APs perto do centro de cada grade
+    Ptr<ListPositionAllocator> apAlloc = CreateObject<ListPositionAllocator> ();
+
+    // Centro aproximado de cada grade (calcula colunas a partir do número de nós)
+    uint32_t cols1 = static_cast<uint32_t>(std::ceil(std::sqrt(static_cast<double>(std::max<uint32_t>(1, nWifi)))));
+    uint32_t cols3 = static_cast<uint32_t>(std::ceil(std::sqrt(static_cast<double>(std::max<uint32_t>(1, nWifiCsma)))));
+    double centerOffset = spacing * 0.5;
+
+    // AP1 center
+    double ap1x = (cols1 * spacing) / 2.0;
+    double ap1y = (cols1 * spacing) / 2.0;
+    apAlloc->Add (Vector (ap1x, ap1y, 0.0));
+
+    // AP2 (for WiFi3) center - note: this AP is at offsetCell in X
+    double ap2x = offsetCell + (cols3 * spacing) / 2.0;
+    double ap2y = (cols3 * spacing) / 2.0;
+    apAlloc->Add (Vector (ap2x, ap2y, 0.0));
+
+    // AP3 (WiFi2) center - offset in Y
+    double ap3x = (cols1 * spacing) / 2.0;
+    double ap3y = offsetCell + (cols1 * spacing) / 2.0;
+    apAlloc->Add (Vector (ap3x, ap3y, 0.0));
+
+    mobility.SetPositionAllocator (apAlloc);
+    mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+
+    // Note: Install on AP NodeContainers individually so each AP receives corresponding position
+    mobility.Install (wifiApNode);  // AP1 -> first position
+    mobility.Install (wifiApNode3); // AP2 -> second position
+    mobility.Install (wifiApNode2); // AP3 -> third position
+
+    // --------------------------------------------------------------------------------
+    // [RESTA DO CÓDIGO: pilhas, endereçamento, roteamento, aplicações...]
+    // --------------------------------------------------------------------------------
+
+    // 1. Roteadores (n0, n1, n2) usam RIPng
+    RipNgHelper ripNg;
+    Ipv6ListRoutingHelper listRh;
+    listRh.Add(ripNg, 0);
+
+    InternetStackHelper routerStack;
+    routerStack.SetRoutingHelper(listRh);
+    routerStack.Install(p2pNodes); // n0, n1, n2
+
+    // 2. Nós Finais (STAs das três redes) usam Ipv6StaticRouting
+    Ipv6StaticRoutingHelper ipv6StaticRouting;
+    InternetStackHelper staStack;
+    staStack.SetRoutingHelper(ipv6StaticRouting);
+
+    staStack.Install(wifiStaNodes1);
+    staStack.Install(wifiStaNodes2);
+    staStack.Install(wifiStaNodes3); // Instalar nos novos STAs
 
     // Endereçamento IPv6 (Mantido)
     Ipv6AddressHelper address;
@@ -214,18 +364,15 @@ main(int argc, char* argv[])
 // APPS: TRÁFEGO SEQUENCIAL COM FLAG
 // --------------------------------------------------------------------------------
 
-    // 1. Configuração do Receptor (Sink) no AP2 (n1) - SUBSTITUÍDO
-    Ptr<Node> ap2_receptor = wifiApNode2.Get(0); // AP2 (n1)
+    Ptr<Node> ap2_receptor = wifiApNode2.Get(0); 
     uint16_t sinkPort = 9002;
-    
-    // --- CRIAÇÃO MANUAL DO SOCKET UDP NO RECEPTOR (AP2) ---
-    Ptr<UdpSocketFactory> socketFactory = CreateObject<UdpSocketFactory>();
-    Ptr<Socket> sinkSocket = socketFactory->CreateSocket();
-    sinkSocket->Bind(Inet6SocketAddress(Ipv6Address::GetAny(), sinkPort));
-    // Conecta a função de recebimento personalizada (ReceivePacket)
-    sinkSocket->SetRecvCallback(MakeCallback(&ReceivePacket));
 
-    // 2. Configuração do Emissor (OnOff)
+    Ptr<Ipv6> ipv6 = ap2_receptor->GetObject<Ipv6>();
+
+    Ptr<Socket> sinkSocket = Socket::CreateSocket (ipv6, UdpSocketFactory::GetTypeId());
+
+    sinkSocket->Bind(Inet6SocketAddress(Ipv6Address::GetAny(), sinkPort));
+    sinkSocket->SetRecvCallback(MakeCallback(&ReceivePacket));
     
     Ipv6Address ap2_address = apInterfaces2.GetAddress(0, 1); 
 
@@ -271,9 +418,9 @@ main(int argc, char* argv[])
         phy2.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
         phy3.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
 
-        phy1.EnablePcap("test3_ap1", apDevices1.Get(0)); // AP1
-        phy2.EnablePcap("test3_ap2_rede2", apDevices2.Get(0)); // AP2 (Rede 2)
-        phy3.EnablePcap("test3_ap3_rede3", apDevices3.Get(0)); // AP3 (Rede 3)
+        phy1.EnablePcap("test4_ap1", apDevices1.Get(0)); // AP1
+        phy2.EnablePcap("test4_ap2_rede2", apDevices2.Get(0)); // AP2 (Rede 2)
+        phy3.EnablePcap("test4_ap3_rede3", apDevices3.Get(0)); // AP3 (Rede 3)
     }
 
     Simulator::Run();
