@@ -1,0 +1,23 @@
+// --------------------------------------------------------------------------------
+// APPS: TRÁFEGO SEQUENCIAL COM FLAG - CORREÇÃO FINAL DO SOCKET
+// --------------------------------------------------------------------------------
+
+    // 1. Configuração do Receptor (Sink) no AP2 (n1)
+    Ptr<Node> ap2_receptor = wifiApNode2.Get(0); // AP2 (n1)
+    uint16_t sinkPort = 9002;
+    
+    // --- CRIAÇÃO MANUAL DO SOCKET UDP NO RECEPTOR (AP2) ---
+    
+    // 1. Obtém o objeto IPv6 do nó receptor (AP2/n1)
+    Ptr<Ipv6> ipv6 = ap2_receptor->GetObject<Ipv6>();
+
+    // 2. Cria o socket, requisitando a fábrica UDP para IPv6 através do nó
+    Ptr<Socket> sinkSocket = Socket::CreateSocket (ipv6, UdpSocketFactory::GetTypeId());
+
+    // 3. Vincula e conecta a função
+    sinkSocket->Bind(Inet6SocketAddress(Ipv6Address::GetAny(), sinkPort));
+    sinkSocket->SetRecvCallback(MakeCallback(&ReceivePacket));
+
+
+// ... (O restante do código de OnOff continua usando o ns3::UdpSocketFactory na string, 
+// o que é a maneira correta de configurar a aplicação).
