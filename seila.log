@@ -1,23 +1,27 @@
-// --------------------------------------------------------------------------------
-// APPS: TRÁFEGO SEQUENCIAL COM FLAG - CORREÇÃO FINAL DO SOCKET
-// --------------------------------------------------------------------------------
+[  0%] Building CXX object scratch/CMakeFiles/scratch_test_4wifi_heard.dir/test_4wifi_heard.cc.o
+/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/scratch/test_4wifi_heard.cc: In function ‘int main(int, char**)’:
+/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/scratch/test_4wifi_heard.cc:290:12: warning: unused variable ‘centerOffset’ [-Wunused-variable]
+  290 |     double centerOffset = spacing * 0.5;
+      |            ^~~~~~~~~~~~
+In file included from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/core/model/attribute.h:22,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/core/model/attribute-accessor-helper.h:22,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/core/model/attribute-helper.h:23,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/build/include/ns3/attribute-helper.h:1,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/network/model/address.h:25,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/build/include/ns3/address.h:1,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/applications/helper/bulk-send-helper.h:25,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/build/include/ns3/bulk-send-helper.h:1,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/build/include/ns3/applications-module.h:6,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/scratch/test_4wifi_heard.cc:2:
+/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/core/model/ptr.h: In instantiation of ‘ns3::Ptr<T>::Ptr(const ns3::Ptr<U>&) [with U = ns3::Ipv6; T = ns3::Node]’:
+/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/scratch/test_4wifi_heard.cc:371:51:   required from here
+/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/core/model/ptr.h:713:24: error: cannot convert ‘ns3::Ipv6*’ to ‘ns3::Node*’ in initialization
+  713 |     : m_ptr(PeekPointer(o))
+      |             ~~~~~~~~~~~^~~
+      |                        |
+      |                        ns3::Ipv6*
+gmake[3]: *** [scratch/CMakeFiles/scratch_test_4wifi_heard.dir/build.make:78: scratch/CMakeFiles/scratch_test_4wifi_heard.dir/test_4wifi_heard.cc.o] Erro 1
+gmake[2]: *** [CMakeFiles/Makefile2:17663: scratch/CMakeFiles/scratch_test_4wifi_heard.dir/all] Erro 2
+gmake[1]: *** [CMakeFiles/Makefile2:17669: scratch/CMakeFiles/scratch_test_4wifi_heard.dir/rule] Erro 2
+gmake: *** [Makefile:6004: scratch_test_4wifi_heard] Erro 2
 
-    // 1. Configuração do Receptor (Sink) no AP2 (n1)
-    Ptr<Node> ap2_receptor = wifiApNode2.Get(0); // AP2 (n1)
-    uint16_t sinkPort = 9002;
-    
-    // --- CRIAÇÃO MANUAL DO SOCKET UDP NO RECEPTOR (AP2) ---
-    
-    // 1. Obtém o objeto IPv6 do nó receptor (AP2/n1)
-    Ptr<Ipv6> ipv6 = ap2_receptor->GetObject<Ipv6>();
-
-    // 2. Cria o socket, requisitando a fábrica UDP para IPv6 através do nó
-    Ptr<Socket> sinkSocket = Socket::CreateSocket (ipv6, UdpSocketFactory::GetTypeId());
-
-    // 3. Vincula e conecta a função
-    sinkSocket->Bind(Inet6SocketAddress(Ipv6Address::GetAny(), sinkPort));
-    sinkSocket->SetRecvCallback(MakeCallback(&ReceivePacket));
-
-
-// ... (O restante do código de OnOff continua usando o ns3::UdpSocketFactory na string, 
-// o que é a maneira correta de configurar a aplicação).
