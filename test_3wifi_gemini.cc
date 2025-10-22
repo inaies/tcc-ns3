@@ -85,8 +85,8 @@ main(int argc, char* argv[])
     NodeContainer wifiStaNodes3; wifiStaNodes3.Create(nWifiCsma);
 
     NodeContainer wifiApNode  = p2pNodes.Get(0); // AP1
-    NodeContainer wifiApNode2 = p2pNodes.Get(1); // AP3
-    NodeContainer wifiApNode3 = p2pNodes.Get(2); // AP2 (WiFi3)
+    NodeContainer wifiApNode2 = p2pNodes.Get(1); // AP2
+    NodeContainer wifiApNode3 = p2pNodes.Get(2); // AP3 (WiFi3)
 
     // PHY/MAC (idem ao original)
     YansWifiChannelHelper channel1 = YansWifiChannelHelper::Default();
@@ -189,8 +189,8 @@ main(int argc, char* argv[])
 
     // Note: Install on AP NodeContainers individually so each AP receives corresponding position
     mobility.Install (wifiApNode);  // AP1 -> first position
-    mobility.Install (wifiApNode3); // AP2 -> second position
-    mobility.Install (wifiApNode2); // AP3 -> third position
+    mobility.Install (wifiApNode2); // AP2 -> third position
+    mobility.Install (wifiApNode3); // AP3 -> second position
 
     // --------------------------------------------------------------------------------
     // [RESTA DO CÓDIGO: pilhas, endereçamento, roteamento, aplicações...]
