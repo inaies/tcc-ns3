@@ -224,7 +224,7 @@ main(int argc, char* argv[])
     Ipv6InterfaceContainer wifiInterfaces1 = address.Assign(staDevices1);
     Ipv6InterfaceContainer apInterfaces1   = address.Assign(apDevices1);
 
-    address.SetBase(Ipv6Address("2001:4::"), Ipv6Prefix(64)); // WiFi2 (AP3)
+    address.SetBase(Ipv6Address("2001:4::"), Ipv6Prefix(64)); 
     Ipv6InterfaceContainer wifiInterfaces2 = address.Assign(staDevices2);
     Ipv6InterfaceContainer apInterfaces2   = address.Assign(apDevices2);
 
@@ -316,16 +316,15 @@ main(int argc, char* argv[])
     double interval = 2;     // Intervalo entre o start de cada nó (50ms)
     
     // Apenas nos nós da Rede 2 (wifiStaNodes2)
-    for (uint32_t i = 0; i < wifiStaNodes2.GetN(); i++)
+    for (uint32_t i = 0; i < 1; i++)
     {
       // Cria uma instância do OnOffHelper para cada nó
-      ApplicationContainer clientApp = onoff.Install(wifiStaNodes2.Get(i));
+      ApplicationContainer clientApp = onoff.Install(wifiStaNodes2.Get(i+10));
       
       // Agenda o início da transmissão do nó 'i'
       clientApp.Start(Seconds(start_offset + i * interval));
       clientApp.Stop(Seconds(start_offset + i * interval + 1.0)); // Roda por 1 segundo apenas
     }
-
 
     Simulator::Stop(Seconds(300.0)); // Reduz o tempo total da simulação
 
@@ -340,9 +339,16 @@ main(int argc, char* argv[])
     // echoClient.SetAttribute ("Interval", TimeValue (Seconds (10.0)));
     // echoClient.SetAttribute ("PacketSize", UintegerValue (64));
 
-    // ApplicationContainer clientApps1 = echoClient.Install (wifiStaNodes2.Get (2));
-    // clientApps1.Start (Seconds (10.0));
-    // clientApps1.Stop (Seconds (300.0));
+    // Ptr<Node> client1 = wifiStaNodes2.Get(0);
+    // ApplicationContainer clientApp1 = echoClient.Install(client1);
+    // clientApp1.Start (Seconds (5.0));
+    // clientApp1.Stop (Seconds (300.0));
+
+    // Ptr<Node> client2 = wifiStaNodes2.Get(1);
+    // ApplicationContainer clientApp2 = echoClient.Install(client2);
+    // clientApp2.Start (Seconds (10.0));
+    // clientApp2.Stop (Seconds (300.0));
+
 
     // Simulator::Stop(Seconds(300.0));
 
@@ -355,8 +361,8 @@ main(int argc, char* argv[])
         phy3.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
 
         phy1.EnablePcap("test3_ap1", apDevices1.Get(0)); // AP1
-        phy1.EnablePcap("test3_ap2", apDevices2.Get(0)); // AP1
-        phy1.EnablePcap("test3_ap2", apDevices3.Get(0)); // AP1
+        phy2.EnablePcap("test3_ap2", apDevices2.Get(0)); // AP1
+        phy3.EnablePcap("test3_ap3", apDevices3.Get(0)); // AP1
     }
 
     Simulator::Run();
