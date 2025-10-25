@@ -1,3 +1,4 @@
+// third_three_wifi_fixed_ipv6_mobility.cc
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
 #include "ns3/csma-module.h" // Mantido por compatibilidade de includes, mas CSMA removido
@@ -11,8 +12,6 @@
 #include "ns3/ripng-helper.h"
 
 #include <cmath>
-#include <iostream>
-#include <string>
 
 using namespace ns3;
 
@@ -44,21 +43,17 @@ main(int argc, char* argv[])
 
     LogComponentEnable("UdpEchoClientApplication", LOG_LEVEL_INFO);
     LogComponentEnable("UdpEchoServerApplication", LOG_LEVEL_INFO);
-    LogComponentEnable("OnOffApplication", LOG_LEVEL_INFO); // Adicionado para verificação
-    LogComponentEnable("PacketSink", LOG_LEVEL_INFO); // Adicionado para verificação
 
     bool verbose = true;
     uint32_t nWifiCsma = 173; // nCsma renomeado para nWifiCsma
     uint32_t nWifi = 173;
     bool tracing = true;
-    double simTime = 60.0; // Tempo total da simulação
 
     CommandLine cmd(__FILE__);
     cmd.AddValue("nWifiCsma", "Number of STA devices in the new WiFi 3 network", nWifiCsma);
     cmd.AddValue("nWifi", "Number of STA devices in WiFi 1 and 2", nWifi);
     cmd.AddValue("verbose", "Tell echo applications to log if true", verbose);
     cmd.AddValue("tracing", "Enable pcap tracing", tracing);
-    cmd.AddValue("simTime", "Simulation total time", simTime);
 
     cmd.Parse(argc, argv);
 
@@ -69,7 +64,7 @@ main(int argc, char* argv[])
     }
 
     NodeContainer p2pNodes;
-    p2pNodes.Create(3); // n0=AP1, n1=AP2/WiFi2 AP, n2=AP3/WiFi3 AP
+    p2pNodes.Create(3); // n0=AP1, n1=AP2/WiFi3 AP, n2=AP3
 
     // Ponto-a-Ponto
     PointToPointHelper pointToPoint;
@@ -121,17 +116,22 @@ main(int argc, char* argv[])
     mac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid1));
     NetDeviceContainer apDevices1 = wifi.Install(phy1, mac, wifiApNode);
 
-    // WiFi 2 (AP2)
+    // WiFi 2 (AP3)
     mac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid2), "ActiveProbing", BooleanValue(false));
     NetDeviceContainer staDevices2 = wifi.Install(phy2, mac, wifiStaNodes2);
     mac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid2));
     NetDeviceContainer apDevices2 = wifi.Install(phy2, mac, wifiApNode2);
 
-    // WiFi 3 (AP3)
+    // WiFi 3 (AP2)
     mac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid3), "ActiveProbing", BooleanValue(false));
     NetDeviceContainer staDevices3 = wifi.Install(phy3, mac, wifiStaNodes3);
     mac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid3));
     NetDeviceContainer apDevices3 = wifi.Install(phy3, mac, wifiApNode3);
+
+    // Config::SetDefault(
+    //     "ns3::WifiMacQueue::MaxSize",
+    //     QueueSizeValue(QueueSize(QueueSizeUnit::PACKETS, std::numeric_limits<uint32_t>::max())));
+    // Config::SetDefault("ns3::WifiMacQueue::MaxDelay", TimeValue(Seconds(10)));
 
     // --------------------------------------------------------------------------------
     // Mobilidade ADAPTADA para aumentar capacidade (isolar células e controlar densidade)
@@ -167,18 +167,19 @@ main(int argc, char* argv[])
     // Centro aproximado de cada grade (calcula colunas a partir do número de nós)
     uint32_t cols1 = static_cast<uint32_t>(std::ceil(std::sqrt(static_cast<double>(std::max<uint32_t>(1, nWifi)))));
     uint32_t cols3 = static_cast<uint32_t>(std::ceil(std::sqrt(static_cast<double>(std::max<uint32_t>(1, nWifiCsma)))));
+    double centerOffset = spacing * 0.5;
 
-    // AP1 center (WiFi1)
+    // AP1 center
     double ap1x = (cols1 * spacing) / 2.0;
     double ap1y = (cols1 * spacing) / 2.0;
     apAlloc->Add (Vector (ap1x, ap1y, 0.0));
 
-    // AP2 center (WiFi2) - offset in Y
+    // AP2 (WiFi2) center - offset in Y
     double ap2x = (cols1 * spacing) / 2.0;
     double ap2y = offsetCell + (cols1 * spacing) / 2.0;
     apAlloc->Add (Vector (ap2x, ap2y, 0.0));
     
-    // AP3 center (WiFi3) - offset in X
+    // AP3 (for WiFi3) center - note: this AP is at offsetCell in X
     double ap3x = offsetCell + (cols3 * spacing) / 2.0;
     double ap3y = (cols3 * spacing) / 2.0;
     apAlloc->Add (Vector (ap3x, ap3y, 0.0));
@@ -186,13 +187,13 @@ main(int argc, char* argv[])
     mobility.SetPositionAllocator (apAlloc);
     mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
 
-    // Instala os APs nas posições calculadas.
-    mobility.Install (wifiApNode);  // AP1 -> primeira posição
-    mobility.Install (wifiApNode2); // AP2 -> segunda posição
-    mobility.Install (wifiApNode3); // AP3 -> terceira posição
+    // Note: Install on AP NodeContainers individually so each AP receives corresponding position
+    mobility.Install (wifiApNode);  // AP1 -> first position
+    mobility.Install (wifiApNode2); // AP2 -> third position
+    mobility.Install (wifiApNode3); // AP3 -> second position
 
     // --------------------------------------------------------------------------------
-    // Pilhas, Endereçamento e Roteamento
+    // [RESTA DO CÓDIGO: pilhas, endereçamento, roteamento, aplicações...]
     // --------------------------------------------------------------------------------
 
     // 1. Roteadores (n0, n1, n2) usam RIPng
@@ -211,30 +212,30 @@ main(int argc, char* argv[])
 
     staStack.Install(wifiStaNodes1);
     staStack.Install(wifiStaNodes2);
-    staStack.Install(wifiStaNodes3);
+    staStack.Install(wifiStaNodes3); // Instalar nos novos STAs
 
-    // Endereçamento IPv6
+    // Endereçamento IPv6 (mesma lógica do seu original)
     Ipv6AddressHelper address;
 
-    address.SetBase(Ipv6Address("2001:1::"), Ipv6Prefix(64)); // AP1-AP2 (P2P)
+    address.SetBase(Ipv6Address("2001:1::"), Ipv6Prefix(64)); // AP1-AP2
     Ipv6InterfaceContainer ap1ap2Interfaces = address.Assign(ap1ap2);
 
     address.SetBase(Ipv6Address("2001:3::"), Ipv6Prefix(64)); // WiFi1 (AP1)
     Ipv6InterfaceContainer wifiInterfaces1 = address.Assign(staDevices1);
     Ipv6InterfaceContainer apInterfaces1   = address.Assign(apDevices1);
 
-    address.SetBase(Ipv6Address("2001:4::"), Ipv6Prefix(64)); // WiFi2 (AP2)
+    address.SetBase(Ipv6Address("2001:4::"), Ipv6Prefix(64)); 
     Ipv6InterfaceContainer wifiInterfaces2 = address.Assign(staDevices2);
     Ipv6InterfaceContainer apInterfaces2   = address.Assign(apDevices2);
 
-    address.SetBase(Ipv6Address("2001:7::"), Ipv6Prefix(64)); // WiFi3 (AP3)
+    address.SetBase(Ipv6Address("2001:7::"), Ipv6Prefix(64)); // NOVO: WiFi3 (AP2)
     Ipv6InterfaceContainer wifiInterfaces3 = address.Assign(staDevices3);
     Ipv6InterfaceContainer apInterfaces3   = address.Assign(apDevices3);
 
-    address.SetBase(Ipv6Address("2001:5::"), Ipv6Prefix(64)); // AP1-AP3 (P2P)
+    address.SetBase(Ipv6Address("2001:5::"), Ipv6Prefix(64)); // AP1-AP3
     Ipv6InterfaceContainer ap1ap3Interfaces = address.Assign(ap1ap3);
 
-    address.SetBase(Ipv6Address("2001:6::"), Ipv6Prefix(64)); // AP2-AP3 (P2P)
+    address.SetBase(Ipv6Address("2001:6::"), Ipv6Prefix(64)); // AP2-AP3
     Ipv6InterfaceContainer ap2ap3Interfaces = address.Assign(ap2ap3);
 
     // Habilitar Forwarding (Roteamento) nos Roteadores (p2pNodes)
@@ -244,9 +245,7 @@ main(int argc, char* argv[])
         ipv6->SetForwarding(0, true);
     }
 
-    // Rotas estáticas nos STAs (Default Route para o seu AP)
-    
-    // WiFi 1 (AP1)
+    // Rotas estáticas nos STAs (idêntico ao seu original)
     Ipv6Address ap1Addr = apInterfaces1.GetAddress(0, 1);
     for (uint32_t i = 0; i < wifiStaNodes1.GetN(); i++)
     {
@@ -256,7 +255,6 @@ main(int argc, char* argv[])
         sr->SetDefaultRoute(ap1Addr, ifSta);
     }
 
-    // WiFi 2 (AP2)
     Ipv6Address ap2Addr = apInterfaces2.GetAddress(0, 1);
     for (uint32_t i = 0; i < wifiStaNodes2.GetN(); i++)
     {
@@ -266,7 +264,6 @@ main(int argc, char* argv[])
         sr->SetDefaultRoute(ap2Addr, ifSta);
     }
 
-    // WiFi 3 (AP3)
     Ipv6Address ap3Addr = apInterfaces3.GetAddress(0, 1);
     for (uint32_t i = 0; i < wifiStaNodes3.GetN(); i++)
     {
@@ -276,27 +273,15 @@ main(int argc, char* argv[])
         sr->SetDefaultRoute(ap3Addr, ifSta);
     }
 
-    // Simulação de mobilidade (SetDown/SetUp da interface AP2)
     Ptr<Ipv6> ipv6 = wifiApNode2.Get(0)->GetObject<Ipv6>();
+    // Obtém o índice da interface Wi-Fi do AP1 (nó 0)
     int32_t ifIndex = ipv6->GetInterfaceForDevice(apDevices2.Get(0)); 
+    
+    // Agenda a desativação da interface usando o método correto Ipv6::SetDown
     Simulator::Schedule(Seconds(30.0), &Ipv6::SetDown, ipv6, ifIndex);
     Simulator::Schedule(Seconds(40.0), &Ipv6::SetUp, ipv6, ifIndex);
 
-    // --------------------------------------------------------------------------------
-    // APPS DE TESTE (TRÁFEGO CÍCLICO PERSISTENTE)
-    // --------------------------------------------------------------------------------
-    
-    // PARÂMETROS PARA O TRÁFEGO CÍCLICO
-    uint32_t sta_start_index = 61; // Inicia no nó 61 da rede 2
-    uint32_t num_sending_stas = wifiStaNodes2.GetN() - sta_start_index;
-    double start_offset = 12.0;  // Tempo de início da primeira transmissão
-    double interval = 0.05;      // Intervalo entre o início de cada nó
-
-    // Duração total do ciclo sequencial (quando o último nó começa)
-    double cycleDuration = num_sending_stas * interval;
-
-    NS_LOG_INFO ("Nós enviando: " << num_sending_stas);
-    NS_LOG_INFO ("Duração do ciclo sequencial (OffTime): " << cycleDuration << " segundos.");
+    // Apps de teste (idêntico ao seu original)
 
     // 1. Configuração do Receptor (Sink) no AP2 (n1)
     Ptr<Node> ap2_receptor = wifiApNode2.Get(0); // AP2 (n1)
@@ -307,45 +292,64 @@ main(int argc, char* argv[])
       Inet6SocketAddress(Ipv6Address::GetAny(), sinkPort)
     );
     ApplicationContainer sinkApp = sinkHelper.Install(ap2_receptor);
-    sinkApp.Start(Seconds(1.5));
-    sinkApp.Stop(Seconds(simTime)); // Para no fim da simulação
+    sinkApp.Start(Seconds(1.5)); // Começa cedo
+    sinkApp.Stop(Seconds(60.0)); // Para cedo
 
     // 2. Configuração do Emissor (OnOff)
     
+    // O AP2 está na rede 2001:4::/64. O AP2 é o sink.
     Ipv6Address ap2_address = apInterfaces2.GetAddress(0, 1); 
 
     OnOffHelper onoff("ns3::UdpSocketFactory",
         Address(Inet6SocketAddress(ap2_address, sinkPort)));
     
-    // Taxa baixa para garantir que o AP possa receber (100kbps)
+    // Taxa baixa para garantir que o AP possa receber (ex: 100kbps)
     onoff.SetAttribute("DataRate", StringValue("100kbps"));
+    // Envia apenas UM pacote por intervalo, para garantir que o AP consiga processar
     onoff.SetAttribute("PacketSize", UintegerValue(1000)); // Tamanho do pacote em bytes
-    
-    // OnTime: Tempo para enviar UM pacote (valor deve ser pequeno, o que importa é a taxa e o PacketSize)
-    // O valor constante é arbitrário, desde que maior que zero, mas muito curto.
-    onoff.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=0.001]")); 
-    
-    // OffTime (A CHAVE): Define o tempo de espera antes do nó tentar enviar o próximo pacote.
-    // É igual à duração do ciclo completo, garantindo que o envio recomece apenas
-    // após o último nó ter tido a sua vez.
-    std::string offTimeStr = "ns3::ConstantRandomVariable[Constant=" + std::to_string(cycleDuration) + "]";
-    onoff.SetAttribute("OffTime", StringValue(offTimeStr));
+    // O "OnTime" será o tempo de transmissão de um único pacote (muito curto)
+    onoff.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1000]")); 
+    // O "OffTime" deve ser um tempo grande para o nó não repetir o envio
+    onoff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
 
     // 3. Agendamento Sequencial
-    // Agenda o início sequencial de cada nó
-    for (uint32_t i = sta_start_index; i < wifiStaNodes2.GetN(); i++)
+    double start_offset = 12.0; // Tempo inicial de start
+    double interval = 0.05;     // Intervalo entre o start de cada nó (50ms)
+    
+    // Apenas nos nós da Rede 2 (wifiStaNodes2)
+    for (uint32_t i = 61; i < wifiStaNodes2.GetN(); i++)
     {
-        Ptr<Node> clientNode = wifiStaNodes2.Get(i);
-        ApplicationContainer clientApp = onoff.Install(clientNode);
+      // Cria uma instância do OnOffHelper para cada nó
+      ApplicationContainer clientApp = onoff.Install(wifiStaNodes2.Get(i));
       
-        double startTime = start_offset + (i - sta_start_index) * interval;
-        
-        clientApp.Start(Seconds(startTime));
-        // A aplicação para apenas no final da simulação, permitindo ciclos contínuos
-        clientApp.Stop(Seconds(simTime)); 
+      // Agenda o início da transmissão do nó 'i'
+      clientApp.Start(Seconds(start_offset + (i-61) * interval));
+      clientApp.Stop(Seconds(60.0)); // Roda por 1 segundo apenas
     }
 
-    Simulator::Stop(Seconds(simTime));
+
+    // UdpEchoServerHelper echoServer (9);
+    // ApplicationContainer serverApps = echoServer.Install (wifiApNode2.Get (0));
+    // serverApps.Start (Seconds (1.0));
+    // serverApps.Stop (Seconds (300.0));
+
+    // UdpEchoClientHelper echoClient (apInterfaces2.GetAddress (0, 1), 9);
+    // echoClient.SetAttribute ("MaxPackets", UintegerValue (5));
+    // echoClient.SetAttribute ("Interval", TimeValue (Seconds (10.0)));
+    // echoClient.SetAttribute ("PacketSize", UintegerValue (64));
+
+    // Ptr<Node> client1 = wifiStaNodes2.Get(0);
+    // ApplicationContainer clientApp1 = echoClient.Install(client1);
+    // clientApp1.Start (Seconds (5.0));
+    // clientApp1.Stop (Seconds (300.0));
+
+    // Ptr<Node> client2 = wifiStaNodes2.Get(1);
+    // ApplicationContainer clientApp2 = echoClient.Install(client2);
+    // clientApp2.Start (Seconds (10.0));
+    // clientApp2.Stop (Seconds (300.0));
+
+
+    Simulator::Stop(Seconds(60.0));
 
     if (tracing)
     {
@@ -356,14 +360,8 @@ main(int argc, char* argv[])
         phy3.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
 
         phy1.EnablePcap("test3_ap1", apDevices1.Get(0)); // AP1
-        phy2.EnablePcap("test3_ap2", apDevices2.Get(0)); // AP2
-        phy3.EnablePcap("test3_ap3", apDevices3.Get(0)); // AP3
-        
-        // Exemplo de um cliente para ver o tráfego cíclico (STA 61 da rede 2)
-        if (nWifi > sta_start_index)
-        {
-            phy2.EnablePcap("test3_sta61", staDevices2.Get(sta_start_index)); 
-        }
+        phy2.EnablePcap("test3_ap2", apDevices2.Get(0)); // AP1
+        phy3.EnablePcap("test3_ap3", apDevices3.Get(0)); // AP1
     }
 
 
@@ -371,3 +369,4 @@ main(int argc, char* argv[])
     Simulator::Destroy();
     return 0;
 }
+
