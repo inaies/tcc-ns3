@@ -1,0 +1,10 @@
+Ptr<Ipv6> ipv6 = wifiApNode2.Get(0)->GetObject<Ipv6>();
+int32_t ifIndex = ipv6->GetInterfaceForDevice(apDevices2.Get(0));
+Simulator::Schedule(Seconds(30.0), &Ipv6::SetDown, ipv6, ifIndex);
+
+// Também “desliga” o PHY (para parar pacotes no PCAP)
+Ptr<WifiPhy> phyAp2 = phy2.GetPhy(apDevices2.Get(0));
+Simulator::Schedule(Seconds(30.0), &WifiPhy::SetSleepMode, phyAp2);
+Simulator::Schedule(Seconds(40.0), &WifiPhy::ResumeFromSleep, phyAp2);
+Simulator::Schedule(Seconds(40.0), &Ipv6::SetUp, ipv6, ifIndex);
+
