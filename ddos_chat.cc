@@ -313,7 +313,7 @@ main(int argc, char* argv[])
 
     // 3. Agendamento Sequencial
     double start_offset = 12.0; // Tempo inicial de start
-    double interval = 4;     // Intervalo entre o start de cada nó (50ms)
+    double interval = 2;     // Intervalo entre o start de cada nó (50ms)
     
     // Apenas nos nós da Rede 2 (wifiStaNodes2)
     for (uint32_t i = 61; i < wifiStaNodes2.GetN(); i++)
@@ -322,8 +322,8 @@ main(int argc, char* argv[])
       ApplicationContainer clientApp = onoff.Install(wifiStaNodes2.Get(i));
       
       // Agenda o início da transmissão do nó 'i'
-      clientApp.Start(Seconds(start_offset + i * interval));
-      clientApp.Stop(Seconds(start_offset + i * interval + 1.0)); // Roda por 1 segundo apenas
+      clientApp.Start(Seconds(start_offset + (i-61) * interval));
+      clientApp.Stop(Seconds(start_offset + (i-61) * interval + 1.0)); // Roda por 1 segundo apenas
     }
 
 /* ///////////   ataque ddos   ////////// */
