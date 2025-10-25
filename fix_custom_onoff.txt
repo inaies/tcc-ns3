@@ -1,0 +1,34 @@
+// 2. Configuração do Emissor (OnOff)
+// ...
+// Omitir a linha OnOffHelper onoff(...);
+// ...
+
+// 3. Agendamento Sequencial
+double start_offset = 1.0; // Tempo inicial de start
+double interval = 2;     // Intervalo entre o start de cada nó (50ms)
+    
+// Apenas nos nós da Rede 2 (wifiStaNodes2)
+for (uint32_t i = 0; i < wifiStaNodes2.GetN(); i++)
+{
+  // ** Substitua o uso de OnOffHelper **
+  // 1. Cria uma fábrica para o CustomOnOffApplication
+  ObjectFactory factory;
+  factory.SetTypeId("ns3::CustomOnOffApplication");
+  factory.Set("DataRate", StringValue("100kbps"));
+  factory.Set("PacketSize", UintegerValue(1000));
+  factory.Set("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=0.001]"));
+  factory.Set("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=1000]"));
+
+  // 2. Cria a aplicação (App) e a configura
+  Ptr<CustomOnOffApplication> app = factory.Create<CustomOnOffApplication>();
+  app->SetRemote(Inet6SocketAddress(ap2_address, sinkPort));
+  wifiStaNodes2.Get(i)->AddApplication(app);
+  
+  // 3. Configura o ID do nó no header
+  // Note que Get(i)->GetId() é o ID global do nó, que é o que você quer
+  app->SetNodeId(wifiStaNodes2.Get(i)->GetId());
+
+  // 4. Agenda o início e fim
+  app->SetStartTime(Seconds(start_offset + i * interval));
+  app->SetStopTime(Seconds(start_offset + i * interval + 1.0));
+}
