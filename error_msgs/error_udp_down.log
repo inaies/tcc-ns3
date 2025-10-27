@@ -1,8 +1,8 @@
 vboxuser@ubuntu:~/Downloads/ns-allinone-3.40/ns-3.40$ ./ns3 run scratch/test_4trafego.cc 
 [  0%] Building CXX object scratch/CMakeFiles/scratch_test_4trafego.dir/test_4trafego.cc.o
 /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/scratch/test_4trafego.cc: In lambda function:
-/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/scratch/test_4trafego.cc:300:30: error: no matching function for call to ‘ns3::Ipv6StaticRouting::RemoveRoute(ns3::Ipv6RoutingTableEntry)’
-  300 |         srClient->RemoveRoute(srClient->GetDefaultRoute());
+/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/scratch/test_4trafego.cc:292:30: error: no matching function for call to ‘ns3::Ipv6StaticRouting::RemoveRoute(ns3::Ipv6RoutingTableEntry)’
+  292 |         srClient->RemoveRoute(srClient->GetDefaultRoute());
       |         ~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 In file included from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/build/include/ns3/ipv6-static-routing.h:1,
                  from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/internet/helper/ipv6-static-routing-helper.h:24,
@@ -20,8 +20,8 @@ In file included from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/build/in
       |          ^~~~~~~~~~~
 /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/internet/model/ipv6-static-routing.h:193:10: note:   candidate expects 4 arguments, 1 provided
 /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/scratch/test_4trafego.cc: In function ‘int main(int, char**)’:
-/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/scratch/test_4trafego.cc:170:12: warning: unused variable ‘centerOffset’ [-Wunused-variable]
-  170 |     double centerOffset = spacing * 0.5;
+/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/scratch/test_4trafego.cc:171:12: warning: unused variable ‘centerOffset’ [-Wunused-variable]
+  171 |     double centerOffset = spacing * 0.5;
       |            ^~~~~~~~~~~~
 gmake[3]: *** [scratch/CMakeFiles/scratch_test_4trafego.dir/build.make:78: scratch/CMakeFiles/scratch_test_4trafego.dir/test_4trafego.cc.o] Erro 1
 gmake[2]: *** [CMakeFiles/Makefile2:17601: scratch/CMakeFiles/scratch_test_4trafego.dir/all] Erro 2
