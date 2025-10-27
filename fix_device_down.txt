@@ -48,3 +48,47 @@ auto reinstallRoute = [srClient, ap2Addr, clientIfIndex](){
 };
 
 Simulator::Schedule(Seconds(32.1), reinstallRoute);
+
+
+
+
+
+
+
+
+
+
+
+// ... (antes do Simulator::Run)
+
+// 1. Definições (Mantenha estas linhas)
+Ipv6Address ap2Addr = apInterfaces2.GetAddress(0, 1);
+Ptr<Node> client1 = wifiStaNodes2.Get(0);
+// Ptr<Ipv6> clientIpv6 = client1->GetObject<Ipv6>(); // Não precisa mais
+Ptr<Ipv6StaticRouting> srClient = ipv6StaticRouting.GetStaticRouting(client1->GetObject<Ipv6>()); 
+uint32_t clientIfIndex = client1->GetObject<Ipv6>()->GetInterfaceForDevice(staDevices2.Get(0));
+
+// 2. Agendamento do UP/DOWN do AP2 (Mantenha este bloco)
+Ptr<Ipv6> ipv6Ap2 = wifiApNode2.Get(0)->GetObject<Ipv6>(); 
+int32_t ifIndexAp2 = ipv6Ap2->GetInterfaceForDevice(apDevices2.Get(0));
+Simulator::Schedule(Seconds(30.0), &Ipv6::SetDown, ipv6Ap2, ifIndexAp2);
+Simulator::Schedule(Seconds(32.0), &Ipv6::SetUp, ipv6Ap2, ifIndexAp2);
+
+// 3. Reinstalação da Rota (A CORREÇÃO FINAL)
+auto reinstallRoute = [srClient, ap2Addr, clientIfIndex](){
+    // Parâmetros para a rota padrão (Default Route): ::/0
+    Ipv6Address defaultNetwork = Ipv6Address("::");
+    Ipv6Prefix defaultPrefix = Ipv6Prefix(0);
+    
+    // 1. Remove a rota padrão, especificando todos os seus parâmetros.
+    // Isso é garantido de funcionar se a rota existir.
+    srClient->RemoveRoute(defaultNetwork, defaultPrefix, clientIfIndex, ap2Addr); 
+    
+    // 2. Reinstala a rota default. Isso força o ns-3 a tentar o Neighbor Discovery novamente.
+    srClient->SetDefaultRoute(ap2Addr, clientIfIndex); 
+    NS_LOG_INFO("Time " << Simulator::Now().GetSeconds() << "s: Reinstalled default route on client 1.");
+};
+
+Simulator::Schedule(Seconds(32.1), reinstallRoute);
+
+// ... (Restante do código)
