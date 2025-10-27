@@ -1,43 +1,34 @@
-// ... antes de main()
-
-void
-SendNS (Ptr<Node> node, Ipv6Address dstAddr, uint32_t ifIndex)
-{
-  Ptr<Ipv6L3Protocol> ipv6 = node->GetObject<Ipv6L3Protocol> ();
-  ipv6->SendNeighborSolicitation (dstAddr, ifIndex, false);
-  NS_LOG_INFO ("Forcing Neighbor Discovery (NS) on Node " << node->GetId () << " for " << dstAddr << " on If " << ifIndex);
-}
-
-// ... dentro de main()
-
-// ... (todo o código de setup)
-
-// Rotas estáticas nos STAs (idêntico ao seu original)
-Ipv6Address ap1Addr = apInterfaces1.GetAddress(0, 1);
-// ... (rotas para WiFi1 e WiFi3)
-
 Ipv6Address ap2Addr = apInterfaces2.GetAddress(0, 1); // Endereço Link-Local do AP2
 Ptr<Node> client1 = wifiStaNodes2.Get(0);
 Ptr<Ipv6> clientIpv6 = client1->GetObject<Ipv6>();
+
+// Obter o Ipv6StaticRouting do cliente
+Ptr<Ipv6StaticRouting> srClient = ipv6StaticRouting.GetStaticRouting(clientIpv6); 
+
+// Obter o ifIndex do cliente (interface WiFi 2)
 uint32_t clientIfIndex = clientIpv6->GetInterfaceForDevice(staDevices2.Get(0));
 
-for (uint32_t i = 0; i < wifiStaNodes2.GetN(); i++)
-{
-    Ptr<Ipv6> ipv6 = wifiStaNodes2.Get(i)->GetObject<Ipv6>();
-    Ptr<Ipv6StaticRouting> sr = ipv6StaticRouting.GetStaticRouting(ipv6);
-    uint32_t ifSta = ipv6->GetInterfaceForDevice(staDevices2.Get(i));
-    sr->SetDefaultRoute(ap2Addr, ifSta);
-}
 
-// Agendamento do UP/DOWN do AP2
-Ptr<Ipv6> ipv6 = wifiApNode2.Get(0)->GetObject<Ipv6>();
-int32_t ifIndex = ipv6->GetInterfaceForDevice(apDevices2.Get(0));
-Simulator::Schedule(Seconds(30.0), &Ipv6::SetDown, ipv6, ifIndex);
-Simulator::Schedule(Seconds(32.0), &Ipv6::SetUp, ipv6, ifIndex);
+// Ptr<Ipv6> ipv6 é o ponteiro para o Ipv6 do AP2
+Ptr<Ipv6> ipv6Ap2 = wifiApNode2.Get(0)->GetObject<Ipv6>(); 
+int32_t ifIndexAp2 = ipv6Ap2->GetInterfaceForDevice(apDevices2.Get(0));
 
-// ********** CORREÇÃO: Forçar Neighbor Discovery no cliente **********
-// Agendar o Neighbor Solicitation para o AP2 0.1s após ele voltar
-Simulator::Schedule(Seconds(32.1), &SendNS, client1, ap2Addr, clientIfIndex);
+// Ação de DOWN e UP na interface do AP2
+Simulator::Schedule(Seconds(30.0), &Ipv6::SetDown, ipv6Ap2, ifIndexAp2);
+Simulator::Schedule(Seconds(32.0), &Ipv6::SetUp, ipv6Ap2, ifIndexAp2);
 
+// ********** CORREÇÃO: Função Lambda para Reinstalar a Rota **********
 
-// ... (Apps de teste)
+// Função Lambda para remover e adicionar a rota padrão no cliente 1
+auto reinstallRoute = [srClient, ap2Addr, clientIfIndex](){
+    // Remove a rota default atual (que pode estar apontando para um vizinho inválido)
+    srClient->RemoveRoute(srClient->GetDefaultRoute()); 
+    
+    // Reinstala a rota default. Isso fará com que o ns-3 tente o Neighbor Discovery
+    // para o ap2Addr na próxima tentativa de envio.
+    srClient->SetDefaultRoute(ap2Addr, clientIfIndex); 
+    NS_LOG_INFO("Time " << Simulator::Now().GetSeconds() << "s: Reinstalled default route on client 1.");
+};
+
+// Agendar a reinstalação 0.1s após o AP2 voltar (32.1s)
+Simulator::Schedule(Seconds(32.1), reinstallRoute);
