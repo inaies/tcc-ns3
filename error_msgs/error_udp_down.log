@@ -50,3 +50,53 @@ gmake[2]: *** [CMakeFiles/Makefile2:17601: scratch/CMakeFiles/scratch_test_4traf
 gmake[1]: *** [CMakeFiles/Makefile2:17607: scratch/CMakeFiles/scratch_test_4trafego.dir/rule] Erro 2
 gmake: *** [Makefile:5991: scratch_test_4trafego] Erro 2
 
+
+
+
+
+
+
+
+vboxuser@ubuntu:~/Downloads/ns-allinone-3.40/ns-3.40$ ./ns3 run scratch/test_4trafego.cc 
+[  0%] Building CXX object scratch/CMakeFiles/scratch_test_4trafego.dir/test_4trafego.cc.o
+/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/scratch/test_4trafego.cc: In lambda function:
+/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/scratch/test_4trafego.cc:295:48: error: call of overloaded ‘Ipv6Prefix(int)’ is ambiguous
+  295 |         Ipv6Prefix defaultPrefix = Ipv6Prefix(0);
+      |                                                ^
+In file included from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/network/utils/mac48-address.h:23,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/build/include/ns3/mac48-address.h:1,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/network/model/packet.h:33,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/network/model/net-device.h:24,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/network/model/node.h:23,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/network/model/application.h:23,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/build/include/ns3/application.h:1,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/network/helper/application-container.h:23,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/build/include/ns3/application-container.h:1,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/applications/helper/bulk-send-helper.h:26,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/build/include/ns3/bulk-send-helper.h:1,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/build/include/ns3/applications-module.h:6,
+                 from /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/scratch/test_4trafego.cc:2:
+/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/network/utils/ipv6-address.h:513:5: note: candidate: ‘ns3::Ipv6Prefix::Ipv6Prefix(const ns3::Ipv6Prefix*)’
+  513 |     Ipv6Prefix(const Ipv6Prefix* prefix);
+      |     ^~~~~~~~~~
+/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/network/utils/ipv6-address.h:507:5: note: candidate: ‘ns3::Ipv6Prefix::Ipv6Prefix(const ns3::Ipv6Prefix&)’
+  507 |     Ipv6Prefix(const Ipv6Prefix& prefix);
+      |     ^~~~~~~~~~
+/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/network/utils/ipv6-address.h:501:5: note: candidate: ‘ns3::Ipv6Prefix::Ipv6Prefix(uint8_t)’
+  501 |     Ipv6Prefix(uint8_t prefix);
+      |     ^~~~~~~~~~
+/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/network/utils/ipv6-address.h:480:5: note: candidate: ‘ns3::Ipv6Prefix::Ipv6Prefix(const char*)’
+  480 |     Ipv6Prefix(const char* prefix);
+      |     ^~~~~~~~~~
+/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/src/network/utils/ipv6-address.h:470:5: note: candidate: ‘ns3::Ipv6Prefix::Ipv6Prefix(uint8_t*)’
+  470 |     Ipv6Prefix(uint8_t prefix[16]);
+      |     ^~~~~~~~~~
+/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/scratch/test_4trafego.cc: In function ‘int main(int, char**)’:
+/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/scratch/test_4trafego.cc:171:12: warning: unused variable ‘centerOffset’ [-Wunused-variable]
+  171 |     double centerOffset = spacing * 0.5;
+      |            ^~~~~~~~~~~~
+gmake[3]: *** [scratch/CMakeFiles/scratch_test_4trafego.dir/build.make:78: scratch/CMakeFiles/scratch_test_4trafego.dir/test_4trafego.cc.o] Erro 1
+gmake[2]: *** [CMakeFiles/Makefile2:17601: scratch/CMakeFiles/scratch_test_4trafego.dir/all] Erro 2
+gmake[1]: *** [CMakeFiles/Makefile2:17607: scratch/CMakeFiles/scratch_test_4trafego.dir/rule] Erro 2
+gmake: *** [Makefile:5991: scratch_test_4trafego] Erro 2
+
