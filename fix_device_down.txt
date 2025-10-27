@@ -26,3 +26,25 @@ auto reinstallRoute = [srClient, ap2Addr, clientIfIndex](){
 Simulator::Schedule(Seconds(32.1), reinstallRoute);
 
 // ... (Restante do código)
+
+
+
+
+
+// 3. Reinstalação da Rota (A correção principal):
+auto reinstallRoute = [srClient, ap2Addr, clientIfIndex](){
+    // Obtém o índice da rota padrão (retorna uint32_t)
+    uint32_t defaultRouteIndex = srClient->GetDefaultRouteIndex(); 
+
+    // Remove a rota padrão usando o índice numérico
+    if (defaultRouteIndex != (uint32_t)-1) // Verifica se a rota existe
+    {
+        srClient->RemoveRoute(defaultRouteIndex); 
+    }
+    
+    // Reinstala a rota default.
+    srClient->SetDefaultRoute(ap2Addr, clientIfIndex); 
+    NS_LOG_INFO("Time " << Simulator::Now().GetSeconds() << "s: Reinstalled default route on client 1.");
+};
+
+Simulator::Schedule(Seconds(32.1), reinstallRoute);
