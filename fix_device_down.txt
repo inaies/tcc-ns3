@@ -92,3 +92,33 @@ auto reinstallRoute = [srClient, ap2Addr, clientIfIndex](){
 Simulator::Schedule(Seconds(32.1), reinstallRoute);
 
 // ... (Restante do código)
+
+
+
+
+
+// AP2 (n1) Interface e IPV6
+Ptr<Ipv6> ipv6Ap2 = wifiApNode2.Get(0)->GetObject<Ipv6>(); 
+int32_t ifIndexAp2 = ipv6Ap2->GetInterfaceForDevice(apDevices2.Get(0));
+
+// Cliente (neste caso, client1) Interface e IPV6
+Ptr<NetDevice> clientStaDevice = staDevices2.Get(0); // Dispositivo WiFi do cliente
+Ptr<Ipv6> ipv6Client = client1->GetObject<Ipv6>();
+int32_t ifIndexClient = ipv6Client->GetInterfaceForDevice(clientStaDevice);
+
+
+// 1. Desliga o AP2 em t=30.0s
+Simulator::Schedule(Seconds(30.0), &Ipv6::SetDown, ipv6Ap2, ifIndexAp2);
+// Também derruba a interface L3 do cliente, forçando-o a reassociar/redescobrir tudo
+Simulator::Schedule(Seconds(30.0), &Ipv6::SetDown, ipv6Client, ifIndexClient);
+
+
+// 2. Liga o AP2 em t=32.0s
+Simulator::Schedule(Seconds(32.0), &Ipv6::SetUp, ipv6Ap2, ifIndexAp2);
+// Liga a interface L3 do cliente em t=32.1s (dando uma pequena margem)
+Simulator::Schedule(Seconds(32.1), &Ipv6::SetUp, ipv6Client, ifIndexClient);
+
+
+// 3. Reinstalação da Rota (AGORA EM t=32.5s)
+// Este atraso extra após o Up/Up deve dar tempo para a Camada 2 se reestabelecer.
+Simulator::Schedule(Seconds(32.5), reinstallRoute);
