@@ -28,3 +28,25 @@ gmake[2]: *** [CMakeFiles/Makefile2:17601: scratch/CMakeFiles/scratch_test_4traf
 gmake[1]: *** [CMakeFiles/Makefile2:17607: scratch/CMakeFiles/scratch_test_4trafego.dir/rule] Erro 2
 gmake: *** [Makefile:5991: scratch_test_4trafego] Erro 2
 
+
+
+
+
+
+
+vboxuser@ubuntu:~/Downloads/ns-allinone-3.40/ns-3.40$ ./ns3 run scratch/test_4trafego.cc 
+[  0%] Building CXX object scratch/CMakeFiles/scratch_test_4trafego.dir/test_4trafego.cc.o
+/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/scratch/test_4trafego.cc: In lambda function:
+/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/scratch/test_4trafego.cc:292:48: error: ‘class ns3::Ipv6StaticRouting’ has no member named ‘GetDefaultRouteIndex’; did you mean ‘GetDefaultRoute’?
+  292 |         uint32_t defaultRouteIndex = srClient->GetDefaultRouteIndex();
+      |                                                ^~~~~~~~~~~~~~~~~~~~
+      |                                                GetDefaultRoute
+/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/scratch/test_4trafego.cc: In function ‘int main(int, char**)’:
+/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/scratch/test_4trafego.cc:171:12: warning: unused variable ‘centerOffset’ [-Wunused-variable]
+  171 |     double centerOffset = spacing * 0.5;
+      |            ^~~~~~~~~~~~
+gmake[3]: *** [scratch/CMakeFiles/scratch_test_4trafego.dir/build.make:78: scratch/CMakeFiles/scratch_test_4trafego.dir/test_4trafego.cc.o] Erro 1
+gmake[2]: *** [CMakeFiles/Makefile2:17601: scratch/CMakeFiles/scratch_test_4trafego.dir/all] Erro 2
+gmake[1]: *** [CMakeFiles/Makefile2:17607: scratch/CMakeFiles/scratch_test_4trafego.dir/rule] Erro 2
+gmake: *** [Makefile:5991: scratch_test_4trafego] Erro 2
+
