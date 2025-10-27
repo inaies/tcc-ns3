@@ -1,0 +1,23 @@
+vboxuser@ubuntu:~/Downloads/ns-allinone-3.40/ns-3.40$ ./ns3 run scratch/test_4trafego.cc 
+[  0%] Building CXX object scratch/CMakeFiles/scratch_test_4trafego.dir/test_4trafego.cc.o
+/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/scratch/test_4trafego.cc: In function ‘int main(int, char**)’:
+/home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/scratch/test_4trafego.cc:171:12: warning: unused variable ‘centerOffset’ [-Wunused-variable]
+  171 |     double centerOffset = spacing * 0.5;
+      |            ^~~~~~~~~~~~
+[  0%] Linking CXX executable /home/vboxuser/Downloads/ns-allinone-3.40/ns-3.40/build/scratch/ns3.40-test_4trafego-default
+At time +5s client sent 64 bytes to 2001:4::200:ff:fe00:162 port 9
+At time +5.0027s server received 64 bytes from 2001:4::200:ff:fe00:b5 port 49153
+At time +5.0027s server sent 64 bytes to 2001:4::200:ff:fe00:b5 port 49153
+At time +5.00287s client received 64 bytes from 2001:4::200:ff:fe00:162 port 9
+At time +15s client sent 64 bytes to 2001:4::200:ff:fe00:162 port 9
+At time +15.0002s server received 64 bytes from 2001:4::200:ff:fe00:b5 port 49153
+At time +15.0002s server sent 64 bytes to 2001:4::200:ff:fe00:b5 port 49153
+At time +15.0004s client received 64 bytes from 2001:4::200:ff:fe00:162 port 9
+At time +25s client sent 64 bytes to 2001:4::200:ff:fe00:162 port 9
+At time +25.0001s server received 64 bytes from 2001:4::200:ff:fe00:b5 port 49153
+At time +25.0001s server sent 64 bytes to 2001:4::200:ff:fe00:b5 port 49153
+At time +25.0003s client received 64 bytes from 2001:4::200:ff:fe00:162 port 9
+Time 32.1s: Reinstalled default route on client 1.
+At time +35s client sent 64 bytes to 2001:4::200:ff:fe00:162 port 9
+At time +45s client sent 64 bytes to 2001:4::200:ff:fe00:162 port 9
+
