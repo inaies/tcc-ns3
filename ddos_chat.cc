@@ -292,7 +292,7 @@ main(int argc, char* argv[])
     );
     ApplicationContainer sinkApp = sinkHelper.Install(ap2_receptor);
     sinkApp.Start(Seconds(1.5)); // Começa cedo
-    sinkApp.Stop(Seconds(60.0)); // Para cedo
+    sinkApp.Stop(Seconds(150.0)); // Para cedo
 
     // 2. Configuração do Emissor (OnOff)
     
@@ -344,7 +344,7 @@ main(int argc, char* argv[])
     );
     ApplicationContainer sinkAppAttack = udpSinkHelper.Install(victim);
     sinkAppAttack.Start(Seconds(1.0));
-    sinkAppAttack.Stop(Seconds(60.0));
+    sinkAppAttack.Stop(Seconds(150.0));
   
     for (uint32_t i = 0; i < attackerNodes.GetN(); i++)
     {
@@ -358,11 +358,11 @@ main(int argc, char* argv[])
       onoff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
 
       ApplicationContainer attackApp = onoff.Install(attackerNodes);
-      attackApp.Start(Seconds(15.0));
-      attackApp.Stop(Seconds(60.0));
+      attackApp.Start(Seconds(30.0));
+      attackApp.Stop(Seconds(70.0));
     }
 
-    Simulator::Stop(Seconds(60.0));
+    Simulator::Stop(Seconds(150.0));
 
     if (tracing)
     {
