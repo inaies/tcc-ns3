@@ -76,13 +76,11 @@ void StartNextNodeAndRepeatCycle(NodeContainer staNodes, const Ipv6Address& apAd
     g_currentNodeIndex++;
 }
 
-NS_LOG_COMPONENT_DEFINE("ThirdScriptExample");
-
 int
 main(int argc, char* argv[])
 {
     LogComponentEnable("Ping", LOG_LEVEL_INFO);
-    LogComponentEnable("ThirdScriptExample", LOG_LEVEL_INFO);
+    LogComponentEnable("DdosChatScript", LOG_LEVEL_INFO);
 
     LogComponentEnable("UdpEchoClientApplication", LOG_LEVEL_INFO);
     LogComponentEnable("UdpEchoServerApplication", LOG_LEVEL_INFO);
