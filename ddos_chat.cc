@@ -316,7 +316,7 @@ main(int argc, char* argv[])
     double interval = 2;     // Intervalo entre o start de cada nó (50ms)
     
     // Apenas nos nós da Rede 2 (wifiStaNodes2)
-    for (uint32_t i = 61; i < wifiStaNodes2.GetN(); i++)
+    for (uint32_t i = 61; i <= wifiStaNodes2.GetN(); i++)
     {
       if(i == wifiStaNodes2.GetN())
         i = 61;
