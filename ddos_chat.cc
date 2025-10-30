@@ -1,4 +1,4 @@
-// third_three_wifi_fixed_ipv6_mobility.cc (renamed to ddos_chat.cc)
+// third_three_wifi_fixed_ipv6_mobility.cc
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
 #include "ns3/csma-module.h" // Mantido por compatibilidade de includes, mas CSMA removido
@@ -10,28 +10,12 @@
 #include "ns3/ssid.h"
 #include "ns3/yans-wifi-helper.h"
 #include "ns3/ripng-helper.h"
-#include "ns3/on-off-application.h" // Necessário para a função TriggerAppStart
 
 #include <cmath>
 
 using namespace ns3;
 
-// --- Variáveis Estáticas e Funções Auxiliares (Escopo Global) ---
-
-// Componente de Log (Correção 1: Define o componente para NS_LOG_INFO funcionar)
-NS_LOG_COMPONENT_DEFINE("DdosChatScript"); 
-
-// Controle do Ciclo Sequencial
-static uint32_t g_currentNodeIndex = 61; 
-static const uint32_t G_FIRST_NODE_INDEX = 61;
-static const uint32_t G_LAST_NODE_INDEX = 172; 
-static const double G_INTERVAL_BETWEEN_NODES = 2.0; // Intervalo de 2 segundos entre o início dos nós
-
-// Helper de Aplicação (Correção 2: Declaração global para ser acessível na função)
-static OnOffHelper g_onoff ("ns3::UdpSocketFactory", Address()); 
-static ApplicationContainer g_clientApps; // Para armazenar todos os ponteiros de App instalados
-
-Ptr<ListPositionAllocator>
+static Ptr<ListPositionAllocator>
 CreateGridPositionAllocator (uint32_t nNodes, double spacing, double offsetX, double offsetY)
 {
   Ptr<ListPositionAllocator> allocator = CreateObject<ListPositionAllocator> ();
@@ -49,63 +33,19 @@ CreateGridPositionAllocator (uint32_t nNodes, double spacing, double offsetX, do
   return allocator;
 }
 
-// Função para forçar o reinício do ciclo On/Off (envio do burst)
-void TriggerAppStart(Ptr<Application> app)
-{
-    Ptr<OnOffApplication> onoffApp = app->GetObject<OnOffApplication>();
-    if (onoffApp)
-    {
-        // Força a aplicação a reiniciar seu ciclo (vai enviar o burst curto)
-        onoffApp->StartApplication();
-    }
-}
-
-// Função Recursiva para agendar o próximo burst e repetir o ciclo
-void StartNextNodeAndRepeatCycle(NodeContainer staNodes, const Ipv6Address& apAddress, uint16_t port)
-{
-    // Verifica se o ciclo terminou e reinicia
-    if (g_currentNodeIndex > G_LAST_NODE_INDEX)
-    {
-        NS_LOG_INFO ("Cycle finished. Restarting sequence at t=" << Simulator::Now().GetSeconds());
-        g_currentNodeIndex = G_FIRST_NODE_INDEX;
-    }
-
-    // O índice da aplicação no container g_clientApps é offsetado pelo primeiro nó
-    uint32_t appIndex = g_currentNodeIndex - G_FIRST_NODE_INDEX; 
-
-    Ptr<Application> currentApp = g_clientApps.Get(appIndex);
-    NS_LOG_INFO("Triggering IoT burst for Node " << g_currentNodeIndex 
-                 << " at t=" << Simulator::Now().GetSeconds() << "s");
-    
-    // AGENDA o START do OnOff Application no tempo atual (força o burst de 1ms)
-    Simulator::ScheduleNow(&TriggerAppStart, currentApp); 
-
-    // 1. Agenda o próximo nó para iniciar em 2 segundos
-    Simulator::Schedule(Seconds(G_INTERVAL_BETWEEN_NODES), 
-                        &StartNextNodeAndRepeatCycle, 
-                        staNodes, 
-                        apAddress, 
-                        port);
-    
-    // 2. Prepara para o próximo nó
-    g_currentNodeIndex++;
-}
-
-
-// --- Função Principal ---
+NS_LOG_COMPONENT_DEFINE("ThirdScriptExample");
 
 int
 main(int argc, char* argv[])
 {
     LogComponentEnable("Ping", LOG_LEVEL_INFO);
-    LogComponentEnable("DdosChatScript", LOG_LEVEL_INFO); // Usa o novo nome do script
+    LogComponentEnable("ThirdScriptExample", LOG_LEVEL_INFO);
 
     LogComponentEnable("UdpEchoClientApplication", LOG_LEVEL_INFO);
     LogComponentEnable("UdpEchoServerApplication", LOG_LEVEL_INFO);
-    LogComponentEnable("OnOffApplication", LOG_LEVEL_INFO); // Habilita log do OnOff
 
     bool verbose = true;
-    uint32_t nWifiCsma = 173; 
+    uint32_t nWifiCsma = 173; // nCsma renomeado para nWifiCsma
     uint32_t nWifi = 173;
     bool tracing = true;
 
@@ -117,15 +57,11 @@ main(int argc, char* argv[])
 
     cmd.Parse(argc, argv);
 
-    if (nWifi > 200) 
+    if (nWifi > 200) // segurança para grids gigantes
     {
         std::cout << "nWifi muito grande; ajuste o script ou aumente a área." << std::endl;
         return 1;
     }
-
-    // Ajusta o G_LAST_NODE_INDEX com base no nWifi lido da linha de comando
-    // (Apenas se nWifi for 173, G_LAST_NODE_INDEX será 172)
-    const_cast<uint32_t&>(G_LAST_NODE_INDEX) = nWifi - 1; 
 
     NodeContainer p2pNodes;
     p2pNodes.Create(3); // n0=AP1, n1=AP2/WiFi3 AP, n2=AP3
@@ -152,8 +88,7 @@ main(int argc, char* argv[])
     NodeContainer wifiApNode2 = p2pNodes.Get(1); // AP2
     NodeContainer wifiApNode3 = p2pNodes.Get(2); // AP3 (WiFi3)
 
-    // ... [Configuração PHY/MAC e Instalação de Dispositivos (mantido)] ...
-
+    // PHY/MAC (idem ao original)
     YansWifiChannelHelper channel1 = YansWifiChannelHelper::Default();
     YansWifiPhyHelper phy1; phy1.SetChannel(channel1.Create());
     phy1.Set("ChannelSettings", StringValue("{36, 0, BAND_5GHZ, 0}"));
@@ -169,7 +104,8 @@ main(int argc, char* argv[])
     WifiMacHelper mac;
     WifiHelper wifi;
     wifi.SetStandard(WIFI_STANDARD_80211n);
-    
+    // wifi.SetRemoteStationManager("ns3::MinstrelWifiManager");
+
     Ssid ssid1 = Ssid("ns-3-ssid-1");
     Ssid ssid2 = Ssid("ns-3-ssid-2");
     Ssid ssid3 = Ssid("ns-3-ssid-3");
@@ -180,29 +116,39 @@ main(int argc, char* argv[])
     mac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid1));
     NetDeviceContainer apDevices1 = wifi.Install(phy1, mac, wifiApNode);
 
-    // WiFi 2 (AP2)
+    // WiFi 2 (AP3)
     mac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid2), "ActiveProbing", BooleanValue(false));
     NetDeviceContainer staDevices2 = wifi.Install(phy2, mac, wifiStaNodes2);
     mac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid2));
     NetDeviceContainer apDevices2 = wifi.Install(phy2, mac, wifiApNode2);
 
-    // WiFi 3 (AP3)
+    // WiFi 3 (AP2)
     mac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid3), "ActiveProbing", BooleanValue(false));
     NetDeviceContainer staDevices3 = wifi.Install(phy3, mac, wifiStaNodes3);
     mac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid3));
     NetDeviceContainer apDevices3 = wifi.Install(phy3, mac, wifiApNode3);
 
-    // ... [Configuração de Mobilidade (mantido)] ...
+    // Config::SetDefault(
+    //     "ns3::WifiMacQueue::MaxSize",
+    //     QueueSizeValue(QueueSize(QueueSizeUnit::PACKETS, std::numeric_limits<uint32_t>::max())));
+    // Config::SetDefault("ns3::WifiMacQueue::MaxDelay", TimeValue(Seconds(10)));
+
+    // --------------------------------------------------------------------------------
+    // Mobilidade ADAPTADA para aumentar capacidade (isolar células e controlar densidade)
+    // --------------------------------------------------------------------------------
 
     MobilityHelper mobility;
 
-    double spacing = 5.0;
-    double offsetCell = 75.0;
+    // Parâmetros: espaçamento entre nós na grade e offsets para separar redes
+    double spacing = 5.0;    // distância entre STAs (m). Ajuste para maior densidade se quiser mais nós por área.
+    double offsetCell = 75.0; // distância entre centros das células -> isola co-canal interference
 
+    // Cria alocadores de posição separados para cada rede (mantém as redes fisicamente separadas)
     Ptr<ListPositionAllocator> allocWifi1 = CreateGridPositionAllocator (nWifi, spacing, 0.0, 0.0);
-    Ptr<ListPositionAllocator> allocWifi2 = CreateGridPositionAllocator (nWifi, spacing, 0.0, offsetCell);
-    Ptr<ListPositionAllocator> allocWifi3 = CreateGridPositionAllocator (nWifiCsma, spacing, offsetCell, 0.0);
+    Ptr<ListPositionAllocator> allocWifi2 = CreateGridPositionAllocator (nWifi, spacing, 0.0, offsetCell);    // deslocada em Y
+    Ptr<ListPositionAllocator> allocWifi3 = CreateGridPositionAllocator (nWifiCsma, spacing, offsetCell, 0.0);  // deslocada em X
 
+    // Instala posições e modelo constante nos STAs (posições fixas na grade)
     mobility.SetPositionAllocator (allocWifi1);
     mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
     mobility.Install (wifiStaNodes1);
@@ -215,9 +161,13 @@ main(int argc, char* argv[])
     mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
     mobility.Install (wifiStaNodes3);
 
+    // Coloca APs perto do centro de cada grade
     Ptr<ListPositionAllocator> apAlloc = CreateObject<ListPositionAllocator> ();
+
+    // Centro aproximado de cada grade (calcula colunas a partir do número de nós)
     uint32_t cols1 = static_cast<uint32_t>(std::ceil(std::sqrt(static_cast<double>(std::max<uint32_t>(1, nWifi)))));
     uint32_t cols3 = static_cast<uint32_t>(std::ceil(std::sqrt(static_cast<double>(std::max<uint32_t>(1, nWifiCsma)))));
+    double centerOffset = spacing * 0.5;
 
     // AP1 center
     double ap1x = (cols1 * spacing) / 2.0;
@@ -237,14 +187,16 @@ main(int argc, char* argv[])
     mobility.SetPositionAllocator (apAlloc);
     mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
 
+    // Note: Install on AP NodeContainers individually so each AP receives corresponding position
     mobility.Install (wifiApNode);  // AP1 -> first position
-    mobility.Install (wifiApNode2); // AP2 -> second position
-    mobility.Install (wifiApNode3); // AP3 -> third position
+    mobility.Install (wifiApNode2); // AP2 -> third position
+    mobility.Install (wifiApNode3); // AP3 -> second position
 
     // --------------------------------------------------------------------------------
-    // [Pilhas, Endereçamento e Roteamento (mantido)]
+    // [RESTA DO CÓDIGO: pilhas, endereçamento, roteamento, aplicações...]
     // --------------------------------------------------------------------------------
 
+    // 1. Roteadores (n0, n1, n2) usam RIPng
     RipNgHelper ripNg;
     Ipv6ListRoutingHelper listRh;
     listRh.Add(ripNg, 0);
@@ -253,14 +205,16 @@ main(int argc, char* argv[])
     routerStack.SetRoutingHelper(listRh);
     routerStack.Install(p2pNodes); // n0, n1, n2
 
+    // 2. Nós Finais (STAs das três redes) usam Ipv6StaticRouting
     Ipv6StaticRoutingHelper ipv6StaticRouting;
     InternetStackHelper staStack;
     staStack.SetRoutingHelper(ipv6StaticRouting);
 
     staStack.Install(wifiStaNodes1);
     staStack.Install(wifiStaNodes2);
-    staStack.Install(wifiStaNodes3); 
+    staStack.Install(wifiStaNodes3); // Instalar nos novos STAs
 
+    // Endereçamento IPv6 (mesma lógica do seu original)
     Ipv6AddressHelper address;
 
     address.SetBase(Ipv6Address("2001:1::"), Ipv6Prefix(64)); // AP1-AP2
@@ -270,11 +224,11 @@ main(int argc, char* argv[])
     Ipv6InterfaceContainer wifiInterfaces1 = address.Assign(staDevices1);
     Ipv6InterfaceContainer apInterfaces1   = address.Assign(apDevices1);
 
-    address.SetBase(Ipv6Address("2001:4::"), Ipv6Prefix(64)); // WiFi2 (AP2)
+    address.SetBase(Ipv6Address("2001:4::"), Ipv6Prefix(64)); 
     Ipv6InterfaceContainer wifiInterfaces2 = address.Assign(staDevices2);
     Ipv6InterfaceContainer apInterfaces2   = address.Assign(apDevices2);
 
-    address.SetBase(Ipv6Address("2001:7::"), Ipv6Prefix(64)); // WiFi3 (AP3)
+    address.SetBase(Ipv6Address("2001:7::"), Ipv6Prefix(64)); // NOVO: WiFi3 (AP2)
     Ipv6InterfaceContainer wifiInterfaces3 = address.Assign(staDevices3);
     Ipv6InterfaceContainer apInterfaces3   = address.Assign(apDevices3);
 
@@ -284,14 +238,14 @@ main(int argc, char* argv[])
     address.SetBase(Ipv6Address("2001:6::"), Ipv6Prefix(64)); // AP2-AP3
     Ipv6InterfaceContainer ap2ap3Interfaces = address.Assign(ap2ap3);
 
-    // Habilitar Forwarding (Roteamento)
+    // Habilitar Forwarding (Roteamento) nos Roteadores (p2pNodes)
     for (uint32_t i = 0; i < p2pNodes.GetN(); ++i)
     {
         Ptr<Ipv6> ipv6 = p2pNodes.Get(i)->GetObject<Ipv6>();
         ipv6->SetForwarding(0, true);
     }
 
-    // Rotas estáticas nos STAs (Default route para o AP)
+    // Rotas estáticas nos STAs (idêntico ao seu original)
     Ipv6Address ap1Addr = apInterfaces1.GetAddress(0, 1);
     for (uint32_t i = 0; i < wifiStaNodes1.GetN(); i++)
     {
@@ -319,9 +273,14 @@ main(int argc, char* argv[])
         sr->SetDefaultRoute(ap3Addr, ifSta);
     }
 
-    // --------------------------------------------------------------------------------
-    // [Aplicações de Teste (NOVA LÓGICA DE SEQUENCIAMENTO)]
-    // --------------------------------------------------------------------------------
+    // Ptr<Ipv6> ipv6 = wifiApNode.Get(0)->GetObject<Ipv6>();
+    // // Obtém o índice da interface Wi-Fi do AP1 (nó 0)
+    // int32_t ifIndex = ipv6->GetInterfaceForDevice(apDevices1.Get(0)); 
+    
+    // Agenda a desativação da interface usando o método correto Ipv6::SetDown
+    // Simulator::Schedule(Seconds(5.0), &Ipv6::SetDown, ipv6, ifIndex);
+
+    // Apps de teste (idêntico ao seu original)
 
     // 1. Configuração do Receptor (Sink) no AP2 (n1)
     Ptr<Node> ap2_receptor = wifiApNode2.Get(0); // AP2 (n1)
@@ -332,61 +291,95 @@ main(int argc, char* argv[])
       Inet6SocketAddress(Ipv6Address::GetAny(), sinkPort)
     );
     ApplicationContainer sinkApp = sinkHelper.Install(ap2_receptor);
-    sinkApp.Start(Seconds(1.0)); 
-    sinkApp.Stop(Seconds(200.0)); 
+    sinkApp.Start(Seconds(1.5)); // Começa cedo
+    sinkApp.Stop(Seconds(60.0)); // Para cedo
 
-    // 2. Configuração do Emissor (g_onoff) para IoT Burst
+    // 2. Configuração do Emissor (OnOff)
     
-    // Taxa para 64 bytes/pacote. 1 Mbps é suficiente para ser "rápido" (IoT)
-    g_onoff.SetAttribute("DataRate", StringValue("1Mbps")); 
-    g_onoff.SetAttribute("PacketSize", UintegerValue(64));
+    // O AP2 está na rede 2001:4::/64. O AP2 é o sink.
+    Ipv6Address ap2_address = apInterfaces2.GetAddress(0, 1); 
+
+    OnOffHelper onoff("ns3::UdpSocketFactory",
+        Address(Inet6SocketAddress(ap2_address, sinkPort)));
     
-    // OnTime (burst): Tempo suficiente para enfileirar e enviar o pacote. 
-    g_onoff.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=0.001]")); // 1 ms
+    // Taxa baixa para garantir que o AP possa receber (ex: 100kbps)
+    onoff.SetAttribute("DataRate", StringValue("100kbps"));
+    // Envia apenas UM pacote por intervalo, para garantir que o AP consiga processar
+    onoff.SetAttribute("PacketSize", UintegerValue(1000)); // Tamanho do pacote em bytes
+    // O "OnTime" será o tempo de transmissão de um único pacote (muito curto)
+    onoff.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]")); 
+    // O "OffTime" deve ser um tempo grande para o nó não repetir o envio
+    onoff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
+
+    // 3. Agendamento Sequencial
+    double start_offset = 12.0; // Tempo inicial de start
+    double interval = 2;     // Intervalo entre o start de cada nó (50ms)
     
-    // OffTime: Deve ser muito longo para garantir que NUNCA repita o envio automaticamente.
-    g_onoff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=10000]")); 
-
-    // Configurar o endereço de destino na helper global (Correção 3)
-    Ipv6Address ap2_address = apInterfaces2.GetAddress(0, 1);
-    g_onoff.SetAttribute("Remote", AddressValue(Inet6SocketAddress(ap2_address, sinkPort))); 
-
-
-    // 3. Instalação Permanente de Todas as Aplicações Clientes (de 61 a 172)
-
-    for (uint32_t i = G_FIRST_NODE_INDEX; i <= G_LAST_NODE_INDEX; i++)
+    // Apenas nos nós da Rede 2 (wifiStaNodes2)
+    for (uint32_t i = 61; i < wifiStaNodes2.GetN(); i++)
     {
-        // Instala a aplicação OnOff em cada nó e armazena no container global
-        ApplicationContainer app = g_onoff.Install(wifiStaNodes2.Get(i));
-        g_clientApps.Add(app);
-        
-        // Inicia e para em um intervalo longo, o controle será feito por TriggerAppStart
-        app.Start(Seconds(0.0));
-        app.Stop(Seconds(100000.0));
+      if(i == wifiStaNodes2.GetN())
+        i = 61;
+      // Cria uma instância do OnOffHelper para cada nó
+      ApplicationContainer clientApp = onoff.Install(wifiStaNodes2.Get(i));
+      
+      // Agenda o início da transmissão do nó 'i'
+      clientApp.Start(Seconds(start_offset + (i-61) * interval));
+      clientApp.Stop(Seconds(start_offset + (i-61) * interval + 1.0)); // Roda por 1 segundo apenas
+
     }
 
-    // 4. Agendamento Sequencial Recursivo
+/* ///////////   ataque ddos   ////////// */
 
-    Simulator::Schedule(Seconds(12.0), // Começa no seu offset original
-                        &StartNextNodeAndRepeatCycle, 
-                        wifiStaNodes2, 
-                        ap2_address, 
-                        sinkPort);
+    NodeContainer attackerNodes;
+    for (int i = 0; i < 60; i ++)
+      attackerNodes.Add(wifiStaNodes2.Get(i));
 
+    Ptr<Node> victim = wifiApNode2.Get(0);
+    
+    Ipv6Address victimAddress = apInterfaces2.GetAddress(0, 1);
 
-    Simulator::Stop(Seconds(200.0));
+    uint16_t attackPort = 9001;
+    
+    PacketSinkHelper udpSinkHelper(
+      "ns3::UdpSocketFactory",
+      Inet6SocketAddress(Ipv6Address::GetAny(), attackPort)
+    );
+    ApplicationContainer sinkAppAttack = udpSinkHelper.Install(victim);
+    sinkAppAttack.Start(Seconds(1.0));
+    sinkAppAttack.Stop(Seconds(60.0));
+  
+    for (uint32_t i = 0; i < attackerNodes.GetN(); i++)
+    {
+      OnOffHelper onoff(
+        "ns3::UdpSocketFactory",
+        Address(Inet6SocketAddress(victimAddress, attackPort))
+      );
+      onoff.SetAttribute("DataRate", StringValue("5Mbps"));
+      onoff.SetAttribute("PacketSize", UintegerValue(1024));
+      onoff.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=15]"));
+      onoff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
+
+      ApplicationContainer attackApp = onoff.Install(attackerNodes);
+      attackApp.Start(Seconds(15.0));
+      attackApp.Stop(Seconds(60.0));
+    }
+
+    Simulator::Stop(Seconds(60.0));
 
     if (tracing)
     {
-        pointToPoint.EnablePcapAll("p2p-ddos-chat");
+        pointToPoint.EnablePcapAll("p2p-traffic-ddos");
+
+        pointToPoint.EnablePcapAll("ddos-p2p-ap2", ap2ap3.Get(0));
 
         phy1.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
         phy2.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
         phy3.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
 
         phy1.EnablePcap("ddos_ap1", apDevices1.Get(0)); // AP1
-        phy2.EnablePcap("ddos_ap2", apDevices2.Get(0)); // AP2 (Sink)
-        phy3.EnablePcap("ddos_ap3", apDevices3.Get(0)); // AP3
+        phy2.EnablePcap("ddos_ap2", apDevices2.Get(0)); // AP1
+        phy3.EnablePcap("ddos_ap3", apDevices3.Get(0)); // AP1
     }
 
 
