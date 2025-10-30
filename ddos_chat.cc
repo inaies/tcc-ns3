@@ -53,13 +53,13 @@ void StartNextNodeAndRepeatCycle(NodeContainer staNodes, const Ipv6Address& apAd
         g_currentNodeIndex = G_FIRST_NODE_INDEX;
     }
 
-    Ptr<Node> currentNode = staNodes.Get(g_currentNodeIndex);
-    NS_LOG_INFO("Starting single packet for Node " << g_currentNodeIndex 
-                 << " at t=" << Simulator::Now().GetSeconds() << "s");
-    
-    // Instala e inicia a aplicação (envia 1 pacote e o OnOff para a si mesmo)
-    ApplicationContainer clientApp = onoff.Install(currentNode);
+    // Instala a aplicação (usa a g_onoff configurada no main)
+    ApplicationContainer clientApp = g_onoff.Install(currentNode);
+
+    // Inicia a aplicação no tempo atual
     clientApp.Start(Seconds(Simulator::Now().GetSeconds()));
+
+    clientApp.Stop(Seconds(Simulator::Now().GetSeconds() + 0.1));
     
     // N.B.: Não precisamos chamar Stop() se MaxPackets=1.
     // No entanto, para remover a aplicação (e liberar memória), 
@@ -344,8 +344,8 @@ main(int argc, char* argv[])
     onoff.SetAttribute("DataRate", StringValue("1Mbps")); 
     onoff.SetAttribute("PacketSize", UintegerValue(64));
     onoff.SetAttribute("MaxPackets", UintegerValue(1)); // *** O NOVO CHAVE: Envia APENAS 1 pacote ***
-    onoff.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]")); // Irrelevante
-    onoff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]")); // Irrelevante
+    onoff.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=0.0001]")); // Irrelevante
+    onoff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=10000]")); // Irrelevante
 
     // Configurar o endereço de destino na helper global
 
