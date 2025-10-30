@@ -33,6 +33,38 @@ CreateGridPositionAllocator (uint32_t nNodes, double spacing, double offsetX, do
   return allocator;
 }
 
+void StartNextNodeAndRepeatCycle(NodeContainer staNodes, const Ipv6Address& apAddress, uint16_t port)
+{
+    if (g_currentNodeIndex > G_LAST_NODE_INDEX)
+    {
+        // Fim de um ciclo. Reinicia o índice.
+        NS_LOG_INFO ("Cycle finished. Restarting sequence at t=" << Simulator::Now().GetSeconds());
+        g_currentNodeIndex = G_FIRST_NODE_INDEX;
+    }
+
+    Ptr<Node> currentNode = staNodes.Get(g_currentNodeIndex);
+    NS_LOG_INFO("Starting single packet for Node " << g_currentNodeIndex 
+                 << " at t=" << Simulator::Now().GetSeconds() << "s");
+    
+    // Instala e inicia a aplicação (envia 1 pacote e o OnOff para a si mesmo)
+    ApplicationContainer clientApp = g_onoff.Install(currentNode);
+    clientApp.Start(Seconds(Simulator::Now().GetSeconds()));
+    
+    // N.B.: Não precisamos chamar Stop() se MaxPackets=1.
+    // No entanto, para remover a aplicação (e liberar memória), 
+    // podemos agendar o Destroy, mas não é estritamente necessário para o tráfego.
+
+    // 1. Agenda o próximo nó para iniciar em 2 segundos
+    Simulator::Schedule(Seconds(G_INTERVAL_BETWEEN_NODES), 
+                        &StartNextNodeAndRepeatCycle, 
+                        staNodes, 
+                        apAddress, 
+                        port);
+    
+    // 2. Prepara para o próximo nó
+    g_currentNodeIndex++;
+}
+
 NS_LOG_COMPONENT_DEFINE("ThirdScriptExample");
 
 int
@@ -43,6 +75,15 @@ main(int argc, char* argv[])
 
     LogComponentEnable("UdpEchoClientApplication", LOG_LEVEL_INFO);
     LogComponentEnable("UdpEchoServerApplication", LOG_LEVEL_INFO);
+
+    // Variáveis estáticas/globais para controlar a sequência e o ciclo
+    static uint32_t g_currentNodeIndex = 61; 
+    static const uint32_t G_FIRST_NODE_INDEX = 61;
+    static const uint32_t G_LAST_NODE_INDEX = 172; 
+    static const double G_INTERVAL_BETWEEN_NODES = 2.0; // Intervalo para o próximo nó começar (2s)
+
+    // A OnOffHelper agora precisa ser capaz de enviar *apenas um* pacote.
+    static OnOffHelper g_onoff ("ns3::UdpSocketFactory", Address());
 
     bool verbose = true;
     uint32_t nWifiCsma = 173; // nCsma renomeado para nWifiCsma
@@ -302,29 +343,37 @@ main(int argc, char* argv[])
     OnOffHelper onoff("ns3::UdpSocketFactory",
         Address(Inet6SocketAddress(ap2_address, sinkPort)));
     
-    // Taxa baixa para garantir que o AP possa receber (ex: 100kbps)
-    onoff.SetAttribute("DataRate", StringValue("100kbps"));
-    // Envia apenas UM pacote por intervalo, para garantir que o AP consiga processar
-    onoff.SetAttribute("PacketSize", UintegerValue(1000)); // Tamanho do pacote em bytes
-    // O "OnTime" será o tempo de transmissão de um único pacote (muito curto)
-    onoff.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]")); 
-    // O "OffTime" deve ser um tempo grande para o nó não repetir o envio
-    onoff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
+    onoff.SetAttribute("DataRate", StringValue("1Mbps")); 
+    onoff.SetAttribute("PacketSize", UintegerValue(64));
+    onoff.SetAttribute("MaxPackets", UintegerValue(1)); // *** O NOVO CHAVE: Envia APENAS 1 pacote ***
+    onoff.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]")); // Irrelevante
+    onoff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]")); // Irrelevante
+
+    // Configurar o endereço de destino na helper global
+    Ipv6Address ap2_address = apInterfaces2.GetAddress(0, 1);
+    onoff.SetRemote(Inet6SocketAddress(ap2_address, sinkPort));
+
+    // Inicia o ciclo sequencial
+    Simulator::Schedule(Seconds(12.0), 
+                        &StartNextNodeAndRepeatCycle, 
+                        wifiStaNodes2, 
+                        ap2_address, 
+                        sinkPort);
 
     // 3. Agendamento Sequencial
-    double start_offset = 12.0; // Tempo inicial de start
-    double interval = 1;     // Intervalo entre o start de cada nó (50ms)
+    // double start_offset = 12.0; // Tempo inicial de start
+    // double interval = 1;     // Intervalo entre o start de cada nó (50ms)
     
-    // Apenas nos nós da Rede 2 (wifiStaNodes2)
-    for (uint32_t i = 61; i < wifiStaNodes2.GetN(); i++)
-    {
-      // Cria uma instância do OnOffHelper para cada nó
-      ApplicationContainer clientApp = onoff.Install(wifiStaNodes2.Get(i));
+    // // Apenas nos nós da Rede 2 (wifiStaNodes2)
+    // for (uint32_t i = 61; i < wifiStaNodes2.GetN(); i++)
+    // {
+    //   // Cria uma instância do OnOffHelper para cada nó
+    //   ApplicationContainer clientApp = onoff.Install(wifiStaNodes2.Get(i));
       
-      // Agenda o início da transmissão do nó 'i'
-      clientApp.Start(Seconds(start_offset + (i-61) * interval));
-      clientApp.Stop(Seconds(start_offset + (i-61) * interval + 1.0)); // Roda por 1 segundo apenas
-    }
+    //   // Agenda o início da transmissão do nó 'i'
+    //   clientApp.Start(Seconds(start_offset + (i-61) * interval));
+    //   clientApp.Stop(Seconds(start_offset + (i-61) * interval + 1.0)); // Roda por 1 segundo apenas
+    // }
 
 /* ///////////   ataque ddos   ////////// */
 
