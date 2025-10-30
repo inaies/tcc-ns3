@@ -47,16 +47,16 @@ void StartNextNodeAndRepeatCycle(NodeContainer staNodes, const Ipv6Address& apAd
     if (g_currentNodeIndex > G_LAST_NODE_INDEX)
     {
         // Fim de um ciclo. Reinicia o índice.
-        NS_LOG_INFO ("Cycle finished. Restarting sequence at t=" << Simulator::Now().GetSeconds());
+        // NS_LOG_INFO ("Cycle finished. Restarting sequence at t=" << Simulator::Now().GetSeconds());
         g_currentNodeIndex = G_FIRST_NODE_INDEX;
     }
 
     Ptr<Node> currentNode = staNodes.Get(g_currentNodeIndex);
-    NS_LOG_INFO("Starting single packet for Node " << g_currentNodeIndex 
-                 << " at t=" << Simulator::Now().GetSeconds() << "s");
+    // NS_LOG_INFO("Starting single packet for Node " << g_currentNodeIndex 
+    //              << " at t=" << Simulator::Now().GetSeconds() << "s");
     
     // Instala e inicia a aplicação (envia 1 pacote e o OnOff para a si mesmo)
-    ApplicationContainer clientApp = g_onoff.Install(currentNode);
+    ApplicationContainer clientApp = onoff.Install(currentNode);
     clientApp.Start(Seconds(Simulator::Now().GetSeconds()));
     
     // N.B.: Não precisamos chamar Stop() se MaxPackets=1.
@@ -336,6 +336,9 @@ main(int argc, char* argv[])
     sinkApp.Stop(Seconds(900.0)); // Para cedo
 
     // 2. Configuração do Emissor (OnOff)
+    Ipv6Address ap2_address = apInterfaces2.GetAddress(0, 1);
+    OnOffHelper onoff("ns3::UdpSocketFactory",
+            Address(Inet6SocketAddress(ap2_address, sinkPort)));
     
     onoff.SetAttribute("DataRate", StringValue("1Mbps")); 
     onoff.SetAttribute("PacketSize", UintegerValue(64));
@@ -344,8 +347,6 @@ main(int argc, char* argv[])
     onoff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]")); // Irrelevante
 
     // Configurar o endereço de destino na helper global
-    Ipv6Address ap2_address = apInterfaces2.GetAddress(0, 1);
-    onoff.SetRemote(Inet6SocketAddress(ap2_address, sinkPort));
 
     // Inicia o ciclo sequencial
     Simulator::Schedule(Seconds(12.0), 
