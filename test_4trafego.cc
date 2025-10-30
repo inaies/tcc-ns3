@@ -286,7 +286,7 @@ main(int argc, char* argv[])
 
     // Apps de teste (idêntico ao seu original)
 
-    1. Configuração do Receptor (Sink) no AP2 (n1)
+    //1. Configuração do Receptor (Sink) no AP2 (n1)
     Ptr<Node> ap2_receptor = wifiApNode2.Get(0); // AP2 (n1)
     uint16_t sinkPort = 9002;
     
@@ -296,7 +296,7 @@ main(int argc, char* argv[])
     );
     ApplicationContainer sinkApp = sinkHelper.Install(ap2_receptor);
     sinkApp.Start(Seconds(1.5)); // Começa cedo
-    sinkApp.Stop(Seconds(60.0)); // Para cedo
+    sinkApp.Stop(Seconds(200.0)); // Para cedo
 
     // 2. Configuração do Emissor (OnOff)
     
@@ -320,14 +320,14 @@ main(int argc, char* argv[])
     double interval = 1;     // Intervalo entre o start de cada nó (50ms)
     
     // Apenas nos nós da Rede 2 (wifiStaNodes2)
-    for (uint32_t i = 61; i < 71; i++)
+    for (uint32_t i = 61; i < wifiStaNodes2.GetN(); i++)
     {
       // Cria uma instância do OnOffHelper para cada nó
       ApplicationContainer clientApp = onoff.Install(wifiStaNodes2.Get(i));
       
       // Agenda o início da transmissão do nó 'i'
       clientApp.Start(Seconds(start_offset + (i-61) * interval));
-      clientApp.Stop(Seconds(60.0)); // Roda por 1 segundo apenas
+      clientApp.Stop(Seconds(200.0)); // Roda por 1 segundo apenas
     }
 
 
@@ -347,7 +347,7 @@ main(int argc, char* argv[])
     // clientApp1.Stop (Seconds (120.0));
 
 
-    Simulator::Stop(Seconds(60.0));
+    Simulator::Stop(Seconds(200.0));
 
     if (tracing)
     {
