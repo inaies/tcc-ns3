@@ -24,6 +24,8 @@ static const double G_INTERVAL_BETWEEN_NODES = 2.0; // Intervalo para o próximo
 // A OnOffHelper agora precisa ser capaz de enviar *apenas um* pacote.
 static OnOffHelper onoff ("ns3::UdpSocketFactory", Address());
 
+NS_LOG_COMPONENT_DEFINE("DdosChatScript"); // Use um nome específico para o seu script
+
 static Ptr<ListPositionAllocator>
 CreateGridPositionAllocator (uint32_t nNodes, double spacing, double offsetX, double offsetY)
 {
@@ -47,13 +49,13 @@ void StartNextNodeAndRepeatCycle(NodeContainer staNodes, const Ipv6Address& apAd
     if (g_currentNodeIndex > G_LAST_NODE_INDEX)
     {
         // Fim de um ciclo. Reinicia o índice.
-        // NS_LOG_INFO ("Cycle finished. Restarting sequence at t=" << Simulator::Now().GetSeconds());
+        NS_LOG_INFO ("Cycle finished. Restarting sequence at t=" << Simulator::Now().GetSeconds());
         g_currentNodeIndex = G_FIRST_NODE_INDEX;
     }
 
     Ptr<Node> currentNode = staNodes.Get(g_currentNodeIndex);
-    // NS_LOG_INFO("Starting single packet for Node " << g_currentNodeIndex 
-    //              << " at t=" << Simulator::Now().GetSeconds() << "s");
+    NS_LOG_INFO("Starting single packet for Node " << g_currentNodeIndex 
+                 << " at t=" << Simulator::Now().GetSeconds() << "s");
     
     // Instala e inicia a aplicação (envia 1 pacote e o OnOff para a si mesmo)
     ApplicationContainer clientApp = onoff.Install(currentNode);
@@ -337,9 +339,8 @@ main(int argc, char* argv[])
 
     // 2. Configuração do Emissor (OnOff)
     Ipv6Address ap2_address = apInterfaces2.GetAddress(0, 1);
-    OnOffHelper onoff("ns3::UdpSocketFactory",
-            Address(Inet6SocketAddress(ap2_address, sinkPort)));
-    
+    onoff.SetAttribute("Remote", AddressValue(Inet6SocketAddress(ap2_address, sinkPort)));
+  
     onoff.SetAttribute("DataRate", StringValue("1Mbps")); 
     onoff.SetAttribute("PacketSize", UintegerValue(64));
     onoff.SetAttribute("MaxPackets", UintegerValue(1)); // *** O NOVO CHAVE: Envia APENAS 1 pacote ***
