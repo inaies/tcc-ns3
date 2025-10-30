@@ -15,6 +15,15 @@
 
 using namespace ns3;
 
+// Variáveis estáticas/globais para controlar a sequência e o ciclo
+static uint32_t g_currentNodeIndex = 61; 
+static const uint32_t G_FIRST_NODE_INDEX = 61;
+static const uint32_t G_LAST_NODE_INDEX = 172; 
+static const double G_INTERVAL_BETWEEN_NODES = 2.0; // Intervalo para o próximo nó começar (2s)
+
+// A OnOffHelper agora precisa ser capaz de enviar *apenas um* pacote.
+static OnOffHelper g_onoff ("ns3::UdpSocketFactory", Address());
+
 static Ptr<ListPositionAllocator>
 CreateGridPositionAllocator (uint32_t nNodes, double spacing, double offsetX, double offsetY)
 {
@@ -75,15 +84,6 @@ main(int argc, char* argv[])
 
     LogComponentEnable("UdpEchoClientApplication", LOG_LEVEL_INFO);
     LogComponentEnable("UdpEchoServerApplication", LOG_LEVEL_INFO);
-
-    // Variáveis estáticas/globais para controlar a sequência e o ciclo
-    static uint32_t g_currentNodeIndex = 61; 
-    static const uint32_t G_FIRST_NODE_INDEX = 61;
-    static const uint32_t G_LAST_NODE_INDEX = 172; 
-    static const double G_INTERVAL_BETWEEN_NODES = 2.0; // Intervalo para o próximo nó começar (2s)
-
-    // A OnOffHelper agora precisa ser capaz de enviar *apenas um* pacote.
-    static OnOffHelper g_onoff ("ns3::UdpSocketFactory", Address());
 
     bool verbose = true;
     uint32_t nWifiCsma = 173; // nCsma renomeado para nWifiCsma
@@ -336,9 +336,6 @@ main(int argc, char* argv[])
     sinkApp.Stop(Seconds(900.0)); // Para cedo
 
     // 2. Configuração do Emissor (OnOff)
-    
-    // O AP2 está na rede 2001:4::/64. O AP2 é o sink.
-    Ipv6Address ap2_address = apInterfaces2.GetAddress(0, 1); 
 
     OnOffHelper onoff("ns3::UdpSocketFactory",
         Address(Inet6SocketAddress(ap2_address, sinkPort)));
