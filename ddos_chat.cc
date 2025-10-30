@@ -342,7 +342,6 @@ main(int argc, char* argv[])
   
     onoff.SetAttribute("DataRate", StringValue("1Mbps")); 
     onoff.SetAttribute("PacketSize", UintegerValue(64));
-    onoff.SetAttribute("MaxPackets", UintegerValue(1)); // *** O NOVO CHAVE: Envia APENAS 1 pacote ***
     onoff.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=0.0001]")); // Irrelevante
     onoff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=10000]")); // Irrelevante
 
