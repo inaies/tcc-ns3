@@ -52,9 +52,10 @@ void StartNextNodeAndRepeatCycle(NodeContainer staNodes, const Ipv6Address& apAd
         NS_LOG_INFO ("Cycle finished. Restarting sequence at t=" << Simulator::Now().GetSeconds());
         g_currentNodeIndex = G_FIRST_NODE_INDEX;
     }
-
+  
+    Ptr<Node> currentNode = staNodes.Get(g_currentNodeIndex);
     // Instala a aplicação (usa a g_onoff configurada no main)
-    ApplicationContainer clientApp = g_onoff.Install(currentNode);
+    ApplicationContainer clientApp = onoff.Install(currentNode);
 
     // Inicia a aplicação no tempo atual
     clientApp.Start(Seconds(Simulator::Now().GetSeconds()));
