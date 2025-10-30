@@ -22,7 +22,7 @@ static const uint32_t G_LAST_NODE_INDEX = 172;
 static const double G_INTERVAL_BETWEEN_NODES = 2.0; // Intervalo para o próximo nó começar (2s)
 
 // A OnOffHelper agora precisa ser capaz de enviar *apenas um* pacote.
-static OnOffHelper g_onoff ("ns3::UdpSocketFactory", Address());
+static OnOffHelper onoff ("ns3::UdpSocketFactory", Address());
 
 static Ptr<ListPositionAllocator>
 CreateGridPositionAllocator (uint32_t nNodes, double spacing, double offsetX, double offsetY)
@@ -336,9 +336,6 @@ main(int argc, char* argv[])
     sinkApp.Stop(Seconds(900.0)); // Para cedo
 
     // 2. Configuração do Emissor (OnOff)
-
-    OnOffHelper onoff("ns3::UdpSocketFactory",
-        Address(Inet6SocketAddress(ap2_address, sinkPort)));
     
     onoff.SetAttribute("DataRate", StringValue("1Mbps")); 
     onoff.SetAttribute("PacketSize", UintegerValue(64));
