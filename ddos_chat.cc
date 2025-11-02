@@ -315,6 +315,7 @@ main(int argc, char* argv[])
     double start_offset = 12.0; // Tempo inicial de start
     double interval = 2;     // Intervalo entre o start de cada nó (50ms)
     
+    int j = 61;
     // Apenas nos nós da Rede 2 (wifiStaNodes2)
     for (uint32_t i = 61; i <= wifiStaNodes2.GetN(); i++)
     {
@@ -326,7 +327,7 @@ main(int argc, char* argv[])
       // Agenda o início da transmissão do nó 'i'
       clientApp.Start(Seconds(start_offset + (i-61) * interval));
       clientApp.Stop(Seconds(start_offset + (i-61) * interval + 1.0)); // Roda por 1 segundo apenas
-
+      j++;
     }
 
 /* ///////////   ataque ddos   ////////// */
