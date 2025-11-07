@@ -292,7 +292,7 @@ main(int argc, char* argv[])
     );
     ApplicationContainer sinkApp = sinkHelper.Install(ap2_receptor);
     sinkApp.Start(Seconds(1.5)); // Começa cedo
-    sinkApp.Stop(Seconds(900.0)); // Para cedo
+    sinkApp.Stop(Seconds(60.0)); // Para cedo
 
     // 2. Configuração do Emissor (OnOff)
     
@@ -315,19 +315,15 @@ main(int argc, char* argv[])
     double start_offset = 12.0; // Tempo inicial de start
     double interval = 2;     // Intervalo entre o start de cada nó (50ms)
     
-    int j = 61;
     // Apenas nos nós da Rede 2 (wifiStaNodes2)
-    for (uint32_t i = 61; i <= wifiStaNodes2.GetN(); i++)
+    for (uint32_t i = 61; i < wifiStaNodes2.GetN(); i++)
     {
-      if(i == wifiStaNodes2.GetN())
-        i = 61;
       // Cria uma instância do OnOffHelper para cada nó
       ApplicationContainer clientApp = onoff.Install(wifiStaNodes2.Get(i));
       
       // Agenda o início da transmissão do nó 'i'
       clientApp.Start(Seconds(start_offset + (i-61) * interval));
       clientApp.Stop(Seconds(start_offset + (i-61) * interval + 1.0)); // Roda por 1 segundo apenas
-      j++;
     }
 
 /* ///////////   ataque ddos   ////////// */
@@ -348,7 +344,7 @@ main(int argc, char* argv[])
     );
     ApplicationContainer sinkAppAttack = udpSinkHelper.Install(victim);
     sinkAppAttack.Start(Seconds(1.0));
-    sinkAppAttack.Stop(Seconds(900.0));
+    sinkAppAttack.Stop(Seconds(60.0));
   
     for (uint32_t i = 0; i < attackerNodes.GetN(); i++)
     {
@@ -362,27 +358,11 @@ main(int argc, char* argv[])
       onoff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
 
       ApplicationContainer attackApp = onoff.Install(attackerNodes);
-      attackApp.Start(Seconds(300.0));
-      attackApp.Stop(Seconds(400.0));
-    }
-  
-    for (uint32_t i = 0; i < attackerNodes.GetN(); i++)
-    {
-      OnOffHelper onoff(
-        "ns3::UdpSocketFactory",
-        Address(Inet6SocketAddress(victimAddress, attackPort))
-      );
-      onoff.SetAttribute("DataRate", StringValue("5Mbps"));
-      onoff.SetAttribute("PacketSize", UintegerValue(1024));
-      onoff.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=15]"));
-      onoff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
-
-      ApplicationContainer attackApp = onoff.Install(attackerNodes);
-      attackApp.Start(Seconds(600.0));
-      attackApp.Stop(Seconds(800.0));
+      attackApp.Start(Seconds(15.0));
+      attackApp.Stop(Seconds(60.0));
     }
 
-    Simulator::Stop(Seconds(900.0));
+    Simulator::Stop(Seconds(60.0));
 
     if (tracing)
     {

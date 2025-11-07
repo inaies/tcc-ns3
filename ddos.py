@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from ns import ns
+import sys
 import ns.applications
 import ns.core
 import ns.csma
