@@ -32,8 +32,8 @@ public:
     : m_nodes(nodes), m_devices(devices)
   {
     m_if = CreateObject<OpenGymInterface>(5555); // Porta ZMQ
-    m_if->SetGetObservationCallback(MakeCallback(&ResilientEnv::GetObservation, this));
-    m_if->SetGetObservationSpaceCallback(MakeCallback(&ResilientEnv::GetObservationSpace, this));
+    m_if->SetGetObservationCb(MakeCallback(&ResilientEnv::GetObservation, this));
+    m_if->SetGetObservationSpaceCb(MakeCallback(&ResilientEnv::GetObservationSpace, this));
     m_if->SetGetActionSpaceCallback(MakeCallback(&ResilientEnv::GetActionSpace, this));
     m_if->SetExecuteActionsCallback(MakeCallback(&ResilientEnv::ExecuteActions, this));
   }
@@ -42,17 +42,25 @@ public:
   Ptr<OpenGymSpace> GetObservationSpace()
   {
     uint32_t N = m_nodes.GetN();
+    // shape = [N, 4]
     std::vector<uint32_t> shape = {N, 4};
-    float low = 0.0;
-    float high = 100000.0;
-    return CreateObject<OpenGymBoxSpace>(low, high, shape);
+    // low/high (mesma dimensão total)
+    std::vector<float> low(N * 4, 0.0f);
+    std::vector<float> high(N * 4, 1e6f); // limite alto realista
+    std::string dtype = "float32";
+    return CreateObject<OpenGymBoxSpace>(low, high, shape, dtype);
   }
 
   // Espaço da ação: vetor de N valores {0,1} indicando isolar ou não
   Ptr<OpenGymSpace> GetActionSpace()
   {
+    // Ex.: cada nó -> 2 ações (0 = no-op, 1 = isolate).  
+    // Simplificação: representaremos como Box int de shape [N] com dtype int32
     uint32_t N = m_nodes.GetN();
-    return CreateObject<OpenGymDiscreteSpace>(2 * N); // simplificação: 0..2N-1, interpretaremos como vetor
+    std::vector<uint32_t> shape = {N};
+    std::vector<float> low(N, 0.0f);
+    std::vector<float> high(N, 1.0f);
+    return CreateObject<OpenGymBoxSpace>(low, high, shape, "uint8");
   }
 
   Ptr<OpenGymDataContainer> GetObservation()
@@ -74,7 +82,7 @@ public:
     }
 
     std::vector<uint32_t> shape = {N, 4};
-    return CreateObject<OpenGymBoxContainer>(obs, shape);
+    return CreateObject<OpenGymBoxContainer>(obs, shape, std::string("float32"));  
   }
 
   bool ExecuteActions(Ptr<OpenGymDataContainer> action)
@@ -111,13 +119,11 @@ private:
 void InstallFlowMonitor()
 {
     flowMonitor = flowmonHelper.InstallAll();
-    // classe IPv6: tenta criar o classifier (algumas versões ns-3 fornecem Ipv6FlowClassifier)
-    // Se a sua versão do ns-3 não expor Ipv6FlowClassifier, substitua por um método alternativo.
-    ipv6Classifier = DynamicCast<Ipv6FlowClassifier>(flowmonHelper.GetClassifier6 ());
+    // tenta obter classifier IPv6 (se disponível)
+    ipv6Classifier = DynamicCast<Ipv6FlowClassifier>(flowmonHelper.GetClassifier6());
     if (ipv6Classifier == nullptr) {
-        // fallback: tentar obter classifier diretamente do monitor (algumas versões)
-        Ptr<Ipv6FlowClassifier> tmp = CreateObject<Ipv6FlowClassifier>();
-        ipv6Classifier = tmp; // pode ser nulo em algumas builds — adapte conforme sua versão.
+        NS_LOG_WARN("Ipv6FlowClassifier not available in this build; flow->address mapping will be unavailable.");
+        // Neste caso, DetectAndMitigate terá que usar outra fonte de informação
     }
     lastRxBytesPerFlow.clear();
 }
@@ -139,17 +145,17 @@ std::map<std::string, double> CollectNodeThroughputs(double intervalSeconds)
 
         // mapeamento flow -> five-tuple usando classifier (se disponível)
         Ipv6FlowClassifier::FiveTuple t;
-        bool ok = false;
-        if (ipv6Classifier) {
-            t = ipv6Classifier->FindFlow(fid);
-            ok = true;
-        }
-        if (!ok) {
-            // se não há classifier IPv6, podemos pular — ou usar outros meios
-            continue;
+
+        if (ipv6Classifier == nullptr) {
+            std::cout << "[WARNING] ipv6Classifier is null. Skipping throughput classification." << std::endl;
+            return nodeThroughputs;
         }
 
-        std::string src = t.sourceAddress; // string forma "2001:4::1" etc.
+        t = ipv6Classifier->FindFlow(fid);
+
+        std::ostringstream oss;
+        oss << t.sourceAddress; // operator<< formata o endereço
+        std::string src = oss.str(); // string forma "2001:4::1" etc.
         uint64_t rxBytes = fs.rxBytes;
 
         uint64_t prev = 0;
@@ -224,10 +230,12 @@ void IsolateSourcesByAddress(const std::set<std::string> &anoms,
         for (uint32_t ifIndex = 0; ifIndex < ipv6->GetNInterfaces(); ++ifIndex) {
             for (uint32_t a = 0; a < ipv6->GetNAddresses(ifIndex); ++a) {
                 Ipv6Address addr = ipv6->GetAddress(ifIndex, a).GetAddress();
-                std::string s = addr.ToString();
+                std::ostringstream oss;
+                oss << addr;
+                std::string s = oss.str();
                 if (anoms.count(s)) {
                     // isolar: colocar interface para DOWN
-                    ipv6->SetDown(ifIndex);
+                    ShutDownNode(node);
                     NS_LOG_INFO("Isolating node " << node->GetId() << " address " << s << " (ifIndex " << ifIndex << ")");
                 }
             }
@@ -308,28 +316,21 @@ CreateGridPositionAllocator (uint32_t nNodes, double spacing, double offsetX, do
 
 void ShutDownNode(Ptr<Node> node)
 {
-    NS_LOG_UNCOND(">>> [RESILIENCE] Desligando nó atacante: Node " << node->GetId());
-
-    // 1. Desativa todas as interfaces de rede
     Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
-    if (ipv6)
-    {
-        for (uint32_t i = 0; i < ipv6->GetNInterfaces(); i++)
-        {
+    if (ipv6) {
+        for (uint32_t i = 0; i < ipv6->GetNInterfaces(); ++i) {
             ipv6->SetDown(i);
         }
     }
-
-    // 2. Para todas as aplicações rodando no nó (UDP, OnOff, etc.)
-    for (uint32_t i = 0; i < node->GetNApplications(); i++)
-    {
-        node->GetApplication(i)->Stop(Seconds(0.0));
+    // opcional: também desativar NetDevices (recebimento)
+    for (uint32_t d = 0; d < node->GetNDevices(); ++d) {
+        Ptr<NetDevice> dev = node->GetDevice(d);
+        if (dev) {
+            // desconectar callbacks recebimento (não há API SetDown para NetDevice genérico)
+            dev->SetReceiveCallback(MakeNullCallback<bool, Ptr<NetDevice>, Ptr<const Packet>, uint16_t, const Address&>());
+        }
     }
-
-    // 3. Opcional: remover do scheduler (mata timers, eventos futuros)
-    Simulator::Cancel(node->GetId());
-
-    NS_LOG_UNCOND(">>> [RESILIENCE] Nó " << node->GetId() << " isolado da rede.");
+    NS_LOG_INFO("Node " << node->GetId() << " shutdown (interfaces down).");
 }
 
 NS_LOG_COMPONENT_DEFINE("ThirdScriptExample");
