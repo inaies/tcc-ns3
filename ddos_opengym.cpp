@@ -34,8 +34,8 @@ public:
     m_if = CreateObject<OpenGymInterface>(5555); // Porta ZMQ
     m_if->SetGetObservationCb(MakeCallback(&ResilientEnv::GetObservation, this));
     m_if->SetGetObservationSpaceCb(MakeCallback(&ResilientEnv::GetObservationSpace, this));
-    m_if->SetGetActionSpaceCallback(MakeCallback(&ResilientEnv::GetActionSpace, this));
-    m_if->SetExecuteActionsCallback(MakeCallback(&ResilientEnv::ExecuteActions, this));
+    m_if->SetGetActionSpaceCb(MakeCallback(&ResilientEnv::GetActionSpace, this));
+    m_if->SetExecuteActionsCb(MakeCallback(&ResilientEnv::ExecuteActions, this));
   }
 
   // Espaço da observação: (N nós, 4 métricas)
@@ -273,7 +273,7 @@ public:
   DdosEnv(Ptr<Node> apNode, std::vector<Ptr<Node>> staNodes /*...*/) {
     m_openGym = CreateObject<OpenGymInterface>();
     // registo callbacks — sintaxe depende da versão; exemplo conceitual:
-    m_openGym->SetGetObservationSpaceCallback(MakeCallback(&DdosEnv::GetObservationSpace, this));
+    m_openGym->SetGetObservationSpaceCb(MakeCallback(&DdosEnv::GetObservationSpace, this));
     // similarly for others...
   }
 
