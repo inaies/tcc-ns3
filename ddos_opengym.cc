@@ -366,10 +366,19 @@ CreateGridPositionAllocator (uint32_t nNodes, double spacing, double offsetX, do
 
 void ScheduleNextStateRead(double stepTime, Ptr<OpenGymInterface> openGym)
 {
-    openGym->NotifyCurrentState();  // envia observação e espera ação do Python
+    if (openGym == nullptr)
+    {
+        NS_LOG_WARN("ScheduleNextStateRead: openGym is null — re-scheduling in 1s");
+        Simulator::Schedule(Seconds(1.0), &ScheduleNextStateRead, stepTime, openGym);
+        return;
+    }
+
+    // Evita crash caso NotifyCurrentState dependa de um socket ainda não pronto.
+    NS_LOG_INFO("ScheduleNextStateRead: calling NotifyCurrentState()");
+    openGym->NotifyCurrentState();  // envia observação e (bloqueante) espera ação do Python
+
     Simulator::Schedule(Seconds(stepTime), &ScheduleNextStateRead, stepTime, openGym);
 }
-
 int
 main(int argc, char* argv[])
 {
@@ -690,6 +699,7 @@ main(int argc, char* argv[])
     Simulator::Schedule(Seconds(detectInterval), &DetectAndMitigate, detectInterval, wifiStaNodes2, staDevices2);
       
     Ptr<ResilientEnv> env = CreateObject<ResilientEnv>(wifiStaNodes2, staDevices2);
+    env->Initialize();
 
     double envStepTime = 1.0;
     Simulator::Schedule(Seconds(0.0), &ScheduleNextStateRead, envStepTime, env->GetInterface());
