@@ -33,7 +33,6 @@ public:
   ResilientEnv(NodeContainer nodes, NetDeviceContainer devices)
     : m_nodes(nodes), m_devices(devices)
   {
-    m_if = CreateObject<OpenGymInterface>(5555); // Porta ZMQ (deve ser a mesma do Python)
     m_if = CreateObject<OpenGymInterface>(5555);
     if (m_if == nullptr) {
         NS_LOG_UNCOND("ResilientEnv: openGym interface creation returned nullptr!");
