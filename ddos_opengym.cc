@@ -336,8 +336,6 @@ CreateGridPositionAllocator (uint32_t nNodes, double spacing, double offsetX, do
   return allocator;
 }
 
-NS_LOG_COMPONENT_DEFINE("ThirdScriptExample");
-
 int
 main(int argc, char* argv[])
 {
