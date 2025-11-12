@@ -1,0 +1,409 @@
+(ns3ai_env) inae@flamma:~/ns-allinone-3.40/ns-3.40$ ./ns3 run "ddos_opengym --nWifi=173"
+Consolidate compiler generated dependencies of target scratch_ddos_opengym
+[  1%] Building CXX object scratch/CMakeFiles/scratch_ddos_opengym.dir/ddos_opengym.cc.o
+/home/inae/ns-allinone-3.40/ns-3.40/scratch/ddos_opengym.cc: In function ‘int main(int, char**)’:
+/home/inae/ns-allinone-3.40/ns-3.40/scratch/ddos_opengym.cc:702:35: warning: ‘ns3::Ptr<T>::operator ns3::Ptr<T>::Tester*() const [with T = ns3::NetDevice]’ is deprecated: see operator bool [-Wdeprecated-declarations]
+  702 |         pointToPoint.EnablePcapAll("ddos-p2p-ap2", ap2ap3.Get(0));
+      |         ~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /home/inae/ns-allinone-3.40/ns-3.40/src/core/model/attribute.h:22,
+                 from /home/inae/ns-allinone-3.40/ns-3.40/src/core/model/attribute-construction-list.h:22,
+                 from /home/inae/ns-allinone-3.40/ns-3.40/src/core/model/object.h:23,
+                 from /home/inae/ns-allinone-3.40/ns-3.40/build/include/ns3/object.h:1,
+                 from /home/inae/ns-allinone-3.40/ns-3.40/contrib/opengym/model/container.h:25,
+                 from /home/inae/ns-allinone-3.40/ns-3.40/build/include/ns3/container.h:1,
+                 from /home/inae/ns-allinone-3.40/ns-3.40/build/include/ns3/opengym-module.h:7,
+                 from /home/inae/ns-allinone-3.40/ns-3.40/scratch/ddos_opengym.cc:2:
+/home/inae/ns-allinone-3.40/ns-3.40/src/core/model/ptr.h:777:1: note: declared here
+  777 | Ptr<T>::operator Tester*() const // NS_DEPRECATED_3_37
+      | ^~~~~~
+[  1%] Linking CXX executable ../../build/scratch/ns3.40-ddos_opengym-default
+No anomalies detected in this interval.
+No anomalies detected in this interval.
+No anomalies detected in this interval.
+No anomalies detected in this interval.
+No anomalies detected in this interval.
+No anomalies detected in this interval.
+No anomalies detected in this interval.
+No anomalies detected in this interval.
+No anomalies detected in this interval.
+No anomalies detected in this interval.
+No anomalies detected in this interval.
+No anomalies detected in this interval.
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:f2
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:f2
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:f2
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:c7
+  2001:4::200:ff:fe00:d6
+  2001:4::200:ff:fe00:e7
+  2001:4::200:ff:fe00:e8
+  2001:4::200:ff:fe00:e9
+  2001:4::200:ff:fe00:f0
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:c7
+  2001:4::200:ff:fe00:d6
+  2001:4::200:ff:fe00:e4
+  2001:4::200:ff:fe00:e7
+  2001:4::200:ff:fe00:e9
+  2001:4::200:ff:fe00:f0
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:c7
+  2001:4::200:ff:fe00:e6
+  2001:4::200:ff:fe00:e7
+  2001:4::200:ff:fe00:e8
+  2001:4::200:ff:fe00:e9
+  2001:4::200:ff:fe00:f0
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:d2
+  2001:4::200:ff:fe00:d6
+  2001:4::200:ff:fe00:e4
+  2001:4::200:ff:fe00:e5
+  2001:4::200:ff:fe00:e7
+  2001:4::200:ff:fe00:e9
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:bf
+  2001:4::200:ff:fe00:e4
+  2001:4::200:ff:fe00:e5
+  2001:4::200:ff:fe00:e6
+  2001:4::200:ff:fe00:e8
+  2001:4::200:ff:fe00:ea
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:c5
+  2001:4::200:ff:fe00:d7
+  2001:4::200:ff:fe00:d8
+  2001:4::200:ff:fe00:e2
+  2001:4::200:ff:fe00:e5
+  2001:4::200:ff:fe00:e7
+  2001:4::200:ff:fe00:e8
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:be
+  2001:4::200:ff:fe00:bf
+  2001:4::200:ff:fe00:cc
+  2001:4::200:ff:fe00:d5
+  2001:4::200:ff:fe00:e4
+  2001:4::200:ff:fe00:e5
+  2001:4::200:ff:fe00:ea
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:d6
+  2001:4::200:ff:fe00:d8
+  2001:4::200:ff:fe00:d9
+  2001:4::200:ff:fe00:e4
+  2001:4::200:ff:fe00:e5
+  2001:4::200:ff:fe00:e6
+  2001:4::200:ff:fe00:e8
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:c9
+  2001:4::200:ff:fe00:d4
+  2001:4::200:ff:fe00:d8
+  2001:4::200:ff:fe00:e4
+  2001:4::200:ff:fe00:e5
+  2001:4::200:ff:fe00:e6
+  2001:4::200:ff:fe00:ea
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:bf
+  2001:4::200:ff:fe00:ca
+  2001:4::200:ff:fe00:d8
+  2001:4::200:ff:fe00:e2
+  2001:4::200:ff:fe00:e4
+  2001:4::200:ff:fe00:e6
+  2001:4::200:ff:fe00:e7
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:be
+  2001:4::200:ff:fe00:c9
+  2001:4::200:ff:fe00:ca
+  2001:4::200:ff:fe00:d8
+  2001:4::200:ff:fe00:d9
+  2001:4::200:ff:fe00:e4
+  2001:4::200:ff:fe00:e6
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:ba
+  2001:4::200:ff:fe00:bb
+  2001:4::200:ff:fe00:d7
+  2001:4::200:ff:fe00:d9
+  2001:4::200:ff:fe00:e5
+  2001:4::200:ff:fe00:e7
+  2001:4::200:ff:fe00:e8
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:cc
+  2001:4::200:ff:fe00:d6
+  2001:4::200:ff:fe00:da
+  2001:4::200:ff:fe00:e4
+  2001:4::200:ff:fe00:e5
+  2001:4::200:ff:fe00:e7
+  2001:4::200:ff:fe00:e9
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:cc
+  2001:4::200:ff:fe00:da
+  2001:4::200:ff:fe00:e5
+  2001:4::200:ff:fe00:e6
+  2001:4::200:ff:fe00:e8
+  2001:4::200:ff:fe00:e9
+  2001:4::200:ff:fe00:f0
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:d6
+  2001:4::200:ff:fe00:d7
+  2001:4::200:ff:fe00:d9
+  2001:4::200:ff:fe00:e5
+  2001:4::200:ff:fe00:e6
+  2001:4::200:ff:fe00:e7
+  2001:4::200:ff:fe00:e9
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:ca
+  2001:4::200:ff:fe00:cc
+  2001:4::200:ff:fe00:da
+  2001:4::200:ff:fe00:e4
+  2001:4::200:ff:fe00:e5
+  2001:4::200:ff:fe00:e8
+  2001:4::200:ff:fe00:e9
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:ba
+  2001:4::200:ff:fe00:c9
+  2001:4::200:ff:fe00:d9
+  2001:4::200:ff:fe00:e4
+  2001:4::200:ff:fe00:e6
+  2001:4::200:ff:fe00:e7
+  2001:4::200:ff:fe00:e8
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:c8
+  2001:4::200:ff:fe00:cc
+  2001:4::200:ff:fe00:d4
+  2001:4::200:ff:fe00:d7
+  2001:4::200:ff:fe00:d8
+  2001:4::200:ff:fe00:e5
+  2001:4::200:ff:fe00:e8
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:c9
+  2001:4::200:ff:fe00:ca
+  2001:4::200:ff:fe00:d4
+  2001:4::200:ff:fe00:d5
+  2001:4::200:ff:fe00:d8
+  2001:4::200:ff:fe00:e7
+  2001:4::200:ff:fe00:f0
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:d5
+  2001:4::200:ff:fe00:d9
+  2001:4::200:ff:fe00:da
+  2001:4::200:ff:fe00:e4
+  2001:4::200:ff:fe00:e6
+  2001:4::200:ff:fe00:e7
+  2001:4::200:ff:fe00:f0
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:cc
+  2001:4::200:ff:fe00:d6
+  2001:4::200:ff:fe00:da
+  2001:4::200:ff:fe00:e4
+  2001:4::200:ff:fe00:e6
+  2001:4::200:ff:fe00:e7
+  2001:4::200:ff:fe00:e8
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:cb
+  2001:4::200:ff:fe00:d8
+  2001:4::200:ff:fe00:da
+  2001:4::200:ff:fe00:e3
+  2001:4::200:ff:fe00:e6
+  2001:4::200:ff:fe00:e7
+  2001:4::200:ff:fe00:f0
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:c7
+  2001:4::200:ff:fe00:d8
+  2001:4::200:ff:fe00:d9
+  2001:4::200:ff:fe00:e6
+  2001:4::200:ff:fe00:e7
+  2001:4::200:ff:fe00:e9
+  2001:4::200:ff:fe00:f0
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:be
+  2001:4::200:ff:fe00:c8
+  2001:4::200:ff:fe00:d9
+  2001:4::200:ff:fe00:dc
+  2001:4::200:ff:fe00:e4
+  2001:4::200:ff:fe00:e5
+  2001:4::200:ff:fe00:e6
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:b9
+  2001:4::200:ff:fe00:d5
+  2001:4::200:ff:fe00:d9
+  2001:4::200:ff:fe00:e4
+  2001:4::200:ff:fe00:e6
+  2001:4::200:ff:fe00:e7
+  2001:4::200:ff:fe00:e8
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:c8
+  2001:4::200:ff:fe00:cb
+  2001:4::200:ff:fe00:cc
+  2001:4::200:ff:fe00:d5
+  2001:4::200:ff:fe00:e6
+  2001:4::200:ff:fe00:e7
+  2001:4::200:ff:fe00:e8
+  2001:4::200:ff:fe00:e9
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:ba
+  2001:4::200:ff:fe00:ca
+  2001:4::200:ff:fe00:d4
+  2001:4::200:ff:fe00:d7
+  2001:4::200:ff:fe00:e5
+  2001:4::200:ff:fe00:e7
+  2001:4::200:ff:fe00:e8
+  2001:4::200:ff:fe00:e9
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:c8
+  2001:4::200:ff:fe00:c9
+  2001:4::200:ff:fe00:ca
+  2001:4::200:ff:fe00:cc
+  2001:4::200:ff:fe00:d8
+  2001:4::200:ff:fe00:e4
+  2001:4::200:ff:fe00:e5
+  2001:4::200:ff:fe00:e8
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:ba
+  2001:4::200:ff:fe00:d8
+  2001:4::200:ff:fe00:da
+  2001:4::200:ff:fe00:e2
+  2001:4::200:ff:fe00:e4
+  2001:4::200:ff:fe00:e5
+  2001:4::200:ff:fe00:e6
+  2001:4::200:ff:fe00:e8
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:ba
+  2001:4::200:ff:fe00:be
+  2001:4::200:ff:fe00:ca
+  2001:4::200:ff:fe00:d6
+  2001:4::200:ff:fe00:d9
+  2001:4::200:ff:fe00:e6
+  2001:4::200:ff:fe00:e8
+  2001:4::200:ff:fe00:f0
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:ba
+  2001:4::200:ff:fe00:be
+  2001:4::200:ff:fe00:ca
+  2001:4::200:ff:fe00:d9
+  2001:4::200:ff:fe00:e2
+  2001:4::200:ff:fe00:e5
+  2001:4::200:ff:fe00:e6
+  2001:4::200:ff:fe00:e8
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:d5
+  2001:4::200:ff:fe00:d8
+  2001:4::200:ff:fe00:d9
+  2001:4::200:ff:fe00:e4
+  2001:4::200:ff:fe00:e5
+  2001:4::200:ff:fe00:e6
+  2001:4::200:ff:fe00:e8
+  2001:4::200:ff:fe00:e9
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:b9
+  2001:4::200:ff:fe00:c9
+  2001:4::200:ff:fe00:ca
+  2001:4::200:ff:fe00:cb
+  2001:4::200:ff:fe00:e2
+  2001:4::200:ff:fe00:e7
+  2001:4::200:ff:fe00:e9
+  2001:4::200:ff:fe00:f0
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:be
+  2001:4::200:ff:fe00:c8
+  2001:4::200:ff:fe00:c9
+  2001:4::200:ff:fe00:d7
+  2001:4::200:ff:fe00:d9
+  2001:4::200:ff:fe00:e4
+  2001:4::200:ff:fe00:e7
+  2001:4::200:ff:fe00:f0
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:bb
+  2001:4::200:ff:fe00:ca
+  2001:4::200:ff:fe00:d7
+  2001:4::200:ff:fe00:d8
+  2001:4::200:ff:fe00:d9
+  2001:4::200:ff:fe00:e3
+  2001:4::200:ff:fe00:e4
+  2001:4::200:ff:fe00:e7
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:bb
+  2001:4::200:ff:fe00:c9
+  2001:4::200:ff:fe00:d7
+  2001:4::200:ff:fe00:d8
+  2001:4::200:ff:fe00:d9
+  2001:4::200:ff:fe00:e2
+  2001:4::200:ff:fe00:e5
+  2001:4::200:ff:fe00:e8
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:ca
+  2001:4::200:ff:fe00:d6
+  2001:4::200:ff:fe00:d8
+  2001:4::200:ff:fe00:e2
+  2001:4::200:ff:fe00:e4
+  2001:4::200:ff:fe00:e5
+  2001:4::200:ff:fe00:e7
+  2001:4::200:ff:fe00:e8
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:cb
+  2001:4::200:ff:fe00:d5
+  2001:4::200:ff:fe00:e4
+  2001:4::200:ff:fe00:e6
+  2001:4::200:ff:fe00:e7
+  2001:4::200:ff:fe00:e8
+  2001:4::200:ff:fe00:e9
+  2001:4::200:ff:fe00:f0
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:c8
+  2001:4::200:ff:fe00:d5
+  2001:4::200:ff:fe00:d6
+  2001:4::200:ff:fe00:d8
+  2001:4::200:ff:fe00:da
+  2001:4::200:ff:fe00:e6
+  2001:4::200:ff:fe00:e8
+  2001:4::200:ff:fe00:f0
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:b9
+  2001:4::200:ff:fe00:be
+  2001:4::200:ff:fe00:d5
+  2001:4::200:ff:fe00:d8
+  2001:4::200:ff:fe00:da
+  2001:4::200:ff:fe00:e5
+  2001:4::200:ff:fe00:e6
+  2001:4::200:ff:fe00:e7
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:b9
+  2001:4::200:ff:fe00:d5
+  2001:4::200:ff:fe00:d6
+  2001:4::200:ff:fe00:d7
+  2001:4::200:ff:fe00:d8
+  2001:4::200:ff:fe00:e3
+  2001:4::200:ff:fe00:e4
+  2001:4::200:ff:fe00:e5
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:be
+  2001:4::200:ff:fe00:c9
+  2001:4::200:ff:fe00:d5
+  2001:4::200:ff:fe00:d7
+  2001:4::200:ff:fe00:e3
+  2001:4::200:ff:fe00:e7
+  2001:4::200:ff:fe00:e8
+  2001:4::200:ff:fe00:f0
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:c9
+  2001:4::200:ff:fe00:d6
+  2001:4::200:ff:fe00:d8
+  2001:4::200:ff:fe00:e2
+  2001:4::200:ff:fe00:e3
+  2001:4::200:ff:fe00:e5
+  2001:4::200:ff:fe00:e6
+  2001:4::200:ff:fe00:f0
+Anomalous sources detected: 
+  2001:4::200:ff:fe00:ba
+  2001:4::200:ff:fe00:ca
+  2001:4::200:ff:fe00:d6
+  2001:4::200:ff:fe00:d9
+  2001:4::200:ff:fe00:da
+  2001:4::200:ff:fe00:e5
+  2001:4::200:ff:fe00:e6
+  2001:4::200:ff:fe00:e8
+aborted. cond="device->GetPhys().empty()", msg="WifiPhyHelper::EnablePcapInternal(): Phy layer in WifiNetDevice must be set", +0.000000000s -1 file=/home/inae/ns-allinone-3.40/ns-3.40/src/wifi/helper/wifi-helper.cc, line=586
+NS_FATAL, terminating
+terminate called without an active exception
+Command 'build/scratch/ns3.40-ddos_opengym-default --nWifi=173' died with <Signals.SIGABRT: 6>.
+(ns3ai_env) inae@flamma:~/ns-allinone-3.40/ns-3.40$ 
+
