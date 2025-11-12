@@ -33,12 +33,14 @@ public:
   ResilientEnv(NodeContainer nodes, NetDeviceContainer devices)
     : m_nodes(nodes), m_devices(devices)
   {
-    m_if = CreateObject<OpenGymInterface>(5555); // Porta ZMQ
+    m_if = CreateObject<OpenGymInterface>(5555); // Porta ZMQ (deve ser a mesma do Python)
     m_if->SetGetObservationCb(MakeCallback(&ResilientEnv::GetObservation, this));
     m_if->SetGetObservationSpaceCb(MakeCallback(&ResilientEnv::GetObservationSpace, this));
     m_if->SetGetActionSpaceCb(MakeCallback(&ResilientEnv::GetActionSpace, this));
     m_if->SetExecuteActionsCb(MakeCallback(&ResilientEnv::ExecuteActions, this));
   }
+
+  Ptr<OpenGymInterface> GetInterface() const { return m_if; } 
 
   // Espaço da observação: (N nós, 4 métricas)
   Ptr<OpenGymSpace> GetObservationSpace()
@@ -686,20 +688,11 @@ main(int argc, char* argv[])
     InstallFlowMonitor();
 
     Simulator::Schedule(Seconds(detectInterval), &DetectAndMitigate, detectInterval, wifiStaNodes2, staDevices2);
-  
+      
     Ptr<ResilientEnv> env = CreateObject<ResilientEnv>(wifiStaNodes2, staDevices2);
 
-    uint32_t openGymPort = 5555;
-    Ptr<OpenGymInterface> openGym = CreateObject<OpenGymInterface>(openGymPort);
-    openGym->SetGetActionSpaceCb(MakeCallback(&ResilientEnv::GetActionSpace, env));
-    openGym->SetGetObservationSpaceCb(MakeCallback(&ResilientEnv::GetObservationSpace, env));
-    openGym->SetGetObservationCb(MakeCallback(&ResilientEnv::GetObservation, env));
-    openGym->SetExecuteActionsCb(MakeCallback(&ResilientEnv::ExecuteActions, env));
-
-    // inicia o loop Gym (passo de tempo, por ex. 1 segundo)
     double envStepTime = 1.0;
-    Simulator::Schedule(Seconds(0.0), &ScheduleNextStateRead, envStepTime, openGym);
-
+    Simulator::Schedule(Seconds(0.0), &ScheduleNextStateRead, envStepTime, env->GetInterface());
     
     if (tracing)
     {
