@@ -16,6 +16,8 @@
 
 #include <cmath>
 
+NS_LOG_COMPONENT_DEFINE("DdosOpengym");
+
 using namespace ns3;
 static FlowMonitorHelper flowmonHelper;
 static Ptr<FlowMonitor> flowMonitor;
@@ -82,7 +84,7 @@ public:
     }
 
     std::vector<uint32_t> shape = {N, 4};
-    return CreateObject<OpenGymBoxContainer>(obs, shape, std::string("float32"));  
+    return CreateObject<OpenGymBoxContainer<float>>(obs, shape, std::string("float32"));  
   }
 
   bool ExecuteActions(Ptr<OpenGymDataContainer> action)
@@ -133,6 +135,7 @@ void InstallFlowMonitor()
 // Retorna map: sourceIpv6String -> throughput (bytes/s) durante o intervalo
 std::map<std::string, double> CollectNodeThroughputs(double intervalSeconds)
 {
+    std::map<std::string, double> nodeThroughputs;
     std::map<std::string, double> throughputBySrc;
     if (!flowMonitor) return throughputBySrc;
 
@@ -211,6 +214,25 @@ std::set<std::string> DetectAnomalousSources(const std::map<std::string,double> 
     return anomalies;
 }
 
+void ShutDownNode(Ptr<Node> node)
+{
+    Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
+    if (ipv6) {
+        for (uint32_t i = 0; i < ipv6->GetNInterfaces(); ++i) {
+            ipv6->SetDown(i);
+        }
+    }
+    // opcional: também desativar NetDevices (recebimento)
+    for (uint32_t d = 0; d < node->GetNDevices(); ++d) {
+        Ptr<NetDevice> dev = node->GetDevice(d);
+        if (dev) {
+            // desconectar callbacks recebimento (não há API SetDown para NetDevice genérico)
+            dev->SetReceiveCallback(MakeNullCallback<bool, Ptr<NetDevice>, Ptr<const Packet>, uint16_t, const Address&>());
+        }
+    }
+    NS_LOG_INFO("Node " << node->GetId() << " shutdown (interfaces down).");
+}
+
 // ----------------------
 // Aplica mitigação: isola nós que correspondem aos endereços anômalos.
 // Estratégia: para cada address anômalo, procura o Node que tem aquela interface
@@ -277,11 +299,11 @@ public:
     // similarly for others...
   }
 
-  Ptr<OpenGymSpace> GetObservationSpace() { /* descreve obs shape e tipo */ }
-  Ptr<OpenGymSpace> GetActionSpace() { /* descreve ações possíveis */ }
-  Ptr<OpenGymDataContainer> GetObservation() { /* montar observação atual */ }
-  float GetReward() { /* calc reward se usar RL */ }
-  bool GetGameOver() { /* terminar se simulação acabou */ }
+  Ptr<OpenGymSpace> GetObservationSpace() { return nullptr; }
+  Ptr<OpenGymSpace> GetActionSpace() { return nullptr; }
+  Ptr<OpenGymDataContainer> GetObservation() { return nullptr; }
+  float GetReward() { return 0.0f; }
+  bool GetGameOver() { return false; }
   std::string GetExtraInfo() { return std::string("info"); }
   bool ExecuteActions(Ptr<OpenGymDataContainer> action) {
       // converter 'action' para operações ns-3:
@@ -312,25 +334,6 @@ CreateGridPositionAllocator (uint32_t nNodes, double spacing, double offsetX, do
       allocator->Add (Vector (x, y, 0.0));
     }
   return allocator;
-}
-
-void ShutDownNode(Ptr<Node> node)
-{
-    Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
-    if (ipv6) {
-        for (uint32_t i = 0; i < ipv6->GetNInterfaces(); ++i) {
-            ipv6->SetDown(i);
-        }
-    }
-    // opcional: também desativar NetDevices (recebimento)
-    for (uint32_t d = 0; d < node->GetNDevices(); ++d) {
-        Ptr<NetDevice> dev = node->GetDevice(d);
-        if (dev) {
-            // desconectar callbacks recebimento (não há API SetDown para NetDevice genérico)
-            dev->SetReceiveCallback(MakeNullCallback<bool, Ptr<NetDevice>, Ptr<const Packet>, uint16_t, const Address&>());
-        }
-    }
-    NS_LOG_INFO("Node " << node->GetId() << " shutdown (interfaces down).");
 }
 
 NS_LOG_COMPONENT_DEFINE("ThirdScriptExample");
@@ -467,7 +470,6 @@ main(int argc, char* argv[])
     // Centro aproximado de cada grade (calcula colunas a partir do número de nós)
     uint32_t cols1 = static_cast<uint32_t>(std::ceil(std::sqrt(static_cast<double>(std::max<uint32_t>(1, nWifi)))));
     uint32_t cols3 = static_cast<uint32_t>(std::ceil(std::sqrt(static_cast<double>(std::max<uint32_t>(1, nWifiCsma)))));
-    double centerOffset = spacing * 0.5;
 
     // AP1 center
     double ap1x = (cols1 * spacing) / 2.0;
