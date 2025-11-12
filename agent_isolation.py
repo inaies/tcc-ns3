@@ -21,6 +21,9 @@ import numpy as np
 from sklearn.ensemble import IsolationForest
 import gym
 import logging
+import numpy as np
+if not hasattr(np, 'float'):
+    np.float = float
 
 # Tente importar ns3-gym se disponível (opcional)
 try:
