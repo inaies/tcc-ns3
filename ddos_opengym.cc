@@ -34,6 +34,12 @@ public:
     : m_nodes(nodes), m_devices(devices)
   {
     m_if = CreateObject<OpenGymInterface>(5555); // Porta ZMQ (deve ser a mesma do Python)
+    m_if = CreateObject<OpenGymInterface>(5555);
+    if (m_if == nullptr) {
+        NS_LOG_UNCOND("ResilientEnv: openGym interface creation returned nullptr!");
+    } else {
+        NS_LOG_UNCOND("ResilientEnv: openGym interface OK");
+    }
     m_if->SetGetObservationCb(MakeCallback(&ResilientEnv::GetObservation, this));
     m_if->SetGetObservationSpaceCb(MakeCallback(&ResilientEnv::GetObservationSpace, this));
     m_if->SetGetActionSpaceCb(MakeCallback(&ResilientEnv::GetActionSpace, this));
