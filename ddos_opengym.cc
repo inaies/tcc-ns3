@@ -71,7 +71,7 @@ public:
       return static_cast<float>(rand() % 100) / 10.0f; // valor fictício 0.0–10.0
   }
 
-  Ptr<OpenGymDataContainer> ResilientEnv::GetObservation()
+  Ptr<OpenGymDataContainer> GetObservation()
   {
       // Exemplo: coletar métricas simuladas de cada nó
       std::vector<float> obs;
