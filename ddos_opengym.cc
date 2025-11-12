@@ -346,7 +346,7 @@ int
 main(int argc, char* argv[])
 {
     LogComponentEnable("Ping", LOG_LEVEL_INFO);
-    LogComponentEnable("ThirdScriptExample", LOG_LEVEL_INFO);
+    LogComponentEnable("DdosOpengym", LOG_LEVEL_INFO);
 
     LogComponentEnable("UdpEchoClientApplication", LOG_LEVEL_INFO);
     LogComponentEnable("UdpEchoServerApplication", LOG_LEVEL_INFO);

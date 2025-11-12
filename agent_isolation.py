@@ -28,6 +28,8 @@ try:
 except Exception:
     ns3gym = None
 
+from ns3gym import ns3env
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("agent_isolation")
 
@@ -319,7 +321,13 @@ def main():
     if env is None and ns3gym is not None:
         try:
             # ADAPTAR: se o seu ns3-gym fornece uma factory diferente, mude aqui
-            env = ns3gym.RLEnvironment()  # placeholder: ajuste conforme sua versão do ns3-gym
+            env = ns3env.Ns3Env(
+                port=5555,        # mesma porta usada no seu ResilientEnv
+                stepTime=0.5,     # intervalo de decisão entre passos
+                startSim=False,   # True se quiser que o NS-3 inicie junto
+                simSeed=0,
+                simArgs={},
+                debug=False)            
             logger.info("Ambiente criado via ns3gym.RLEnvironment()")
         except Exception as e:
             logger.exception("Falha ao criar ambiente via ns3gym: %s", e)
