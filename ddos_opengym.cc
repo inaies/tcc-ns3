@@ -255,36 +255,37 @@ void IsolateSourcesByAddress(const std::set<std::string> &anomalousSources,
 {
     for (auto &s : anomalousSources)
     {
-        for (auto node : nodes)
-        {
-            if (node == nullptr)
-            {
-                NS_LOG_WARN("Skipping null node pointer.");
-                continue;
-            }
+      for (uint32_t i = 0; i < nodes.GetN(); ++i)
+      {
+          Ptr<Node> node = nodes.Get(i);
+          if (node == nullptr)
+          {
+              NS_LOG_WARN("Skipping null node pointer.");
+              continue;
+          }
 
-            Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
-            if (ipv6 == nullptr)
-            {
-                NS_LOG_WARN("Node " << node->GetId() << " has no IPv6 interface, skipping.");
-                continue;
-            }
+          Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
+          if (ipv6 == nullptr)
+          {
+              NS_LOG_WARN("Node " << node->GetId() << " has no IPv6 interface, skipping.");
+              continue;
+          }
 
-            for (uint32_t ifIndex = 0; ifIndex < ipv6->GetNInterfaces(); ++ifIndex)
-            {
-                if (ipv6->GetNAddresses(ifIndex) == 0)
-                    continue;
+          for (uint32_t ifIndex = 0; ifIndex < ipv6->GetNInterfaces(); ++ifIndex)
+          {
+              if (ipv6->GetNAddresses(ifIndex) == 0)
+                  continue;
 
-                Ipv6Address addr = ipv6->GetAddress(ifIndex, 0).GetAddress();
-                if (addr == Ipv6Address(s.c_str()))
-                {
-                    NS_LOG_INFO("Isolating node " << node->GetId()
-                                << " with address " << s
-                                << " (ifIndex " << ifIndex << ")");
-                    ShutDownNode(node);
-                }
-            }
-        }
+              Ipv6Address addr = ipv6->GetAddress(ifIndex, 0).GetAddress();
+              if (addr == Ipv6Address(s.c_str()))
+              {
+                  NS_LOG_INFO("Isolating node " << node->GetId()
+                              << " with address " << s
+                              << " (ifIndex " << ifIndex << ")");
+                  ShutDownNode(node);
+              }
+          }
+      }
     }
 }
 
