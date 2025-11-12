@@ -65,26 +65,32 @@ public:
     return CreateObject<OpenGymBoxSpace>(low, high, shape, "uint8");
   }
 
-  Ptr<OpenGymDataContainer> GetObservation()
+  float CalculateThroughputForNode(Ptr<Node> node)
   {
-    uint32_t N = m_nodes.GetN();
-    std::vector<float> obs;
-    obs.reserve(N * 4);
+      // TODO: substituir por cálculo real via FlowMonitor ou contadores de pacotes
+      return static_cast<float>(rand() % 100) / 10.0f; // valor fictício 0.0–10.0
+  }
 
-    for (uint32_t i = 0; i < N; i++)
-    {
-      // Aqui você substitui por suas métricas reais (usar contadores, monitor de tráfego, atraso, etc.)
-      float traffic = 100.0;     // placeholder
-      float pktRate = 10.0;      // placeholder
-      float latency = 5.0;       // placeholder
+  Ptr<OpenGymDataContainer> ResilientEnv::GetObservation()
+  {
+      // Exemplo: coletar métricas simuladas de cada nó
+      std::vector<float> obs;
+      for (uint32_t i = 0; i < m_nodes.GetN(); ++i)
+      {
+          Ptr<Node> node = m_nodes.Get(i);
+          // Exemplo fictício: nível de tráfego, perdas, latência etc.
+          float throughput = CalculateThroughputForNode(node); // função hipotética
+          obs.push_back(throughput);
+      }
 
-      obs.push_back(traffic);
-      obs.push_back(pktRate);
-      obs.push_back(latency);
-    }
+      // Define o formato da observação (ex: número de nós)
+      std::vector<uint32_t> shape = { static_cast<uint32_t>(obs.size()) };
 
-    std::vector<uint32_t> shape = {N, 4};
-    return CreateObject<OpenGymBoxContainer<float>>(obs, shape, std::string("float32"));  
+      // Cria o container e popula com os dados
+      Ptr<OpenGymBoxContainer<float>> box = CreateObject<OpenGymBoxContainer<float>>(shape);
+      box->SetData(obs);
+
+      return box;
   }
 
   bool ExecuteActions(Ptr<OpenGymDataContainer> action)
