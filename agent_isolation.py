@@ -15,15 +15,14 @@ Como usar (exemplo):
 OBS: Ajuste as chaves de observação / formato conforme seu ns3-gym.
 """
 
-import argparse
-import time
-import numpy as np
-from sklearn.ensemble import IsolationForest
-import gym
-import logging
 import numpy as np
 if not hasattr(np, 'float'):
     np.float = float
+import argparse
+import time
+from sklearn.ensemble import IsolationForest
+import gym
+import logging
 
 # Tente importar ns3-gym se disponível (opcional)
 try:
