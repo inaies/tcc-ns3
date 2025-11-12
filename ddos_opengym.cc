@@ -362,6 +362,12 @@ CreateGridPositionAllocator (uint32_t nNodes, double spacing, double offsetX, do
   return allocator;
 }
 
+void ScheduleNextStateRead(double stepTime, Ptr<OpenGymInterface> openGym)
+{
+    openGym->NotifyCurrentState();  // envia observação e espera ação do Python
+    Simulator::Schedule(Seconds(stepTime), &ScheduleNextStateRead, stepTime, openGym);
+}
+
 int
 main(int argc, char* argv[])
 {
@@ -682,10 +688,19 @@ main(int argc, char* argv[])
     Simulator::Schedule(Seconds(detectInterval), &DetectAndMitigate, detectInterval, wifiStaNodes2, staDevices2);
   
     Ptr<ResilientEnv> env = CreateObject<ResilientEnv>(wifiStaNodes2, staDevices2);
-    Simulator::Stop(Seconds(100.0));
-    Simulator::Run();
-    Simulator::Destroy();
 
+    uint32_t openGymPort = 5555;
+    Ptr<OpenGymInterface> openGym = CreateObject<OpenGymInterface>(openGymPort);
+    openGym->SetGetActionSpaceCb(MakeCallback(&ResilientEnv::GetActionSpace, env));
+    openGym->SetGetObservationSpaceCb(MakeCallback(&ResilientEnv::GetObservationSpace, env));
+    openGym->SetGetObservationCb(MakeCallback(&ResilientEnv::GetObservation, env));
+    openGym->SetExecuteActionsCb(MakeCallback(&ResilientEnv::ExecuteActions, env));
+
+    // inicia o loop Gym (passo de tempo, por ex. 1 segundo)
+    double envStepTime = 1.0;
+    Simulator::Schedule(Seconds(0.0), &ScheduleNextStateRead, envStepTime, openGym);
+
+    
     if (tracing)
     {
         pointToPoint.EnablePcapAll("p2p-traffic-ddos");
@@ -698,8 +713,8 @@ main(int argc, char* argv[])
         phy2.EnablePcap("ddos_ap2", apDevices2.Get(0)); // AP1
         phy3.EnablePcap("ddos_ap3", apDevices3.Get(0)); // AP1
     }
-
-
+    
+    Simulator::Stop(Seconds(100.0));
     Simulator::Run();
     Simulator::Destroy();
     return 0;
