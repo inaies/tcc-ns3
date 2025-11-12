@@ -73,23 +73,23 @@ public:
 
   Ptr<OpenGymDataContainer> GetObservation()
   {
-      // Exemplo: coletar métricas simuladas de cada nó
       std::vector<float> obs;
       for (uint32_t i = 0; i < m_nodes.GetN(); ++i)
       {
           Ptr<Node> node = m_nodes.Get(i);
-          // Exemplo fictício: nível de tráfego, perdas, latência etc.
-          float throughput = CalculateThroughputForNode(node); // função hipotética
+          float throughput = CalculateThroughputForNode(node);
+          float delay = (rand() % 100) / 10.0f;
+          float loss = (rand() % 10) / 100.0f;
+          float queue = (rand() % 50);
           obs.push_back(throughput);
+          obs.push_back(delay);
+          obs.push_back(loss);
+          obs.push_back(queue);
       }
 
-      // Define o formato da observação (ex: número de nós)
-      std::vector<uint32_t> shape = { static_cast<uint32_t>(obs.size()) };
-
-      // Cria o container e popula com os dados
+      std::vector<uint32_t> shape = { m_nodes.GetN(), 4 };
       Ptr<OpenGymBoxContainer<float>> box = CreateObject<OpenGymBoxContainer<float>>(shape);
       box->SetData(obs);
-
       return box;
   }
 
