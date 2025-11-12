@@ -301,7 +301,6 @@ void DetectAndMitigate(double intervalSeconds, NodeContainer allStaNodes, NetDev
     // 2) detectar anomalias
     auto anoms = DetectAnomalousSources(tp);
     if (!anoms.empty()) {
-        std::cout << "Anomalous source detected: " << s << std::endl;
         NS_LOG_INFO("Anomalous sources detected: ");
         for (auto &a : anoms) NS_LOG_INFO("  " << a);
     } else {
