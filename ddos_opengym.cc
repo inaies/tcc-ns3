@@ -222,20 +222,24 @@ std::set<std::string> DetectAnomalousSources(const std::map<std::string,double> 
 
 void ShutDownNode(Ptr<Node> node)
 {
+    if (node == nullptr)
+    {
+        NS_LOG_WARN("Attempted to shut down null node.");
+        return;
+    }
+
     Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
-    if (ipv6) {
-        for (uint32_t i = 0; i < ipv6->GetNInterfaces(); ++i) {
-            ipv6->SetDown(i);
-        }
+    if (ipv6 == nullptr)
+    {
+        NS_LOG_WARN("Node " << node->GetId() << " has no IPv6 stack, cannot shut down.");
+        return;
     }
-    // opcional: também desativar NetDevices (recebimento)
-    for (uint32_t d = 0; d < node->GetNDevices(); ++d) {
-        Ptr<NetDevice> dev = node->GetDevice(d);
-        if (dev) {
-            // desconectar callbacks recebimento (não há API SetDown para NetDevice genérico)
-            dev->SetReceiveCallback(MakeNullCallback<bool, Ptr<NetDevice>, Ptr<const Packet>, uint16_t, const Address&>());
-        }
+
+    for (uint32_t ifIndex = 0; ifIndex < ipv6->GetNInterfaces(); ++ifIndex)
+    {
+        ipv6->SetDown(ifIndex);
     }
+
     NS_LOG_INFO("Node " << node->GetId() << " shutdown (interfaces down).");
 }
 
@@ -245,26 +249,39 @@ void ShutDownNode(Ptr<Node> node)
 // IPv6 e chama ipv6->SetDown(ifIndex) para "tirar a interface do ar" (isolar tráfego).
 // OBS: este método exige que você saiba quais containers/devices correspondem a cada nó.
 // Passe aqui os containers (ex.: wifiStaNodes2 e staDevices2) ou ajuste a busca.
-void IsolateSourcesByAddress(const std::set<std::string> &anoms,
-                             NodeContainer &allStaNodes, NetDeviceContainer &allStaDevices)
+void IsolateSourcesByAddress(const std::set<std::string> &anomalousSources,
+                             NodeContainer &nodes,
+                             NetDeviceContainer &devices)
 {
-    // percorre nós/ dispositivos e fecha interface quando o endereço corresponder
-    for (uint32_t i = 0; i < allStaNodes.GetN(); ++i) {
-        Ptr<Node> node = allStaNodes.Get(i);
-        // obtém Ipv6 do nó
-        Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
-        if (!ipv6) continue;
-        // para cada interface do nó, verificar endereço(s)
-        for (uint32_t ifIndex = 0; ifIndex < ipv6->GetNInterfaces(); ++ifIndex) {
-            for (uint32_t a = 0; a < ipv6->GetNAddresses(ifIndex); ++a) {
-                Ipv6Address addr = ipv6->GetAddress(ifIndex, a).GetAddress();
-                std::ostringstream oss;
-                oss << addr;
-                std::string s = oss.str();
-                if (anoms.count(s)) {
-                    // isolar: colocar interface para DOWN
+    for (auto &s : anomalousSources)
+    {
+        for (auto node : nodes)
+        {
+            if (node == nullptr)
+            {
+                NS_LOG_WARN("Skipping null node pointer.");
+                continue;
+            }
+
+            Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
+            if (ipv6 == nullptr)
+            {
+                NS_LOG_WARN("Node " << node->GetId() << " has no IPv6 interface, skipping.");
+                continue;
+            }
+
+            for (uint32_t ifIndex = 0; ifIndex < ipv6->GetNInterfaces(); ++ifIndex)
+            {
+                if (ipv6->GetNAddresses(ifIndex) == 0)
+                    continue;
+
+                Ipv6Address addr = ipv6->GetAddress(ifIndex, 0).GetAddress();
+                if (addr == Ipv6Address(s.c_str()))
+                {
+                    NS_LOG_INFO("Isolating node " << node->GetId()
+                                << " with address " << s
+                                << " (ifIndex " << ifIndex << ")");
                     ShutDownNode(node);
-                    NS_LOG_INFO("Isolating node " << node->GetId() << " address " << s << " (ifIndex " << ifIndex << ")");
                 }
             }
         }
@@ -283,6 +300,7 @@ void DetectAndMitigate(double intervalSeconds, NodeContainer allStaNodes, NetDev
     // 2) detectar anomalias
     auto anoms = DetectAnomalousSources(tp);
     if (!anoms.empty()) {
+        std::cout << "Anomalous source detected: " << s << std::endl;
         NS_LOG_INFO("Anomalous sources detected: ");
         for (auto &a : anoms) NS_LOG_INFO("  " << a);
     } else {
