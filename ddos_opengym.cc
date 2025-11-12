@@ -238,6 +238,8 @@ void ShutDownNode(Ptr<Node> node)
     for (uint32_t ifIndex = 0; ifIndex < ipv6->GetNInterfaces(); ++ifIndex)
     {
         ipv6->SetDown(ifIndex);
+
+        // Simulator::Schedule(Seconds(5.0), &Ipv6::SetDown, ipv6, ifIndex);
     }
 
     NS_LOG_INFO("Node " << node->GetId() << " shutdown (interfaces down).");
@@ -375,8 +377,6 @@ main(int argc, char* argv[])
     bool tracing = true;
 
     CommandLine cmd(__FILE__);
-    cmd.AddValue("nWifiCsma", "Number of STA devices in the new WiFi 3 network", nWifiCsma);
-    cmd.AddValue("nWifi", "Number of STA devices in WiFi 1 and 2", nWifi);
     cmd.AddValue("verbose", "Tell echo applications to log if true", verbose);
     cmd.AddValue("tracing", "Enable pcap tracing", tracing);
 
@@ -597,15 +597,6 @@ main(int argc, char* argv[])
         sr->SetDefaultRoute(ap3Addr, ifSta);
     }
 
-    // Ptr<Ipv6> ipv6 = wifiApNode.Get(0)->GetObject<Ipv6>();
-    // // Obtém o índice da interface Wi-Fi do AP1 (nó 0)
-    // int32_t ifIndex = ipv6->GetInterfaceForDevice(apDevices1.Get(0)); 
-    
-    // Agenda a desativação da interface usando o método correto Ipv6::SetDown
-    // Simulator::Schedule(Seconds(5.0), &Ipv6::SetDown, ipv6, ifIndex);
-
-    // Apps de teste (idêntico ao seu original)
-
     // 1. Configuração do Receptor (Sink) no AP2 (n1)
     Ptr<Node> ap2_receptor = wifiApNode2.Get(0); // AP2 (n1)
     uint16_t sinkPort = 9002;
@@ -616,7 +607,7 @@ main(int argc, char* argv[])
     );
     ApplicationContainer sinkApp = sinkHelper.Install(ap2_receptor);
     sinkApp.Start(Seconds(1.5)); // Começa cedo
-    sinkApp.Stop(Seconds(60.0)); // Para cedo
+    sinkApp.Stop(Seconds(100.0)); // Para cedo
 
     // 2. Configuração do Emissor (OnOff)
     
@@ -636,24 +627,24 @@ main(int argc, char* argv[])
     onoff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
 
     // 3. Agendamento Sequencial
-    double start_offset = 12.0; // Tempo inicial de start
+    double start_offset = 10.0; // Tempo inicial de start
     double interval = 2;     // Intervalo entre o start de cada nó (50ms)
     
     // Apenas nos nós da Rede 2 (wifiStaNodes2)
-    for (uint32_t i = 61; i < wifiStaNodes2.GetN(); i++)
+    for (uint32_t i = 21; i < wifiStaNodes2.GetN(); i++)
     {
       // Cria uma instância do OnOffHelper para cada nó
       ApplicationContainer clientApp = onoff.Install(wifiStaNodes2.Get(i));
       
       // Agenda o início da transmissão do nó 'i'
-      clientApp.Start(Seconds(start_offset + (i-61) * interval));
-      clientApp.Stop(Seconds(start_offset + (i-61) * interval + 1.0)); // Roda por 1 segundo apenas
+      clientApp.Start(Seconds(start_offset + (i-21) * interval));
+      clientApp.Stop(Seconds(start_offset + (i-21) * interval + 1.0)); // Roda por 1 segundo apenas
     }
 
 /* ///////////   ataque ddos   ////////// */
 
     NodeContainer attackerNodes;
-    for (int i = 0; i < 60; i ++)
+    for (int i = 0; i < 20; i ++)
       attackerNodes.Add(wifiStaNodes2.Get(i));
 
     Ptr<Node> victim = wifiApNode2.Get(0);
@@ -668,7 +659,7 @@ main(int argc, char* argv[])
     );
     ApplicationContainer sinkAppAttack = udpSinkHelper.Install(victim);
     sinkAppAttack.Start(Seconds(1.0));
-    sinkAppAttack.Stop(Seconds(60.0));
+    sinkAppAttack.Stop(Seconds(110.0));
   
     for (uint32_t i = 0; i < attackerNodes.GetN(); i++)
     {
@@ -682,8 +673,8 @@ main(int argc, char* argv[])
       onoff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
 
       ApplicationContainer attackApp = onoff.Install(attackerNodes);
-      attackApp.Start(Seconds(15.0));
-      attackApp.Stop(Seconds(60.0));
+      attackApp.Start(Seconds(30.0));
+      attackApp.Stop(Seconds(90.0));
     }
 
     InstallFlowMonitor();
@@ -691,15 +682,13 @@ main(int argc, char* argv[])
     Simulator::Schedule(Seconds(detectInterval), &DetectAndMitigate, detectInterval, wifiStaNodes2, staDevices2);
   
     Ptr<ResilientEnv> env = CreateObject<ResilientEnv>(wifiStaNodes2, staDevices2);
-    Simulator::Stop(Seconds(60.0));
+    Simulator::Stop(Seconds(100.0));
     Simulator::Run();
     Simulator::Destroy();
 
     if (tracing)
     {
         pointToPoint.EnablePcapAll("p2p-traffic-ddos");
-
-        pointToPoint.EnablePcapAll("ddos-p2p-ap2", ap2ap3.Get(0));
 
         phy1.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
         phy2.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
