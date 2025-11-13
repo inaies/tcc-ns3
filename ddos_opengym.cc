@@ -692,13 +692,7 @@ main(int argc, char* argv[])
     Simulator::Schedule(Seconds(detectInterval), &DetectAndMitigate, detectInterval, wifiStaNodes2, staDevices2);
   
     Ptr<ResilientEnv> env = CreateObject<ResilientEnv>(wifiStaNodes2, staDevices2);
-
-    uint32_t openGymPort = 5555;
-    Ptr<OpenGymInterface> openGym = CreateObject<OpenGymInterface>(openGymPort);
-    openGym->SetGetActionSpaceCb(MakeCallback(&ResilientEnv::GetActionSpace, env));
-    openGym->SetGetObservationSpaceCb(MakeCallback(&ResilientEnv::GetObservationSpace, env));
-    openGym->SetGetObservationCb(MakeCallback(&ResilientEnv::GetObservation, env));
-    openGym->SetExecuteActionsCb(MakeCallback(&ResilientEnv::ExecuteActions, env));
+    Ptr<OpenGymInterface> openGym = env->GetOpenGymInterface();
 
     // inicia o loop Gym (passo de tempo, por ex. 1 segundo)
     double envStepTime = 1.0;
