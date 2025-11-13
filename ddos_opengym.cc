@@ -343,16 +343,6 @@ CreateGridPositionAllocator (uint32_t nNodes, double spacing, double offsetX, do
   return allocator;
 }
 
-void ScheduleNextStateRead(double stepTime, Ptr<OpenGymInterface> openGym)
-{
-    if (openGym == nullptr) {
-      NS_LOG_ERROR("ScheduleNextStateRead: openGym is null!");
-      return;
-    }
-    openGym->NotifyCurrentState();  // envia observação e espera ação do Python
-    Simulator::Schedule(Seconds(stepTime), &ScheduleNextStateRead, stepTime, openGym);
-}
-
 int
 main(int argc, char* argv[])
 {
