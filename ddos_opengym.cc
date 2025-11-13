@@ -107,19 +107,22 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
     std::vector<float> actions = box->GetData();
     NS_LOG_UNCOND("MyExecuteActions: received " << actions.size() << " actions.");
 
-    for (uint32_t i = 0; i < actions.size() && i < wifiStaNodes2.GetN(); ++i)
-    {
-        if (actions[i] > 0.5f)  // 1 = isolar
-        {
+    for (uint32_t i = 0; i < actions.size() && i < wifiStaNodes2.GetN(); ++i) {
+        if (actions[i] > 0.5f) {
             Ptr<Node> node = wifiStaNodes2.Get(i);
-            Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
-            if (ipv6)
-            {
-                for (uint32_t ifIndex = 0; ifIndex < ipv6->GetNInterfaces(); ++ifIndex)
-                    ipv6->SetDown(ifIndex);
-
-                NS_LOG_UNCOND("Node " << node->GetId() << " isolated (actions[" << i << "]=" << actions[i] << ")");
+            if (node == nullptr) {
+                NS_LOG_WARN("MyExecuteActions: null node at index " << i);
+                continue;
             }
+            Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
+            if (ipv6 == nullptr) {
+                NS_LOG_WARN("MyExecuteActions: node " << node->GetId() << " has no IPv6 stack");
+                continue;
+            }
+            for (uint32_t ifIndex = 0; ifIndex < ipv6->GetNInterfaces(); ++ifIndex) {
+                ipv6->SetDown(ifIndex);
+            }
+            NS_LOG_UNCOND("Node " << node->GetId() << " isolated.");
         }
     }
 
@@ -290,15 +293,15 @@ void IsolateSourcesByAddress(const std::set<std::string> &anomalousSources,
               if (ipv6->GetNAddresses(ifIndex) == 0)
                   continue;
 
-              Ipv6Address addr = ipv6->GetAddress(ifIndex, 0).GetAddress();
-              if (addr == Ipv6Address(s.c_str()))
-              {
-                  NS_LOG_INFO("Isolating node " << node->GetId()
-                              << " with address " << s
-                              << " (ifIndex " << ifIndex << ")");
+              Ipv6InterfaceAddress ifAddr = ipv6->GetAddress(ifIndex, 0);
+              if (ifAddr.IsInvalid())
+                  continue;
+
+              Ipv6Address addr = ifAddr.GetAddress();
+              if (addr == Ipv6Address(s.c_str())) {
+                  NS_LOG_INFO("Isolating node " << node->GetId() << " with address " << s);
                   ShutDownNode(node);
               }
-          }
       }
     }
 }
@@ -716,9 +719,9 @@ main(int argc, char* argv[])
         phy2.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
         phy3.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
 
-        phy1.EnablePcap("ddos_ap1", apDevices1.Get(0)); // AP1
-        phy2.EnablePcap("ddos_ap2", apDevices2.Get(0)); // AP1
-        phy3.EnablePcap("ddos_ap3", apDevices3.Get(0)); // AP1
+        phy1.EnablePcap("ddosml_ap1", apDevices1.Get(0)); // AP1
+        phy2.EnablePcap("ddosml_ap2", apDevices2.Get(0)); // AP1
+        phy3.EnablePcap("ddosml_ap3", apDevices3.Get(0)); // AP1
     }
     
     Simulator::Stop(Seconds(100.0));
