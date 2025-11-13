@@ -34,6 +34,13 @@ public:
     : m_nodes(nodes), m_devices(devices)
   {
     m_if = CreateObject<OpenGymInterface>(5555); // Porta ZMQ
+
+    if (m_if == nullptr)
+    {
+        NS_FATAL_ERROR("Falha ao criar OpenGymInterface. Verifique a instalação do ns3-gym/ZeroMQ.");
+        return; // Sai do construtor se a criação falhar
+    }
+
     m_if->SetGetObservationCb(MakeCallback(&ResilientEnv::GetObservation, this));
     m_if->SetGetObservationSpaceCb(MakeCallback(&ResilientEnv::GetObservationSpace, this));
     m_if->SetGetActionSpaceCb(MakeCallback(&ResilientEnv::GetActionSpace, this));
