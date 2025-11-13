@@ -49,57 +49,43 @@ MAX_TOTAL_ISOLATIONS = None        # limitador global (None = sem limite)
 # -----------------------------
 def extract_node_features(obs):
     """
-    Extrai um array (N_nodes, F) de features a partir da observação recebida do env.
-    Tenta detectar padrões comuns:
-      - obs pode ser numpy array shape (N_nodes, F)
-      - obs pode ser dict com 'node_features' ou 'nodes'
-      - obs can contain flattened arrays
-    RETORNA: (X, node_ids)
-      X: numpy array shape (N_nodes, F)
-      node_ids: list de ids (0..N-1)
-    ADAPTAR: ajuste aqui para o formato real do seu ns3-gym.
+    Extrai array (N_nodes, 4) de features a partir da observação recebida do ns-3.
+    O ambiente ns3-gym envia um vetor 1D flatten (N_nodes * 4) de floats.
+    Retorna (X, node_ids).
     """
-    # Caso 1: obs é um numpy array 2D
-    if isinstance(obs, np.ndarray):
-        if obs.ndim == 2:
-            return obs.copy(), list(range(obs.shape[0]))
+    import numpy as np
 
-    # Caso 2: obs é dict com 'node_features'
+    # Converte obs para numpy array
+    a = np.array(obs, dtype=float)
+
+    # Caso direto: já vem 2D (N, 4)
+    if a.ndim == 2 and a.shape[1] == 4:
+        return a.copy(), list(range(a.shape[0]))
+
+    # Caso flatten 1D (N * 4)
+    if a.ndim == 1:
+        F = 4  # features por nó (throughput, delay, loss, queue)
+        if a.size % F == 0:
+            N = a.size // F
+            a = a.reshape((N, F))
+            return a.copy(), list(range(N))
+
+    # Caso dicionário com lista linear
     if isinstance(obs, dict):
-        # key guesses
-        for key in ("node_features", "nodes", "node_states", "features"):
+        for key in ("node_features", "nodes", "features"):
             if key in obs:
-                arr = np.array(obs[key])
-                if arr.ndim == 2:
+                arr = np.array(obs[key], dtype=float)
+                if arr.ndim == 1 and arr.size % 4 == 0:
+                    N = arr.size // 4
+                    arr = arr.reshape((N, 4))
+                    return arr.copy(), list(range(N))
+                elif arr.ndim == 2 and arr.shape[1] == 4:
                     return arr.copy(), list(range(arr.shape[0]))
-        # talvez cada nó seja dict em lista
-        if "node_list" in obs and isinstance(obs["node_list"], (list,tuple)):
-            rows = []
-            for nd in obs["node_list"]:
-                # tentar extrair traffic/packet_rate/latency/energy nomes comuns
-                if isinstance(nd, dict):
-                    vals = []
-                    for k in ("traffic","packet_rate","latency","energy"):
-                        if k in nd:
-                            vals.append(float(nd[k]))
-                    if vals:
-                        rows.append(vals)
-            if rows:
-                return np.array(rows), list(range(len(rows)))
 
-    # Caso fallback: se obs é array 1D com N*F flatten, tentar inferir
-    try:
-        a = np.array(obs)
-        if a.ndim == 1:
-            # não sabemos N e F; tentar heurística com F=4 (traffic, packet_rate, latency, energy)
-            F = 4
-            if a.size % F == 0 and a.size // F > 0:
-                N = a.size // F
-                return a.reshape((N, F)).copy(), list(range(N))
-    except Exception:
-        pass
-
-    raise ValueError("Formato de observação não reconhecido. Ajuste extract_node_features() para seu env.")
+    # Caso não identificado
+    raise ValueError(
+        f"Formato de observação não reconhecido: tipo={type(obs)}, shape={getattr(a, 'shape', None)}"
+    )
 
 # -----------------------------
 # Agente principal

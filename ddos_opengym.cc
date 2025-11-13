@@ -33,19 +33,12 @@ public:
   ResilientEnv(NodeContainer nodes, NetDeviceContainer devices)
     : m_nodes(nodes), m_devices(devices)
   {
-    m_if = CreateObject<OpenGymInterface>(5555);
-    if (m_if == nullptr) {
-        NS_LOG_UNCOND("ResilientEnv: openGym interface creation returned nullptr!");
-    } else {
-        NS_LOG_UNCOND("ResilientEnv: openGym interface OK");
-    }
+    m_if = CreateObject<OpenGymInterface>(5555); // Porta ZMQ
     m_if->SetGetObservationCb(MakeCallback(&ResilientEnv::GetObservation, this));
     m_if->SetGetObservationSpaceCb(MakeCallback(&ResilientEnv::GetObservationSpace, this));
     m_if->SetGetActionSpaceCb(MakeCallback(&ResilientEnv::GetActionSpace, this));
     m_if->SetExecuteActionsCb(MakeCallback(&ResilientEnv::ExecuteActions, this));
   }
-
-  Ptr<OpenGymInterface> GetInterface() const { return m_if; } 
 
   // Espaço da observação: (N nós, 4 métricas)
   Ptr<OpenGymSpace> GetObservationSpace()
@@ -80,23 +73,23 @@ public:
 
   Ptr<OpenGymDataContainer> GetObservation()
   {
+      // Exemplo: coletar métricas simuladas de cada nó
       std::vector<float> obs;
       for (uint32_t i = 0; i < m_nodes.GetN(); ++i)
       {
           Ptr<Node> node = m_nodes.Get(i);
-          float throughput = CalculateThroughputForNode(node);
-          float delay = (rand() % 100) / 10.0f;
-          float loss = (rand() % 10) / 100.0f;
-          float queue = (rand() % 50);
+          // Exemplo fictício: nível de tráfego, perdas, latência etc.
+          float throughput = CalculateThroughputForNode(node); // função hipotética
           obs.push_back(throughput);
-          obs.push_back(delay);
-          obs.push_back(loss);
-          obs.push_back(queue);
       }
 
-      std::vector<uint32_t> shape = { m_nodes.GetN(), 4 };
+      // Define o formato da observação (ex: número de nós)
+      std::vector<uint32_t> shape = { static_cast<uint32_t>(obs.size()) };
+
+      // Cria o container e popula com os dados
       Ptr<OpenGymBoxContainer<float>> box = CreateObject<OpenGymBoxContainer<float>>(shape);
       box->SetData(obs);
+
       return box;
   }
 
@@ -371,19 +364,10 @@ CreateGridPositionAllocator (uint32_t nNodes, double spacing, double offsetX, do
 
 void ScheduleNextStateRead(double stepTime, Ptr<OpenGymInterface> openGym)
 {
-    if (openGym == nullptr)
-    {
-        NS_LOG_WARN("ScheduleNextStateRead: openGym is null — re-scheduling in 1s");
-        Simulator::Schedule(Seconds(1.0), &ScheduleNextStateRead, stepTime, openGym);
-        return;
-    }
-
-    // Evita crash caso NotifyCurrentState dependa de um socket ainda não pronto.
-    NS_LOG_INFO("ScheduleNextStateRead: calling NotifyCurrentState()");
-    openGym->NotifyCurrentState();  // envia observação e (bloqueante) espera ação do Python
-
+    openGym->NotifyCurrentState();  // envia observação e espera ação do Python
     Simulator::Schedule(Seconds(stepTime), &ScheduleNextStateRead, stepTime, openGym);
 }
+
 int
 main(int argc, char* argv[])
 {
@@ -702,12 +686,20 @@ main(int argc, char* argv[])
     InstallFlowMonitor();
 
     Simulator::Schedule(Seconds(detectInterval), &DetectAndMitigate, detectInterval, wifiStaNodes2, staDevices2);
-      
+  
     Ptr<ResilientEnv> env = CreateObject<ResilientEnv>(wifiStaNodes2, staDevices2);
-    env->Initialize();
 
+    uint32_t openGymPort = 5555;
+    Ptr<OpenGymInterface> openGym = CreateObject<OpenGymInterface>(openGymPort);
+    openGym->SetGetActionSpaceCb(MakeCallback(&ResilientEnv::GetActionSpace, env));
+    openGym->SetGetObservationSpaceCb(MakeCallback(&ResilientEnv::GetObservationSpace, env));
+    openGym->SetGetObservationCb(MakeCallback(&ResilientEnv::GetObservation, env));
+    openGym->SetExecuteActionsCb(MakeCallback(&ResilientEnv::ExecuteActions, env));
+
+    // inicia o loop Gym (passo de tempo, por ex. 1 segundo)
     double envStepTime = 1.0;
-    Simulator::Schedule(Seconds(0.0), &ScheduleNextStateRead, envStepTime, env->GetInterface());
+    Simulator::Schedule(Seconds(0.0), &ScheduleNextStateRead, envStepTime, openGym);
+
     
     if (tracing)
     {
