@@ -27,109 +27,79 @@ static std::map<uint32_t, uint64_t> lastRxBytesPerFlow; // flowId -> último rxB
 static double detectInterval = 1.0; // segundos entre verificações
 static double contamination = 0.1; // fração/contaminação para anomalias (10%)
 
-class ResilientEnv : public Object
+/* --------------------------
+ *  OpenGym Interface Callbacks
+ * -------------------------- */
+
+Ptr<OpenGymSpace> MyGetObservationSpace(void)
 {
-public:
-  ResilientEnv(NodeContainer nodes, NetDeviceContainer devices)
-    : m_nodes(nodes), m_devices(devices)
+  uint32_t nodeNum = 10;  // Número de nós observados
+  float low = 0.0;
+  float high = 1e6;
+  std::vector<uint32_t> shape = {nodeNum};
+  std::string dtype = TypeNameGet<float>();
+  Ptr<OpenGymBoxSpace> space = CreateObject<OpenGymBoxSpace>(low, high, shape, dtype);
+  NS_LOG_UNCOND("MyGetObservationSpace: " << space);
+  return space;
+}
+
+Ptr<OpenGymSpace> MyGetActionSpace(void)
+{
+  uint32_t nodeNum = 10;
+  Ptr<OpenGymDiscreteSpace> space = CreateObject<OpenGymDiscreteSpace>(nodeNum);
+  NS_LOG_UNCOND("MyGetActionSpace: " << space);
+  return space;
+}
+
+Ptr<OpenGymDataContainer> MyGetObservation(void)
+{
+  uint32_t nodeNum = 10;
+  std::vector<uint32_t> shape = {nodeNum};
+  Ptr<OpenGymBoxContainer<float>> box = CreateObject<OpenGymBoxContainer<float>>(shape);
+
+  for (uint32_t i = 0; i < nodeNum; i++)
   {
-    m_if = CreateObject<OpenGymInterface>(5555); // Porta ZMQ
-
-    if (m_if == nullptr)
-    {
-        NS_FATAL_ERROR("Falha ao criar OpenGymInterface. Verifique a instalação do ns3-gym/ZeroMQ.");
-        return; // Sai do construtor se a criação falhar
-    }
-
-    m_if->SetGetObservationCb(MakeCallback(&ResilientEnv::GetObservation, this));
-    m_if->SetGetObservationSpaceCb(MakeCallback(&ResilientEnv::GetObservationSpace, this));
-    m_if->SetGetActionSpaceCb(MakeCallback(&ResilientEnv::GetActionSpace, this));
-    m_if->SetExecuteActionsCb(MakeCallback(&ResilientEnv::ExecuteActions, this));
+    float val = (float)(rand() % 1000);
+    box->AddValue(val);
   }
 
-  Ptr<OpenGymInterface> GetOpenGymInterface() const {
-    return m_if;
-  }
+  NS_LOG_UNCOND("MyGetObservation: " << box);
+  return box;
+}
 
-  // Espaço da observação: (N nós, 4 métricas)
-  Ptr<OpenGymSpace> GetObservationSpace()
-  {
-    uint32_t N = m_nodes.GetN();
-    // shape = [N, 4]
-    std::vector<uint32_t> shape = {N, 4};
-    // low/high (mesma dimensão total)
-    std::vector<float> low(N * 4, 0.0f);
-    std::vector<float> high(N * 4, 1e6f); // limite alto realista
-    std::string dtype = "float32";
-    return CreateObject<OpenGymBoxSpace>(low, high, shape, dtype);
-  }
+float MyGetReward(void)
+{
+  static float reward = 0.0;
+  reward += 1.0;
+  return reward;
+}
 
-  // Espaço da ação: vetor de N valores {0,1} indicando isolar ou não
-  Ptr<OpenGymSpace> GetActionSpace()
-  {
-    // Ex.: cada nó -> 2 ações (0 = no-op, 1 = isolate).  
-    // Simplificação: representaremos como Box int de shape [N] com dtype int32
-    uint32_t N = m_nodes.GetN();
-    std::vector<uint32_t> shape = {N};
-    std::vector<float> low(N, 0.0f);
-    std::vector<float> high(N, 1.0f);
-    return CreateObject<OpenGymBoxSpace>(low, high, shape, "uint8");
-  }
+bool MyGetGameOver(void)
+{
+  static uint32_t step = 0;
+  step++;
+  bool done = (step > 1000);
+  return done;
+}
 
-  float CalculateThroughputForNode(Ptr<Node> node)
-  {
-      // TODO: substituir por cálculo real via FlowMonitor ou contadores de pacotes
-      return static_cast<float>(rand() % 100) / 10.0f; // valor fictício 0.0–10.0
-  }
+std::string MyGetExtraInfo(void)
+{
+  return "Step info string";
+}
 
-  Ptr<OpenGymDataContainer> GetObservation()
-  {
-      // Exemplo: coletar métricas simuladas de cada nó
-      std::vector<float> obs;
-      for (uint32_t i = 0; i < m_nodes.GetN(); ++i)
-      {
-          Ptr<Node> node = m_nodes.Get(i);
-          // Exemplo fictício: nível de tráfego, perdas, latência etc.
-          float throughput = CalculateThroughputForNode(node); // função hipotética
-          obs.push_back(throughput);
-      }
+bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
+{
+  Ptr<OpenGymDiscreteContainer> act = DynamicCast<OpenGymDiscreteContainer>(action);
+  uint32_t val = act->GetValue();
+  NS_LOG_UNCOND("MyExecuteActions: isolating node " << val);
+  return true;
+}
 
-      // Define o formato da observação (ex: número de nós)
-      std::vector<uint32_t> shape = { static_cast<uint32_t>(obs.size()) };
-
-      // Cria o container e popula com os dados
-      Ptr<OpenGymBoxContainer<float>> box = CreateObject<OpenGymBoxContainer<float>>(shape);
-      box->SetData(obs);
-
-      return box;
-  }
-
-  bool ExecuteActions(Ptr<OpenGymDataContainer> action)
-  {
-    Ptr<OpenGymDiscreteContainer> act = DynamicCast<OpenGymDiscreteContainer>(action);
-    uint32_t val = act->GetValue();  
-    // Interpretamos como vetor de isolação:
-    // exemplo simples: val corresponde ao nó a isolar
-    uint32_t target = val % m_nodes.GetN();
-
-    // Isolar nó target
-    Ptr<Node> node = m_nodes.Get(target);
-    Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
-    if (ipv6)
-    {
-      for (uint32_t i = 0; i < ipv6->GetNInterfaces(); i++)
-        ipv6->SetDown(i);
-    }
-    NS_LOG_UNCOND("Nó isolado: " << target);
-
-    return true;
-  }
-
-private:
-  NodeContainer m_nodes;
-  NetDeviceContainer m_devices;
-  Ptr<OpenGymInterface> m_if;
-};
+void ScheduleNextStateRead(double envStepTime, Ptr<OpenGymInterface> openGym)
+{
+  openGym->NotifyCurrentState();
+  Simulator::Schedule(Seconds(envStepTime), &ScheduleNextStateRead, envStepTime, openGym);
+}
 
 
 // ----------------------
@@ -702,13 +672,20 @@ main(int argc, char* argv[])
 
     Simulator::Schedule(Seconds(detectInterval), &DetectAndMitigate, detectInterval, wifiStaNodes2, staDevices2);
   
-    Ptr<ResilientEnv> env = CreateObject<ResilientEnv>(wifiStaNodes2, staDevices2);
-    Ptr<OpenGymInterface> openGym = env->GetOpenGymInterface();
-
-    // inicia o loop Gym (passo de tempo, por ex. 1 segundo)
+    uint32_t openGymPort = 5555;
     double envStepTime = 1.0;
-    Simulator::Schedule(Seconds(0.0), &ScheduleNextStateRead, envStepTime, openGym);
 
+    Ptr<OpenGymInterface> openGym = CreateObject<OpenGymInterface>(openGymPort);
+    openGym->SetGetObservationSpaceCb(MakeCallback(&MyGetObservationSpace));
+    openGym->SetGetActionSpaceCb(MakeCallback(&MyGetActionSpace));
+    openGym->SetGetObservationCb(MakeCallback(&MyGetObservation));
+    openGym->SetGetRewardCb(MakeCallback(&MyGetReward));
+    openGym->SetGetGameOverCb(MakeCallback(&MyGetGameOver));
+    openGym->SetGetExtraInfoCb(MakeCallback(&MyGetExtraInfo));
+    openGym->SetExecuteActionsCb(MakeCallback(&MyExecuteActions));
+
+    // Inicia loop Gym
+    Simulator::Schedule(Seconds(0.0), &ScheduleNextStateRead, envStepTime, openGym);
     
     if (tracing)
     {
