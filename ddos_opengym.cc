@@ -18,6 +18,11 @@
 
 NS_LOG_COMPONENT_DEFINE("DdosOpengym");
 
+NodeContainer wifiStaNodes1; wifiStaNodes1.Create(nWifi);
+NodeContainer wifiStaNodes2; wifiStaNodes2.Create(nWifi);
+NodeContainer wifiStaNodes3; wifiStaNodes3.Create(nWifiCsma);
+
+
 using namespace ns3;
 static FlowMonitorHelper flowmonHelper;
 static Ptr<FlowMonitor> flowMonitor;
@@ -412,10 +417,6 @@ main(int argc, char* argv[])
     // WiFi nodes
     // --------------------------------------------------------------------------------
 
-    NodeContainer wifiStaNodes1; wifiStaNodes1.Create(nWifi);
-    NodeContainer wifiStaNodes2; wifiStaNodes2.Create(nWifi);
-    NodeContainer wifiStaNodes3; wifiStaNodes3.Create(nWifiCsma);
-
     NodeContainer wifiApNode  = p2pNodes.Get(0); // AP1
     NodeContainer wifiApNode2 = p2pNodes.Get(1); // AP2
     NodeContainer wifiApNode3 = p2pNodes.Get(2); // AP3 (WiFi3)
@@ -698,28 +699,7 @@ main(int argc, char* argv[])
     openGym->SetGetRewardCb(MakeCallback(&MyGetReward));
     openGym->SetGetGameOverCb(MakeCallback(&MyGetGameOver));
     openGym->SetGetExtraInfoCb(MakeCallback(&MyGetExtraInfo));
-    openGym->SetExecuteActionsCb(MakeCallback([&wifiStaNodes2](Ptr<OpenGymDataContainer> action) {
-        Ptr<OpenGymBoxContainer<float>> box = DynamicCast<OpenGymBoxContainer<float>>(action);
-        if (!box) {
-            NS_LOG_ERROR("Invalid action container");
-            return false;
-        }
-        std::vector<float> actions = box->GetData();
-        NS_LOG_UNCOND("MyExecuteActions: received " << actions.size() << " actions.");
-
-        for (uint32_t i = 0; i < actions.size() && i < wifiStaNodes2.GetN(); ++i) {
-            if (actions[i] > 0.5f) {
-                Ptr<Node> node = wifiStaNodes2.Get(i);
-                Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
-                if (ipv6) {
-                    for (uint32_t ifIndex = 0; ifIndex < ipv6->GetNInterfaces(); ++ifIndex)
-                        ipv6->SetDown(ifIndex);
-                    NS_LOG_UNCOND("Node " << node->GetId() << " isolated.");
-                }
-            }
-        }
-        return true;
-    }));
+    openGym->SetExecuteActionsCb(MakeCallback(&MyExecuteActions));
 
     // Inicia loop Gym
     Simulator::Schedule(Seconds(0.0), &ScheduleNextStateRead, envStepTime, openGym);
