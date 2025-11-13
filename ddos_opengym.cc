@@ -45,10 +45,13 @@ Ptr<OpenGymSpace> MyGetObservationSpace(void)
 
 Ptr<OpenGymSpace> MyGetActionSpace(void)
 {
-  uint32_t nodeNum = 10;
-  Ptr<OpenGymDiscreteSpace> space = CreateObject<OpenGymDiscreteSpace>(nodeNum);
-  NS_LOG_UNCOND("MyGetActionSpace: " << space);
-  return space;
+    uint32_t N = 10; // mesmo número de nós monitorados (ajuste se necessário)
+    std::vector<uint32_t> shape = {N};
+    std::vector<float> low(N, 0.0f);
+    std::vector<float> high(N, 1.0f);
+    Ptr<OpenGymBoxSpace> space = CreateObject<OpenGymBoxSpace>(low, high, shape, "float32");
+    NS_LOG_UNCOND("MyGetActionSpace: BoxSpace Low:0 High:1 Shape:(" << N << ",)");
+    return space;
 }
 
 Ptr<OpenGymDataContainer> MyGetObservation(void)
@@ -89,11 +92,35 @@ std::string MyGetExtraInfo(void)
 
 bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
 {
-  Ptr<OpenGymDiscreteContainer> act = DynamicCast<OpenGymDiscreteContainer>(action);
-  uint32_t val = act->GetValue();
-  NS_LOG_UNCOND("MyExecuteActions: isolating node " << val);
-  return true;
+    Ptr<OpenGymBoxContainer<float>> box = DynamicCast<OpenGymBoxContainer<float>>(action);
+    if (box == nullptr)
+    {
+        NS_LOG_ERROR("MyExecuteActions: action container inválido!");
+        return false;
+    }
+
+    std::vector<float> actions = box->GetData();
+    NS_LOG_UNCOND("MyExecuteActions: received " << actions.size() << " actions.");
+
+    for (uint32_t i = 0; i < actions.size() && i < wifiStaNodes2.GetN(); ++i)
+    {
+        if (actions[i] > 0.5f)  // 1 = isolar
+        {
+            Ptr<Node> node = wifiStaNodes2.Get(i);
+            Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
+            if (ipv6)
+            {
+                for (uint32_t ifIndex = 0; ifIndex < ipv6->GetNInterfaces(); ++ifIndex)
+                    ipv6->SetDown(ifIndex);
+
+                NS_LOG_UNCOND("Node " << node->GetId() << " isolated (actions[" << i << "]=" << actions[i] << ")");
+            }
+        }
+    }
+
+    return true;
 }
+
 
 void ScheduleNextStateRead(double envStepTime, Ptr<OpenGymInterface> openGym)
 {
