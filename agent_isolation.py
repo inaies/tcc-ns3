@@ -49,43 +49,37 @@ MAX_TOTAL_ISOLATIONS = None        # limitador global (None = sem limite)
 # -----------------------------
 def extract_node_features(obs):
     """
-    Extrai array (N_nodes, 4) de features a partir da observação recebida do ns-3.
-    O ambiente ns3-gym envia um vetor 1D flatten (N_nodes * 4) de floats.
+    Adapta-se automaticamente a observações 1D (N,) ou 2D (N, F) do ns3-gym.
     Retorna (X, node_ids).
     """
     import numpy as np
 
-    # Converte obs para numpy array
     a = np.array(obs, dtype=float)
 
-    # Caso direto: já vem 2D (N, 4)
-    if a.ndim == 2 and a.shape[1] == 4:
+    # Caso 2D (N, F)
+    if a.ndim == 2:
         return a.copy(), list(range(a.shape[0]))
 
-    # Caso flatten 1D (N * 4)
+    # Caso 1D (N,) — só 1 feature por nó
     if a.ndim == 1:
-        F = 4  # features por nó (throughput, delay, loss, queue)
-        if a.size % F == 0:
-            N = a.size // F
-            a = a.reshape((N, F))
-            return a.copy(), list(range(N))
+        N = a.size
+        F = 1  # uma feature por nó
+        a = a.reshape((N, F))
+        return a.copy(), list(range(N))
 
-    # Caso dicionário com lista linear
+    # Caso dicionário (compatibilidade)
     if isinstance(obs, dict):
         for key in ("node_features", "nodes", "features"):
             if key in obs:
                 arr = np.array(obs[key], dtype=float)
-                if arr.ndim == 1 and arr.size % 4 == 0:
-                    N = arr.size // 4
-                    arr = arr.reshape((N, 4))
-                    return arr.copy(), list(range(N))
-                elif arr.ndim == 2 and arr.shape[1] == 4:
+                if arr.ndim == 1:
+                    N = arr.size
+                    return arr.reshape((N, 1)), list(range(N))
+                elif arr.ndim == 2:
                     return arr.copy(), list(range(arr.shape[0]))
 
-    # Caso não identificado
-    raise ValueError(
-        f"Formato de observação não reconhecido: tipo={type(obs)}, shape={getattr(a, 'shape', None)}"
-    )
+    raise ValueError(f"Formato de observação não reconhecido: tipo={type(obs)}, shape={getattr(a, 'shape', None)}")
+
 
 # -----------------------------
 # Agente principal
