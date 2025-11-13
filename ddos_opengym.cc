@@ -40,6 +40,10 @@ public:
     m_if->SetExecuteActionsCb(MakeCallback(&ResilientEnv::ExecuteActions, this));
   }
 
+  Ptr<OpenGymInterface> GetOpenGymInterface() const {
+    return m_if;
+  }
+
   // Espaço da observação: (N nós, 4 métricas)
   Ptr<OpenGymSpace> GetObservationSpace()
   {
