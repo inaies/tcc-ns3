@@ -18,10 +18,9 @@
 
 NS_LOG_COMPONENT_DEFINE("DdosOpengym");
 
-NodeContainer wifiStaNodes1; wifiStaNodes1.Create(nWifi);
-NodeContainer wifiStaNodes2; wifiStaNodes2.Create(nWifi);
-NodeContainer wifiStaNodes3; wifiStaNodes3.Create(nWifiCsma);
-
+static NodeContainer wifiStaNodes1; wifiStaNodes1.Create(nWifi);
+static NodeContainer wifiStaNodes2; wifiStaNodes2.Create(nWifi);
+static NodeContainer wifiStaNodes3; wifiStaNodes3.Create(nWifiCsma);
 
 using namespace ns3;
 static FlowMonitorHelper flowmonHelper;
