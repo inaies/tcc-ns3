@@ -18,11 +18,12 @@
 
 NS_LOG_COMPONENT_DEFINE("DdosOpengym");
 
-static NodeContainer wifiStaNodes1; wifiStaNodes1.Create(nWifi);
-static NodeContainer wifiStaNodes2; wifiStaNodes2.Create(nWifi);
-static NodeContainer wifiStaNodes3; wifiStaNodes3.Create(nWifiCsma);
 
 using namespace ns3;
+static NodeContainer wifiStaNodes1; 
+static NodeContainer wifiStaNodes2;
+static NodeContainer wifiStaNodes3; 
+
 static FlowMonitorHelper flowmonHelper;
 static Ptr<FlowMonitor> flowMonitor;
 static Ptr<Ipv6FlowClassifier> ipv6Classifier; // para mapear flowId -> endereços
@@ -398,6 +399,10 @@ main(int argc, char* argv[])
         std::cout << "nWifi muito grande; ajuste o script ou aumente a área." << std::endl;
         return 1;
     }
+
+    wifiStaNodes1.Create(nWifi);
+    wifiStaNodes2.Create(nWifi);
+    wifiStaNodes3.Create(nWifi);
 
     NodeContainer p2pNodes;
     p2pNodes.Create(3); // n0=AP1, n1=AP2/WiFi3 AP, n2=AP3
