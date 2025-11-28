@@ -95,51 +95,6 @@ std::string MyGetExtraInfo(void)
   return "Step info string";
 }
 
-bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
-{
-    Ptr<OpenGymBoxContainer<float>> box = DynamicCast<OpenGymBoxContainer<float>>(action);
-    if (box == nullptr)
-    {
-        NS_LOG_ERROR("MyExecuteActions: action container inválido!");
-        return false;
-    }
-
-    std::vector<float> actions = box->GetData();
-    NS_LOG_UNCOND("MyExecuteActions: received " << actions.size() << " actions.");
-
-    for (uint32_t i = 0; i < actions.size() && i < wifiStaNodes2.GetN(); ++i) {
-        if (actions[i] > 0.5f) {
-            Ptr<Node> node = wifiStaNodes2.Get(i);
-            if (node == nullptr) {
-                NS_LOG_WARN("MyExecuteActions: null node at index " << i);
-                continue;
-            }
-            Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
-            if (ipv6 == nullptr) {
-                NS_LOG_WARN("MyExecuteActions: node " << node->GetId() << " has no IPv6 stack");
-                continue;
-            }
-            for (uint32_t ifIndex = 0; ifIndex < ipv6->GetNInterfaces(); ++ifIndex) {
-                ipv6->SetDown(ifIndex);
-            }
-            NS_LOG_UNCOND("Node " << node->GetId() << " isolated.");
-        }
-    }
-
-    if (performed_action) {
-         NS_LOG_INFO("Reinstalando FlowMonitor após isolamento...");
-         ReinstallFlowMonitor();
-    }
-
-    return true;
-}
-
-void ScheduleNextStateRead(double envStepTime, Ptr<OpenGymInterface> openGym)
-{
-  openGym->NotifyCurrentState();
-  Simulator::Schedule(Seconds(envStepTime), &ScheduleNextStateRead, envStepTime, openGym);
-}
-
 void UninstallFlowMonitor()
 {
     if (flowMonitor != nullptr)
@@ -160,6 +115,57 @@ void ReinstallFlowMonitor()
     }
     // Reinicia o rastreamento, ignorando interfaces desativadas.
     lastRxBytesPerFlow.clear();
+}
+
+bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
+{
+    Ptr<OpenGymBoxContainer<float>> box = DynamicCast<OpenGymBoxContainer<float>>(action);
+    if (box == nullptr)
+    {
+        NS_LOG_ERROR("MyExecuteActions: action container inválido!");
+        return false;
+    }
+
+    std::vector<float> actions = box->GetData();
+    NS_LOG_UNCOND("MyExecuteActions: received " << actions.size() << " actions.");
+
+    bool performed_action = false;
+
+    for (uint32_t i = 0; i < actions.size() && i < wifiStaNodes2.GetN(); ++i) {
+        if (actions[i] > 0.5f) {
+            Ptr<Node> node = wifiStaNodes2.Get(i);
+            if (node == nullptr) {
+                NS_LOG_WARN("MyExecuteActions: null node at index " << i);
+                continue;
+            }
+            Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
+            if (ipv6 == nullptr) {
+                NS_LOG_WARN("MyExecuteActions: node " << node->GetId() << " has no IPv6 stack");
+                continue;
+            }
+            if (ipv6 != nullptr) {
+                // Desativação
+                for (uint32_t ifIndex = 0; ifIndex < ipv6->GetNInterfaces(); ++ifIndex) {
+                    ipv6->SetDown(ifIndex);
+                }
+                NS_LOG_UNCOND("Node " << node->GetId() << " isolated.");
+                performed_action = true;
+            }
+        }
+    }
+
+    if (performed_action) {
+         NS_LOG_INFO("Reinstalando FlowMonitor após isolamento...");
+         ReinstallFlowMonitor();
+    }
+
+    return true;
+}
+
+void ScheduleNextStateRead(double envStepTime, Ptr<OpenGymInterface> openGym)
+{
+  openGym->NotifyCurrentState();
+  Simulator::Schedule(Seconds(envStepTime), &ScheduleNextStateRead, envStepTime, openGym);
 }
 
 // ----------------------
