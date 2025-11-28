@@ -126,6 +126,11 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
         }
     }
 
+    if (performed_action) {
+         NS_LOG_INFO("Reinstalando FlowMonitor após isolamento...");
+         ReinstallFlowMonitor();
+    }
+
     return true;
 }
 
@@ -135,6 +140,27 @@ void ScheduleNextStateRead(double envStepTime, Ptr<OpenGymInterface> openGym)
   Simulator::Schedule(Seconds(envStepTime), &ScheduleNextStateRead, envStepTime, openGym);
 }
 
+void UninstallFlowMonitor()
+{
+    if (flowMonitor != nullptr)
+    {
+        flowMonitor->Stop(); // Parar a coleta
+        // O método correto para "destruir" o objeto monitorado
+        flowMonitor = nullptr; // Setar o ponteiro para null para evitar o erro m_ptr
+    }
+}
+
+void ReinstallFlowMonitor()
+{
+    UninstallFlowMonitor(); // Assegura que o anterior foi destruído/parado
+    flowMonitor = flowmonHelper.InstallAll();
+    ipv6Classifier = DynamicCast<Ipv6FlowClassifier>(flowmonHelper.GetClassifier6());
+    if (ipv6Classifier == nullptr) {
+        NS_LOG_WARN("Ipv6FlowClassifier not available after reinstallation.");
+    }
+    // Reinicia o rastreamento, ignorando interfaces desativadas.
+    lastRxBytesPerFlow.clear();
+}
 
 // ----------------------
 // Helper: cria e instala FlowMonitor
@@ -708,7 +734,7 @@ main(int argc, char* argv[])
       attackApp.Stop(Seconds(90.0));
     }
 
-    InstallFlowMonitor();
+    ReinstallFlowMonitor();
 
     Simulator::Schedule(Seconds(detectInterval), &DetectAndMitigate, detectInterval, wifiStaNodes2, staDevices2);
   
