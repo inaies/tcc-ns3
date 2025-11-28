@@ -99,9 +99,11 @@ void UninstallFlowMonitor()
 {
     if (flowMonitor != nullptr)
     {
-        flowMonitor->Stop(); // Parar a coleta
-        // O método correto para "destruir" o objeto monitorado
-        flowMonitor = nullptr; // Setar o ponteiro para null para evitar o erro m_ptr
+        // CORREÇÃO: Chame Stop() com o tempo atual da simulação.
+        flowMonitor->Stop(Simulator::Now()); // ns3::Time deve ser fornecido
+        
+        // O objeto é parado e, em seguida, o ponteiro inteligente é removido.
+        flowMonitor = nullptr; 
     }
 }
 
