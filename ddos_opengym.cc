@@ -158,10 +158,17 @@ std::map<std::string, double> CollectNodeThroughputs(double intervalSeconds)
 {
     std::map<std::string, double> nodeThroughputs;
     std::map<std::string, double> throughputBySrc;
+
     if (!flowMonitor) return throughputBySrc;
 
     flowMonitor->CheckForLostPackets();
     std::map<FlowId, FlowMonitor::FlowStats> stats = flowMonitor->GetFlowStats();
+
+    if (ipv6Classifier == nullptr) {
+        std::cout << "[WARNING] ipv6Classifier is null. Skipping throughput classification." << std::endl;
+        // Retorna o que já foi acumulado, se houver necessidade
+        return throughputBySrc;
+    }
 
     for (auto &kv : stats) {
         FlowId fid = kv.first;
@@ -316,6 +323,11 @@ void IsolateSourcesByAddress(const std::set<std::string> &anomalousSources,
 // Simulator::Schedule(Seconds( detectInterval ), &DetectAndMitigate, detectInterval, wifiStaNodes2, staDevices2);
 void DetectAndMitigate(double intervalSeconds, NodeContainer allStaNodes, NetDeviceContainer allStaDevices)
 {
+    if (flowMonitor == nullptr) {
+         NS_LOG_WARN("FlowMonitor is null during scheduled check. Cannot proceed.");
+         return; 
+    }
+
     // 1) coleta
     auto tp = CollectNodeThroughputs(intervalSeconds);
 
