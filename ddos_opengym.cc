@@ -289,6 +289,29 @@ void DoSetDown(Ptr<Ipv6> ipv6, uint32_t ifIndex)
     NS_LOG_INFO("Ipv6 interface " << ifIndex << " set down.");
 }
 
+void ShutDownNodeByRoute(Ptr<Node> node)
+{
+    Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
+    if (ipv6 == nullptr) return;
+
+    Ptr<Ipv6RoutingProtocol> rp = ipv6->GetRoutingProtocol();
+    if (rp == nullptr) return;
+    
+    Ptr<Ipv6StaticRouting> sr = DynamicCast<Ipv6StaticRouting>(rp);
+    if (sr == nullptr) {
+        NS_LOG_WARN("Node " << node->GetId() << " does not use Static Routing.");
+        return;
+    }
+
+    // Remove todas as rotas estáticas (incluindo a rota default)
+    uint32_t numRoutes = sr->GetNRoutes();
+    for (uint32_t i = 0; i < numRoutes; ++i)
+    {
+        sr->RemoveRoute(0); // Remove sempre a primeira rota (índice 0)
+    }
+    NS_LOG_INFO("Node " << node->GetId() << " isolated by removing all static routes.");
+}
+
 void ShutDownNode(Ptr<Node> node)
 {
     if (node == nullptr)
@@ -334,65 +357,58 @@ void IsolateSourcesByAddress(const std::set<std::string> &anomalousSources,
                              NodeContainer &nodes,
                              NetDeviceContainer &devices)
 {
+    // Se o conjunto de anomalias estiver vazio, não faz nada.
     if (anomalousSources.empty()) return;
 
+    // NOVO: Ativa o flag de mudança de topologia (para silenciar o FlowMonitor)
     isTopologyChanging = true;
 
-    if (nodes.GetN() == 0)
+    // Itera sobre CADA ENDEREÇO ANÔMALO detectado (string s)
+    for (const std::string &s : anomalousSources)
     {
-        NS_LOG_WARN("IsolateSourcesByAddress: nodes container is empty.");
-        return;
-    }
+        // Converte a string 's' em objeto Ipv6Address (necessário para comparação)
+        Ipv6Address targetAddr(s.c_str());
 
-    for (const auto &s : anomalousSources)
-    {
-        bool found = false;
+        // Itera sobre CADA NÓ NO CONTAINER (wifiStaNodes2)
         for (uint32_t i = 0; i < nodes.GetN(); ++i)
         {
             Ptr<Node> node = nodes.Get(i);
-            if (node == nullptr)
-            {
-                NS_LOG_WARN("IsolateSourcesByAddress: nodes[" << i << "] is null, skipping.");
-                continue;
-            }
+            if (node == nullptr || node->GetObject<Ipv6>() == nullptr) continue;
 
             Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
-            if (ipv6 == nullptr)
+
+            // Percorre interfaces do nó
+            for (uint32_t ifIndex = 0; ifIndex < ipv6->GetNInterfaces(); ++ifIndex)
             {
-                NS_LOG_DEBUG("IsolateSourcesByAddress: node " << node->GetId() << " has no Ipv6, skipping.");
-                continue;
-            }
+                uint32_t addrCount = ipv6->GetNAddresses(ifIndex);
+                
+                // Percorre os endereços de cada interface
+                for (uint32_t aidx = 0; aidx < addrCount; ++aidx)
+                {
+                    Ipv6InterfaceAddress ifAddr = ipv6->GetAddress(ifIndex, aidx);
+                    Ipv6Address addr = ifAddr.GetAddress();
 
-            uint32_t nIf = ipv6->GetNInterfaces();
-            for (uint32_t ifIndex = 0; ifIndex < nIf; ++ifIndex)
-            {
-                // se a interface não tem endereços, pular
-                if (ipv6->GetNAddresses(ifIndex) == 0)
-                    continue;
-
-                // obtenha o endereço com proteção
-                Ipv6InterfaceAddress ifAddr = ipv6->GetAddress(ifIndex, 0);
-                Ipv6Address addr = ifAddr.GetAddress(); // método seguro
-                std::ostringstream oss; oss << addr;
-                std::string addrStr = oss.str();
-
-                if (addrStr == s) {
-                    NS_LOG_INFO("IsolateSourcesByAddress: found match nodeId=" << node->GetId()
-                                << " addr=" << s << " ifIndex=" << ifIndex);
-                    // evite chamar SetDown imediatamente se FlowMonitor/Outros podem acessar:
-                    // agendamos com pequeno atraso para evitar races.
-                    Simulator::Schedule(Seconds(0.01), &ShutDownNode, node);
-                    found = true;
-                    break; // break ifIndex
+                    // Compara o endereço do nó com o endereço anômalo (targetAddr)
+                    if (addr == targetAddr)
+                    {
+                        NS_LOG_INFO("Isolating node " << node->GetId()
+                                    << " with address " << s // Usa a string original para o log
+                                    << " (ifIndex " << ifIndex << ")");
+                        
+                        // Executa o isolamento via remoção de rota
+                        // Agendar é mais seguro para evitar race conditions com o FlowMonitor
+                        Simulator::Schedule(Seconds(0.01), &ShutDownNodeByRoute, node);
+                        
+                        // Quebra este loop e passa para o próximo endereço anômalo (próxima 's')
+                        goto next_source; 
+                    }
                 }
-            }
-            if (found) break; // node encontrado, ir para próxima fonte anômala
-        }
-        if (!found) {
-            NS_LOG_WARN("IsolateSourcesByAddress: anomalous address " << s << " not found in provided nodes.");
-        }
-    }
+            } // for ifIndex
+        } // for nodes
+        next_source: ; // Rótulo de salto (goto)
+    } // for anomalousSources
 
+    // Desativa o flag de mudança de topologia
     Simulator::Schedule(Seconds(0.02), [](){ isTopologyChanging = false; NS_LOG_INFO("Topology change stabilized."); });
 }
 
