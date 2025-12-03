@@ -31,6 +31,7 @@ static std::vector<Ptr<Node>> monitoredNodes; // nós que queremos monitorar (ex
 static std::map<uint32_t, uint64_t> lastRxBytesPerFlow; // flowId -> último rxBytes
 static double detectInterval = 1.0; // segundos entre verificações
 static double contamination = 0.1; // fração/contaminação para anomalias (10%)
+static bool isTopologyChanging = false;
 
 /* --------------------------
  *  OpenGym Interface Callbacks
@@ -192,6 +193,11 @@ std::map<std::string, double> CollectNodeThroughputs(double intervalSeconds)
     std::map<std::string, double> nodeThroughputs;
     std::map<std::string, double> throughputBySrc;
 
+    if (isTopologyChanging) {
+        NS_LOG_WARN("Skipping FlowMonitor collection due to active topology change.");
+        return throughputBySrc;
+    }
+
     if (!flowMonitor) return throughputBySrc;
 
     flowMonitor->CheckForLostPackets();
@@ -328,6 +334,10 @@ void IsolateSourcesByAddress(const std::set<std::string> &anomalousSources,
                              NodeContainer &nodes,
                              NetDeviceContainer &devices)
 {
+    if (anomalousSources.empty()) return;
+
+    isTopologyChanging = true;
+
     if (nodes.GetN() == 0)
     {
         NS_LOG_WARN("IsolateSourcesByAddress: nodes container is empty.");
@@ -382,6 +392,8 @@ void IsolateSourcesByAddress(const std::set<std::string> &anomalousSources,
             NS_LOG_WARN("IsolateSourcesByAddress: anomalous address " << s << " not found in provided nodes.");
         }
     }
+
+    Simulator::Schedule(Seconds(0.02), [](){ isTopologyChanging = false; NS_LOG_INFO("Topology change stabilized."); });
 }
 
 
