@@ -138,7 +138,6 @@ Ptr<OpenGymDataContainer> MyGetObservation(void)
   Ptr<OpenGymBoxContainer<float>> box = CreateObject<OpenGymBoxContainer<float>>(shape);
 
   // 1. Get Real Throughput Data
-  // Note: CollectNodeThroughputs is now defined ABOVE, so this works.
   std::map<std::string, double> tpMap = CollectNodeThroughputs(1.0);
 
   // 2. Map to nodes 0..9 of wifiStaNodes2
@@ -150,22 +149,32 @@ Ptr<OpenGymDataContainer> MyGetObservation(void)
     if (node) {
         Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
         if (ipv6) {
+            // Iterate over all interfaces on this node
             for(uint32_t ifIdx=0; ifIdx < ipv6->GetNInterfaces(); ++ifIdx) {
-                 if(ipv6->GetNAddresses(ifIdx) > 0) {
-                     Ipv6Address addr = ipv6->GetAddress(ifIdx, 1).GetAddress();
-                     std::ostringstream oss;
-                     oss << addr;
-                     if (tpMap.count(oss.str())) {
-                         val = (float)tpMap[oss.str()];
-                     }
-                }
+                 
+                 // CRITICAL FIX: Check if we have enough addresses
+                 // Index 0 is Link-Local (fe80::), Index 1 is usually Global (2001::)
+                 // Loopback interface only has 1 address, so we must skip it.
+                 uint32_t nAddrs = ipv6->GetNAddresses(ifIdx);
+                 if (nAddrs < 2) {
+                     continue; 
+                 }
+
+                 // Now it is safe to access index 1
+                 Ipv6Address addr = ipv6->GetAddress(ifIdx, 1).GetAddress();
+                 std::ostringstream oss;
+                 oss << addr;
+                 
+                 // If this IP has traffic data, use it
+                 if (tpMap.count(oss.str())) {
+                     val = (float)tpMap[oss.str()];
+                 }
             }
         }
     }
     box->AddValue(val);
   }
 
-  // FIXED: Use GetData().size() instead of GetSize()
   NS_LOG_INFO("MyGetObservation: Generated stats for " << box->GetData().size() << " nodes.");
   return box;
 }
