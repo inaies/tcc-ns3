@@ -159,10 +159,14 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
     return true;
 }
 
-void ScheduleNextStateRead(double envStepTime, Ptr<OpenGymInterface> openGym)
+void ScheduleNextStateRead(double stepTime, Ptr<OpenGymInterface> openGym)
 {
-  openGym->NotifyCurrentState();
-  Simulator::Schedule(Seconds(envStepTime), &ScheduleNextStateRead, envStepTime, openGym);
+    if (openGym == nullptr) {
+      NS_LOG_ERROR("ScheduleNextStateRead: openGym is null!");
+      return;
+    }
+    openGym->NotifyCurrentState();  // envia observação e espera ação do Python
+    Simulator::Schedule(Seconds(stepTime), &ScheduleNextStateRead, stepTime, openGym);
 }
 
 // ----------------------
@@ -271,6 +275,14 @@ std::set<std::string> DetectAnomalousSources(const std::map<std::string,double> 
     return anomalies;
 }
 
+void DoSetDown(Ptr<Ipv6> ipv6, uint32_t ifIndex)
+{
+    if (ipv6 == nullptr) return;
+    if (ifIndex >= ipv6->GetNInterfaces()) return;
+    ipv6->SetDown(ifIndex);
+    NS_LOG_INFO("Ipv6 interface " << ifIndex << " set down.");
+}
+
 void ShutDownNode(Ptr<Node> node)
 {
     if (node == nullptr)
@@ -288,12 +300,11 @@ void ShutDownNode(Ptr<Node> node)
 
     for (uint32_t ifIndex = 0; ifIndex < ipv6->GetNInterfaces(); ++ifIndex)
     {
-        ipv6->SetDown(ifIndex);
-
-        // Simulator::Schedule(Seconds(5.0), &Ipv6::SetDown, ipv6, ifIndex);
+        // agende com pequeno atraso para evitar concorrência com a iteração atual
+        Simulator::Schedule(Seconds(0.01), &DoSetDown, ipv6, ifIndex);
     }
 
-    NS_LOG_INFO("Node " << node->GetId() << " shutdown (interfaces down).");
+    NS_LOG_INFO("Node " << node->GetId() << " shutdown scheduled (interfaces down).");
 }
 
 // ----------------------
@@ -306,44 +317,31 @@ void IsolateSourcesByAddress(const std::set<std::string> &anomalousSources,
                              NodeContainer &nodes,
                              NetDeviceContainer &devices)
 {
-    for (auto &s : anomalousSources)
+for (uint32_t ifIndex = 0; ifIndex < ipv6->GetNInterfaces(); ++ifIndex)
+{
+    if (ipv6->GetNAddresses(ifIndex) == 0)
+        continue;
+
+    // pega a primeira address com segurança
+    uint32_t addrCount = ipv6->GetNAddresses(ifIndex);
+    for (uint32_t aidx = 0; aidx < addrCount; ++aidx)
     {
-        for (uint32_t i = 0; i < nodes.GetN(); ++i)
+        Ipv6InterfaceAddress ifAddr = ipv6->GetAddress(ifIndex, aidx);
+        if (ifAddr.GetAddress().IsAny())
+            continue;
+
+        Ipv6Address addr = ifAddr.GetAddress();
+        if (addr == Ipv6Address(s.c_str()))
         {
-            Ptr<Node> node = nodes.Get(i);
-            if (node == nullptr)
-            {
-                NS_LOG_WARN("Skipping null node pointer.");
-                continue;
-            }
-
-            Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
-            if (ipv6 == nullptr)
-            {
-                NS_LOG_WARN("Node " << node->GetId() << " has no IPv6 interface, skipping.");
-                continue;
-            }
-
-            for (uint32_t ifIndex = 0; ifIndex < ipv6->GetNInterfaces(); ++ifIndex)
-            {
-                if (ipv6->GetNAddresses(ifIndex) == 0)
-                    continue;
-
-                Ipv6InterfaceAddress ifAddr = ipv6->GetAddress(ifIndex, 0);
-                if (ifAddr.GetAddress().IsAny())
-                    continue;
-
-                Ipv6Address addr = ifAddr.GetAddress();
-                if (addr == Ipv6Address(s.c_str()))
-                {
-                    NS_LOG_INFO("Isolating node " << node->GetId()
-                                 << " with address " << s
-                                 << " (ifIndex " << ifIndex << ")");
-                    ShutDownNode(node);
-                }
-            }
+            NS_LOG_INFO("Isolating node " << node->GetId()
+                        << " with address " << s
+                        << " (ifIndex " << ifIndex << ", aidx " << aidx << ")");
+            ShutDownNode(node);
+            goto next_source; // nó isolado; passe para a próxima fonte anômala
         }
     }
+}
+next_source: ;
 }
 
 // ----------------------
