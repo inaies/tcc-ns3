@@ -317,31 +317,49 @@ void IsolateSourcesByAddress(const std::set<std::string> &anomalousSources,
                              NodeContainer &nodes,
                              NetDeviceContainer &devices)
 {
-for (uint32_t ifIndex = 0; ifIndex < ipv6->GetNInterfaces(); ++ifIndex)
-{
-    if (ipv6->GetNAddresses(ifIndex) == 0)
-        continue;
-
-    // pega a primeira address com segurança
-    uint32_t addrCount = ipv6->GetNAddresses(ifIndex);
-    for (uint32_t aidx = 0; aidx < addrCount; ++aidx)
+    for (const auto &s : anomalousSources)
     {
-        Ipv6InterfaceAddress ifAddr = ipv6->GetAddress(ifIndex, aidx);
-        if (ifAddr.GetAddress().IsAny())
-            continue;
-
-        Ipv6Address addr = ifAddr.GetAddress();
-        if (addr == Ipv6Address(s.c_str()))
+        Ipv6Address targetAddr(s.c_str());
+        for (uint32_t i = 0; i < nodes.GetN(); ++i)
         {
-            NS_LOG_INFO("Isolating node " << node->GetId()
-                        << " with address " << s
-                        << " (ifIndex " << ifIndex << ", aidx " << aidx << ")");
-            ShutDownNode(node);
-            goto next_source; // nó isolado; passe para a próxima fonte anômala
-        }
-    }
-}
-next_source: ;
+            Ptr<Node> node = nodes.Get(i);
+            if (node == nullptr)
+            {
+                NS_LOG_WARN("IsolateSourcesByAddress: skipping null node pointer.");
+                continue;
+            }
+
+            Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
+            if (ipv6 == nullptr)
+            {
+                NS_LOG_WARN("IsolateSourcesByAddress: node " << node->GetId() << " has no IPv6, skipping.");
+                continue;
+            }
+
+            // percorre interfaces do node
+            for (uint32_t ifIndex = 0; ifIndex < ipv6->GetNInterfaces(); ++ifIndex)
+            {
+                if (ipv6->GetNAddresses(ifIndex) == 0)
+                    continue;
+
+                // pega o primeiro endereço da interface (index 0)
+                Ipv6InterfaceAddress ifAddr = ipv6->GetAddress(ifIndex, 0);
+                Ipv6Address addr = ifAddr.GetAddress();
+
+                if (addr == targetAddr)
+                {
+                    NS_LOG_INFO("Isolating node " << node->GetId()
+                                << " with address " << targetAddr
+                                << " (ifIndex " << ifIndex << ")");
+                    // executar shutdown com schedule curto para evitar interferir imediatamente com chamadas em andamento
+                    // aqui uso Schedule(Seconds(0.01)) para executar logo após o retorno atual (seguro para evitar alguns races)
+                    Simulator::Schedule(Seconds(0.01), &ShutDownNode, node);
+                    // não tentar isolar múltiplas interfaces para o mesmo endereço
+                    break;
+                }
+            } // for ifIndex
+        } // for nodes
+    } // for anomalousSources
 }
 
 // ----------------------
