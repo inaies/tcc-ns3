@@ -190,54 +190,54 @@ void InstallFlowMonitor()
 // Retorna map: sourceIpv6String -> throughput (bytes/s) durante o intervalo
 std::map<std::string, double> CollectNodeThroughputs(double intervalSeconds)
 {
-    std::map<std::string, double> nodeThroughputs;
+    // std::map<std::string, double> nodeThroughputs;
     std::map<std::string, double> throughputBySrc;
 
-    if (isTopologyChanging) {
-        NS_LOG_WARN("Skipping FlowMonitor collection due to active topology change.");
-        return throughputBySrc;
-    }
+    // if (isTopologyChanging) {
+    //     NS_LOG_WARN("Skipping FlowMonitor collection due to active topology change.");
+    //     return throughputBySrc;
+    // }
 
-    if (!flowMonitor) return throughputBySrc;
+    // if (!flowMonitor) return throughputBySrc;
 
-    flowMonitor->CheckForLostPackets();
-    std::map<FlowId, FlowMonitor::FlowStats> stats = flowMonitor->GetFlowStats();
+    // flowMonitor->CheckForLostPackets();
+    // std::map<FlowId, FlowMonitor::FlowStats> stats = flowMonitor->GetFlowStats();
 
-    if (ipv6Classifier == nullptr) {
-        std::cout << "[WARNING] ipv6Classifier is null. Skipping throughput classification." << std::endl;
-        // Retorna o que já foi acumulado, se houver necessidade
-        return throughputBySrc;
-    }
+    // if (ipv6Classifier == nullptr) {
+    //     std::cout << "[WARNING] ipv6Classifier is null. Skipping throughput classification." << std::endl;
+    //     // Retorna o que já foi acumulado, se houver necessidade
+    //     return throughputBySrc;
+    // }
 
-    for (auto &kv : stats) {
-        FlowId fid = kv.first;
-        FlowMonitor::FlowStats fs = kv.second;
+    // for (auto &kv : stats) {
+    //     FlowId fid = kv.first;
+    //     FlowMonitor::FlowStats fs = kv.second;
 
-        // mapeamento flow -> five-tuple usando classifier (se disponível)
-        Ipv6FlowClassifier::FiveTuple t;
+    //     // mapeamento flow -> five-tuple usando classifier (se disponível)
+    //     Ipv6FlowClassifier::FiveTuple t;
 
-        if (ipv6Classifier == nullptr) {
-            std::cout << "[WARNING] ipv6Classifier is null. Skipping throughput classification." << std::endl;
-            return nodeThroughputs;
-        }
+    //     if (ipv6Classifier == nullptr) {
+    //         std::cout << "[WARNING] ipv6Classifier is null. Skipping throughput classification." << std::endl;
+    //         return nodeThroughputs;
+    //     }
 
-        t = ipv6Classifier->FindFlow(fid);
+    //     t = ipv6Classifier->FindFlow(fid);
 
-        std::ostringstream oss;
-        oss << t.sourceAddress; // operator<< formata o endereço
-        std::string src = oss.str(); // string forma "2001:4::1" etc.
-        uint64_t rxBytes = fs.rxBytes;
+    //     std::ostringstream oss;
+    //     oss << t.sourceAddress; // operator<< formata o endereço
+    //     std::string src = oss.str(); // string forma "2001:4::1" etc.
+    //     uint64_t rxBytes = fs.rxBytes;
 
-        uint64_t prev = 0;
-        if (lastRxBytesPerFlow.count(fid)) prev = lastRxBytesPerFlow[fid];
-        uint64_t delta = 0;
-        if (rxBytes >= prev) delta = rxBytes - prev;
-        lastRxBytesPerFlow[fid] = rxBytes;
+    //     uint64_t prev = 0;
+    //     if (lastRxBytesPerFlow.count(fid)) prev = lastRxBytesPerFlow[fid];
+    //     uint64_t delta = 0;
+    //     if (rxBytes >= prev) delta = rxBytes - prev;
+    //     lastRxBytesPerFlow[fid] = rxBytes;
 
-        double bps = (double)delta / intervalSeconds; // bytes por segundo
-        // acumula por source
-        throughputBySrc[src] += bps;
-    }
+    //     double bps = (double)delta / intervalSeconds; // bytes por segundo
+    //     // acumula por source
+    //     throughputBySrc[src] += bps;
+    // }
     return throughputBySrc;
 }
 
@@ -804,7 +804,7 @@ main(int argc, char* argv[])
       attackApp.Stop(Seconds(90.0));
     }
 
-    flowMonitor = flowmonHelper.InstallAll();
+    // flowMonitor = flowmonHelper.InstallAll();
     ipv6Classifier = DynamicCast<Ipv6FlowClassifier>(flowmonHelper.GetClassifier6());
     if (ipv6Classifier == nullptr) {
         NS_LOG_WARN("Ipv6FlowClassifier not available.");
