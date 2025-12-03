@@ -811,7 +811,7 @@ main(int argc, char* argv[])
     }
     lastRxBytesPerFlow.clear();
 
-    Simulator::Schedule(Seconds(detectInterval), &DetectAndMitigate, detectInterval, wifiStaNodes2, staDevices2);
+    // Simulator::Schedule(Seconds(detectInterval), &DetectAndMitigate, detectInterval, wifiStaNodes2, staDevices2);
   
     uint32_t openGymPort = 5555;
     double envStepTime = 1.0;
