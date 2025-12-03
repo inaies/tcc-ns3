@@ -287,35 +287,24 @@ void ShutDownNode(Ptr<Node> node)
 {
     if (node == nullptr)
     {
-        NS_LOG_WARN("ShutDownNode: Attempted to shut down null node.");
+        NS_LOG_WARN("Attempted to shut down null node.");
         return;
     }
 
     Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
     if (ipv6 == nullptr)
     {
-        NS_LOG_WARN("ShutDownNode: Node " << node->GetId() << " has no IPv6 stack, cannot shut down.");
+        NS_LOG_WARN("Node " << node->GetId() << " has no IPv6 stack, cannot shut down.");
         return;
     }
 
-    uint32_t nIf = ipv6->GetNInterfaces();
-    if (nIf == 0)
+    for (uint32_t ifIndex = 0; ifIndex < ipv6->GetNInterfaces(); ++ifIndex)
     {
-        NS_LOG_WARN("ShutDownNode: Node " << node->GetId() << " has zero interfaces, nothing to shut down.");
-        return;
+        // agende com pequeno atraso para evitar concorrência com a iteração atual
+        Simulator::Schedule(Seconds(0.01), &DoSetDown, ipv6, ifIndex);
     }
 
-    for (uint32_t ifIndex = 0; ifIndex < nIf; ++ifIndex)
-    {
-        // checa se a interface ainda tem endereços antes de SetDown
-        if (ipv6->GetNAddresses(ifIndex) == 0)
-        {
-            NS_LOG_DEBUG("ShutDownNode: node " << node->GetId() << " ifIndex " << ifIndex << " has no addresses; calling SetDown anyway.");
-        }
-        ipv6->SetDown(ifIndex);
-    }
-
-    NS_LOG_INFO("Node " << node->GetId() << " shutdown (interfaces down).");
+    NS_LOG_INFO("Node " << node->GetId() << " shutdown scheduled (interfaces down).");
 }
 
 // ----------------------
@@ -328,60 +317,49 @@ void IsolateSourcesByAddress(const std::set<std::string> &anomalousSources,
                              NodeContainer &nodes,
                              NetDeviceContainer &devices)
 {
-    if (nodes.GetN() == 0)
-    {
-        NS_LOG_WARN("IsolateSourcesByAddress: nodes container is empty.");
-        return;
-    }
-
     for (const auto &s : anomalousSources)
     {
-        bool found = false;
+        Ipv6Address targetAddr(s.c_str());
         for (uint32_t i = 0; i < nodes.GetN(); ++i)
         {
             Ptr<Node> node = nodes.Get(i);
             if (node == nullptr)
             {
-                NS_LOG_WARN("IsolateSourcesByAddress: nodes[" << i << "] is null, skipping.");
+                NS_LOG_WARN("IsolateSourcesByAddress: skipping null node pointer.");
                 continue;
             }
 
             Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
             if (ipv6 == nullptr)
             {
-                NS_LOG_DEBUG("IsolateSourcesByAddress: node " << node->GetId() << " has no Ipv6, skipping.");
+                NS_LOG_WARN("IsolateSourcesByAddress: node " << node->GetId() << " has no IPv6, skipping.");
                 continue;
             }
 
-            uint32_t nIf = ipv6->GetNInterfaces();
-            for (uint32_t ifIndex = 0; ifIndex < nIf; ++ifIndex)
+            // percorre interfaces do node
+            for (uint32_t ifIndex = 0; ifIndex < ipv6->GetNInterfaces(); ++ifIndex)
             {
-                // se a interface não tem endereços, pular
                 if (ipv6->GetNAddresses(ifIndex) == 0)
                     continue;
 
-                // obtenha o endereço com proteção
+                // pega o primeiro endereço da interface (index 0)
                 Ipv6InterfaceAddress ifAddr = ipv6->GetAddress(ifIndex, 0);
-                Ipv6Address addr = ifAddr.GetAddress(); // método seguro
-                std::ostringstream oss; oss << addr;
-                std::string addrStr = oss.str();
+                Ipv6Address addr = ifAddr.GetAddress();
 
-                if (addrStr == s) {
-                    NS_LOG_INFO("IsolateSourcesByAddress: found match nodeId=" << node->GetId()
-                                << " addr=" << s << " ifIndex=" << ifIndex);
-                    // evite chamar SetDown imediatamente se FlowMonitor/Outros podem acessar:
-                    // agendamos com pequeno atraso para evitar races.
+                if (addr == targetAddr)
+                {
+                    NS_LOG_INFO("Isolating node " << node->GetId()
+                                << " with address " << targetAddr
+                                << " (ifIndex " << ifIndex << ")");
+                    // executar shutdown com schedule curto para evitar interferir imediatamente com chamadas em andamento
+                    // aqui uso Schedule(Seconds(0.01)) para executar logo após o retorno atual (seguro para evitar alguns races)
                     Simulator::Schedule(Seconds(0.01), &ShutDownNode, node);
-                    found = true;
-                    break; // break ifIndex
+                    // não tentar isolar múltiplas interfaces para o mesmo endereço
+                    break;
                 }
-            }
-            if (found) break; // node encontrado, ir para próxima fonte anômala
-        }
-        if (!found) {
-            NS_LOG_WARN("IsolateSourcesByAddress: anomalous address " << s << " not found in provided nodes.");
-        }
-    }
+            } // for ifIndex
+        } // for nodes
+    } // for anomalousSources
 }
 
 
@@ -466,7 +444,6 @@ main(int argc, char* argv[])
 {
     LogComponentEnable("Ping", LOG_LEVEL_INFO);
     LogComponentEnable("DdosOpengym", LOG_LEVEL_INFO);
-    LogComponentEnable("DdosOpengym", LOG_LEVEL_DEBUG);
 
     LogComponentEnable("UdpEchoClientApplication", LOG_LEVEL_INFO);
     LogComponentEnable("UdpEchoServerApplication", LOG_LEVEL_INFO);
