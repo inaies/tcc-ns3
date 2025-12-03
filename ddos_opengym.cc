@@ -31,7 +31,6 @@ static std::vector<Ptr<Node>> monitoredNodes; // nós que queremos monitorar (ex
 static std::map<uint32_t, uint64_t> lastRxBytesPerFlow; // flowId -> último rxBytes
 static double detectInterval = 1.0; // segundos entre verificações
 static double contamination = 0.1; // fração/contaminação para anomalias (10%)
-static bool isTopologyChanging = false;
 
 /* --------------------------
  *  OpenGym Interface Callbacks
@@ -96,30 +95,6 @@ std::string MyGetExtraInfo(void)
   return "Step info string";
 }
 
-void UninstallFlowMonitor()
-{
-    if (flowMonitor != nullptr)
-    {
-        // CORREÇÃO: Chame Stop() com o tempo atual da simulação.
-        flowMonitor->Stop(Simulator::Now()); // ns3::Time deve ser fornecido
-        
-        // O objeto é parado e, em seguida, o ponteiro inteligente é removido.
-        flowMonitor = nullptr; 
-    }
-}
-
-void ReinstallFlowMonitor()
-{
-    UninstallFlowMonitor(); // Assegura que o anterior foi destruído/parado
-    flowMonitor = flowmonHelper.InstallAll();
-    ipv6Classifier = DynamicCast<Ipv6FlowClassifier>(flowmonHelper.GetClassifier6());
-    if (ipv6Classifier == nullptr) {
-        NS_LOG_WARN("Ipv6FlowClassifier not available after reinstallation.");
-    }
-    // Reinicia o rastreamento, ignorando interfaces desativadas.
-    lastRxBytesPerFlow.clear();
-}
-
 bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
 {
     Ptr<OpenGymBoxContainer<float>> box = DynamicCast<OpenGymBoxContainer<float>>(action);
@@ -131,8 +106,6 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
 
     std::vector<float> actions = box->GetData();
     NS_LOG_UNCOND("MyExecuteActions: received " << actions.size() << " actions.");
-
-    bool performed_action = false;
 
     for (uint32_t i = 0; i < actions.size() && i < wifiStaNodes2.GetN(); ++i) {
         if (actions[i] > 0.5f) {
@@ -146,29 +119,22 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
                 NS_LOG_WARN("MyExecuteActions: node " << node->GetId() << " has no IPv6 stack");
                 continue;
             }
-            if (ipv6 != nullptr) {
-                // Desativação
-                for (uint32_t ifIndex = 0; ifIndex < ipv6->GetNInterfaces(); ++ifIndex) {
-                    ipv6->SetDown(ifIndex);
-                }
-                NS_LOG_UNCOND("Node " << node->GetId() << " isolated.");
-                performed_action = true;
+            for (uint32_t ifIndex = 0; ifIndex < ipv6->GetNInterfaces(); ++ifIndex) {
+                ipv6->SetDown(ifIndex);
             }
+            NS_LOG_UNCOND("Node " << node->GetId() << " isolated.");
         }
     }
 
     return true;
 }
 
-void ScheduleNextStateRead(double stepTime, Ptr<OpenGymInterface> openGym)
+void ScheduleNextStateRead(double envStepTime, Ptr<OpenGymInterface> openGym)
 {
-    if (openGym == nullptr) {
-      NS_LOG_ERROR("ScheduleNextStateRead: openGym is null!");
-      return;
-    }
-    openGym->NotifyCurrentState();  // envia observação e espera ação do Python
-    Simulator::Schedule(Seconds(stepTime), &ScheduleNextStateRead, stepTime, openGym);
+  openGym->NotifyCurrentState();
+  Simulator::Schedule(Seconds(envStepTime), &ScheduleNextStateRead, envStepTime, openGym);
 }
+
 
 // ----------------------
 // Helper: cria e instala FlowMonitor
@@ -190,54 +156,42 @@ void InstallFlowMonitor()
 // Retorna map: sourceIpv6String -> throughput (bytes/s) durante o intervalo
 std::map<std::string, double> CollectNodeThroughputs(double intervalSeconds)
 {
-    // std::map<std::string, double> nodeThroughputs;
+    std::map<std::string, double> nodeThroughputs;
     std::map<std::string, double> throughputBySrc;
+    if (!flowMonitor) return throughputBySrc;
 
-    // if (isTopologyChanging) {
-    //     NS_LOG_WARN("Skipping FlowMonitor collection due to active topology change.");
-    //     return throughputBySrc;
-    // }
+    flowMonitor->CheckForLostPackets();
+    std::map<FlowId, FlowMonitor::FlowStats> stats = flowMonitor->GetFlowStats();
 
-    // if (!flowMonitor) return throughputBySrc;
+    for (auto &kv : stats) {
+        FlowId fid = kv.first;
+        FlowMonitor::FlowStats fs = kv.second;
 
-    // flowMonitor->CheckForLostPackets();
-    // std::map<FlowId, FlowMonitor::FlowStats> stats = flowMonitor->GetFlowStats();
+        // mapeamento flow -> five-tuple usando classifier (se disponível)
+        Ipv6FlowClassifier::FiveTuple t;
 
-    // if (ipv6Classifier == nullptr) {
-    //     std::cout << "[WARNING] ipv6Classifier is null. Skipping throughput classification." << std::endl;
-    //     // Retorna o que já foi acumulado, se houver necessidade
-    //     return throughputBySrc;
-    // }
+        if (ipv6Classifier == nullptr) {
+            std::cout << "[WARNING] ipv6Classifier is null. Skipping throughput classification." << std::endl;
+            return nodeThroughputs;
+        }
 
-    // for (auto &kv : stats) {
-    //     FlowId fid = kv.first;
-    //     FlowMonitor::FlowStats fs = kv.second;
+        t = ipv6Classifier->FindFlow(fid);
 
-    //     // mapeamento flow -> five-tuple usando classifier (se disponível)
-    //     Ipv6FlowClassifier::FiveTuple t;
+        std::ostringstream oss;
+        oss << t.sourceAddress; // operator<< formata o endereço
+        std::string src = oss.str(); // string forma "2001:4::1" etc.
+        uint64_t rxBytes = fs.rxBytes;
 
-    //     if (ipv6Classifier == nullptr) {
-    //         std::cout << "[WARNING] ipv6Classifier is null. Skipping throughput classification." << std::endl;
-    //         return nodeThroughputs;
-    //     }
+        uint64_t prev = 0;
+        if (lastRxBytesPerFlow.count(fid)) prev = lastRxBytesPerFlow[fid];
+        uint64_t delta = 0;
+        if (rxBytes >= prev) delta = rxBytes - prev;
+        lastRxBytesPerFlow[fid] = rxBytes;
 
-    //     t = ipv6Classifier->FindFlow(fid);
-
-    //     std::ostringstream oss;
-    //     oss << t.sourceAddress; // operator<< formata o endereço
-    //     std::string src = oss.str(); // string forma "2001:4::1" etc.
-    //     uint64_t rxBytes = fs.rxBytes;
-
-    //     uint64_t prev = 0;
-    //     if (lastRxBytesPerFlow.count(fid)) prev = lastRxBytesPerFlow[fid];
-    //     uint64_t delta = 0;
-    //     if (rxBytes >= prev) delta = rxBytes - prev;
-    //     lastRxBytesPerFlow[fid] = rxBytes;
-
-    //     double bps = (double)delta / intervalSeconds; // bytes por segundo
-    //     // acumula por source
-    //     throughputBySrc[src] += bps;
-    // }
+        double bps = (double)delta / intervalSeconds; // bytes por segundo
+        // acumula por source
+        throughputBySrc[src] += bps;
+    }
     return throughputBySrc;
 }
 
@@ -281,67 +235,26 @@ std::set<std::string> DetectAnomalousSources(const std::map<std::string,double> 
     return anomalies;
 }
 
-void DoSetDown(Ptr<Ipv6> ipv6, uint32_t ifIndex)
-{
-    if (ipv6 == nullptr) return;
-    if (ifIndex >= ipv6->GetNInterfaces()) return;
-    ipv6->SetDown(ifIndex);
-    NS_LOG_INFO("Ipv6 interface " << ifIndex << " set down.");
-}
-
-void ShutDownNodeByRoute(Ptr<Node> node)
-{
-    Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
-    if (ipv6 == nullptr) return;
-
-    Ptr<Ipv6RoutingProtocol> rp = ipv6->GetRoutingProtocol();
-    if (rp == nullptr) return;
-    
-    Ptr<Ipv6StaticRouting> sr = DynamicCast<Ipv6StaticRouting>(rp);
-    if (sr == nullptr) {
-        NS_LOG_WARN("Node " << node->GetId() << " does not use Static Routing.");
-        return;
-    }
-
-    // Remove todas as rotas estáticas (incluindo a rota default)
-    uint32_t numRoutes = sr->GetNRoutes();
-    for (uint32_t i = 0; i < numRoutes; ++i)
-    {
-        sr->RemoveRoute(0); // Remove sempre a primeira rota (índice 0)
-    }
-    NS_LOG_INFO("Node " << node->GetId() << " isolated by removing all static routes.");
-}
-
 void ShutDownNode(Ptr<Node> node)
 {
     if (node == nullptr)
     {
-        NS_LOG_WARN("ShutDownNode: Attempted to shut down null node.");
+        NS_LOG_WARN("Attempted to shut down null node.");
         return;
     }
 
     Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
     if (ipv6 == nullptr)
     {
-        NS_LOG_WARN("ShutDownNode: Node " << node->GetId() << " has no IPv6 stack, cannot shut down.");
+        NS_LOG_WARN("Node " << node->GetId() << " has no IPv6 stack, cannot shut down.");
         return;
     }
 
-    uint32_t nIf = ipv6->GetNInterfaces();
-    if (nIf == 0)
+    for (uint32_t ifIndex = 0; ifIndex < ipv6->GetNInterfaces(); ++ifIndex)
     {
-        NS_LOG_WARN("ShutDownNode: Node " << node->GetId() << " has zero interfaces, nothing to shut down.");
-        return;
-    }
-
-    for (uint32_t ifIndex = 0; ifIndex < nIf; ++ifIndex)
-    {
-        // checa se a interface ainda tem endereços antes de SetDown
-        if (ipv6->GetNAddresses(ifIndex) == 0)
-        {
-            NS_LOG_DEBUG("ShutDownNode: node " << node->GetId() << " ifIndex " << ifIndex << " has no addresses; calling SetDown anyway.");
-        }
         ipv6->SetDown(ifIndex);
+
+        // Simulator::Schedule(Seconds(5.0), &Ipv6::SetDown, ipv6, ifIndex);
     }
 
     NS_LOG_INFO("Node " << node->GetId() << " shutdown (interfaces down).");
@@ -357,61 +270,45 @@ void IsolateSourcesByAddress(const std::set<std::string> &anomalousSources,
                              NodeContainer &nodes,
                              NetDeviceContainer &devices)
 {
-    // Se o conjunto de anomalias estiver vazio, não faz nada.
-    if (anomalousSources.empty()) return;
-
-    // NOVO: Ativa o flag de mudança de topologia (para silenciar o FlowMonitor)
-    isTopologyChanging = true;
-
-    // Itera sobre CADA ENDEREÇO ANÔMALO detectado (string s)
-    for (const std::string &s : anomalousSources)
+    for (auto &s : anomalousSources)
     {
-        // Converte a string 's' em objeto Ipv6Address (necessário para comparação)
-        Ipv6Address targetAddr(s.c_str());
-
-        // Itera sobre CADA NÓ NO CONTAINER (wifiStaNodes2)
         for (uint32_t i = 0; i < nodes.GetN(); ++i)
         {
             Ptr<Node> node = nodes.Get(i);
-            if (node == nullptr || node->GetObject<Ipv6>() == nullptr) continue;
+            if (node == nullptr)
+            {
+                NS_LOG_WARN("Skipping null node pointer.");
+                continue;
+            }
 
             Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
+            if (ipv6 == nullptr)
+            {
+                NS_LOG_WARN("Node " << node->GetId() << " has no IPv6 interface, skipping.");
+                continue;
+            }
 
-            // Percorre interfaces do nó
             for (uint32_t ifIndex = 0; ifIndex < ipv6->GetNInterfaces(); ++ifIndex)
             {
-                uint32_t addrCount = ipv6->GetNAddresses(ifIndex);
-                
-                // Percorre os endereços de cada interface
-                for (uint32_t aidx = 0; aidx < addrCount; ++aidx)
+                if (ipv6->GetNAddresses(ifIndex) == 0)
+                    continue;
+
+                Ipv6InterfaceAddress ifAddr = ipv6->GetAddress(ifIndex, 0);
+                if (ifAddr.GetAddress().IsAny())
+                    continue;
+
+                Ipv6Address addr = ifAddr.GetAddress();
+                if (addr == Ipv6Address(s.c_str()))
                 {
-                    Ipv6InterfaceAddress ifAddr = ipv6->GetAddress(ifIndex, aidx);
-                    Ipv6Address addr = ifAddr.GetAddress();
-
-                    // Compara o endereço do nó com o endereço anômalo (targetAddr)
-                    if (addr == targetAddr)
-                    {
-                        NS_LOG_INFO("Isolating node " << node->GetId()
-                                    << " with address " << s // Usa a string original para o log
-                                    << " (ifIndex " << ifIndex << ")");
-                        
-                        // Executa o isolamento via remoção de rota
-                        // Agendar é mais seguro para evitar race conditions com o FlowMonitor
-                        Simulator::Schedule(Seconds(0.01), &ShutDownNodeByRoute, node);
-                        
-                        // Quebra este loop e passa para o próximo endereço anômalo (próxima 's')
-                        goto next_source; 
-                    }
+                    NS_LOG_INFO("Isolating node " << node->GetId()
+                                 << " with address " << s
+                                 << " (ifIndex " << ifIndex << ")");
+                    ShutDownNode(node);
                 }
-            } // for ifIndex
-        } // for nodes
-        next_source: ; // Rótulo de salto (goto)
-    } // for anomalousSources
-
-    // Desativa o flag de mudança de topologia
-    Simulator::Schedule(Seconds(0.02), [](){ isTopologyChanging = false; NS_LOG_INFO("Topology change stabilized."); });
+            }
+        }
+    }
 }
-
 
 // ----------------------
 // Função agendada: executa coleta, detecção e mitigação periódica
@@ -419,11 +316,6 @@ void IsolateSourcesByAddress(const std::set<std::string> &anomalousSources,
 // Simulator::Schedule(Seconds( detectInterval ), &DetectAndMitigate, detectInterval, wifiStaNodes2, staDevices2);
 void DetectAndMitigate(double intervalSeconds, NodeContainer allStaNodes, NetDeviceContainer allStaDevices)
 {
-    if (flowMonitor == nullptr) {
-         NS_LOG_WARN("FlowMonitor is null during scheduled check. Cannot proceed.");
-         return; 
-    }
-
     // 1) coleta
     auto tp = CollectNodeThroughputs(intervalSeconds);
 
@@ -804,14 +696,9 @@ main(int argc, char* argv[])
       attackApp.Stop(Seconds(90.0));
     }
 
-    // flowMonitor = flowmonHelper.InstallAll();
-    ipv6Classifier = DynamicCast<Ipv6FlowClassifier>(flowmonHelper.GetClassifier6());
-    if (ipv6Classifier == nullptr) {
-        NS_LOG_WARN("Ipv6FlowClassifier not available.");
-    }
-    lastRxBytesPerFlow.clear();
+    InstallFlowMonitor();
 
-    // Simulator::Schedule(Seconds(detectInterval), &DetectAndMitigate, detectInterval, wifiStaNodes2, staDevices2);
+    Simulator::Schedule(Seconds(detectInterval), &DetectAndMitigate, detectInterval, wifiStaNodes2, staDevices2);
   
     uint32_t openGymPort = 5555;
     double envStepTime = 1.0;
