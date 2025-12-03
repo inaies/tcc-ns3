@@ -36,26 +36,40 @@ static double contamination = 0.1; // fração/contaminação para anomalias (10
  *  OpenGym Interface Callbacks
  * -------------------------- */
 
+
+// Helper to check if a node is already down to avoid redundant operations
+bool IsNodeActive(Ptr<Node> node)
+{
+    if (!node) return false;
+    Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
+    if (!ipv6) return false;
+    // Check first interface (assuming index 1 is the main mesh/wifi interface)
+    // Adjust index if necessary based on your topology (usually 0 is loopback, 1 is wifi)
+    if (ipv6->GetNInterfaces() > 1) {
+        return ipv6->IsUp(1); 
+    }
+    return false;
+}
+
 Ptr<OpenGymSpace> MyGetObservationSpace(void)
 {
-  uint32_t nodeNum = 10;  // Número de nós observados
+  // Monitoring 10 nodes from wifiStaNodes2 as defined in your python script's shape
+  uint32_t nodeNum = 10; 
   float low = 0.0;
-  float high = 1e6;
+  float high = 1e9; // Max throughput
   std::vector<uint32_t> shape = {nodeNum};
   std::string dtype = TypeNameGet<float>();
   Ptr<OpenGymBoxSpace> space = CreateObject<OpenGymBoxSpace>(low, high, shape, dtype);
-  NS_LOG_UNCOND("MyGetObservationSpace: " << space);
   return space;
 }
 
 Ptr<OpenGymSpace> MyGetActionSpace(void)
 {
-    uint32_t N = 10; // mesmo número de nós monitorados (ajuste se necessário)
+    uint32_t N = 10; 
     std::vector<uint32_t> shape = {N};
     std::vector<float> low(N, 0.0f);
     std::vector<float> high(N, 1.0f);
     Ptr<OpenGymBoxSpace> space = CreateObject<OpenGymBoxSpace>(low, high, shape, "float32");
-    NS_LOG_UNCOND("MyGetActionSpace: BoxSpace Low:0 High:1 Shape:(" << N << ",)");
     return space;
 }
 
@@ -65,64 +79,96 @@ Ptr<OpenGymDataContainer> MyGetObservation(void)
   std::vector<uint32_t> shape = {nodeNum};
   Ptr<OpenGymBoxContainer<float>> box = CreateObject<OpenGymBoxContainer<float>>(shape);
 
-  for (uint32_t i = 0; i < nodeNum; i++)
+  // 1. Collect Real Metrics (Throughput) using your helper
+  // We use a small window (e.g., 1.0s) for instantaneous throughput
+  std::map<std::string, double> currentThroughput = CollectNodeThroughputs(1.0);
+
+  for (uint32_t i = 0; i < nodeNum && i < wifiStaNodes2.GetN(); i++)
   {
-    float val = (float)(rand() % 1000);
-    box->AddValue(val);
+    Ptr<Node> node = wifiStaNodes2.Get(i);
+    double nodeVal = 0.0;
+
+    // Retrieve IPv6 address to match with FlowMonitor stats
+    Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
+    if (ipv6) {
+        // iterate interfaces to find the global address
+        for(uint32_t ifIndex=0; ifIndex < ipv6->GetNInterfaces(); ++ifIndex) {
+             if(ipv6->GetNAddresses(ifIndex) > 0) {
+                 Ipv6Address addr = ipv6->GetAddress(ifIndex, 1).GetAddress(); // Index 1 usually global
+                 std::ostringstream oss;
+                 oss << addr;
+                 std::string ipStr = oss.str();
+                 
+                 if (currentThroughput.count(ipStr)) {
+                     nodeVal = currentThroughput[ipStr];
+                 }
+             }
+        }
+    }
+    
+    // Add the calculated throughput to the observation box
+    box->AddValue((float)nodeVal);
   }
 
-  NS_LOG_UNCOND("MyGetObservation: " << box);
+  // FIXED: Do not log the Ptr directly with << as it might cause the assert
+  NS_LOG_INFO("MyGetObservation: Generated stats for " << box->GetSize() << " nodes.");
   return box;
 }
 
 float MyGetReward(void)
 {
-  static float reward = 0.0;
-  reward += 1.0;
-  return reward;
+  // Simple reward: +1 for keeping system alive? 
+  // You might want to penalize dropped packets in the future.
+  return 1.0; 
 }
 
 bool MyGetGameOver(void)
 {
-  static uint32_t step = 0;
-  step++;
-  bool done = (step > 1000);
-  return done;
+  // Stop after 100 seconds (matches simulator stop)
+  return Now().GetSeconds() > 100.0;
 }
 
 std::string MyGetExtraInfo(void)
 {
-  return "Step info string";
+  return "Normal_State";
 }
 
 bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
 {
     Ptr<OpenGymBoxContainer<float>> box = DynamicCast<OpenGymBoxContainer<float>>(action);
-    if (box == nullptr)
+    if (!box)
     {
-        NS_LOG_ERROR("MyExecuteActions: action container inválido!");
+        NS_LOG_ERROR("MyExecuteActions: Invalid action container (Cast Failed)");
         return false;
     }
 
     std::vector<float> actions = box->GetData();
-    NS_LOG_UNCOND("MyExecuteActions: received " << actions.size() << " actions.");
+    // Safe logging
+    NS_LOG_INFO("MyExecuteActions: received " << actions.size() << " actions.");
 
     for (uint32_t i = 0; i < actions.size() && i < wifiStaNodes2.GetN(); ++i) {
+        // If the agent wants to isolate (Action > 0.5)
         if (actions[i] > 0.5f) {
             Ptr<Node> node = wifiStaNodes2.Get(i);
-            if (node == nullptr) {
-                NS_LOG_WARN("MyExecuteActions: null node at index " << i);
-                continue;
-            }
+            
+            // CRITICAL CHECKS to prevent crash
+            if (node == nullptr) continue;
+            
             Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
-            if (ipv6 == nullptr) {
-                NS_LOG_WARN("MyExecuteActions: node " << node->GetId() << " has no IPv6 stack");
-                continue;
-            }
+            if (ipv6 == nullptr) continue;
+
+            // Only isolate if currently UP (avoids redundant calls)
+            bool isAnyUp = false;
             for (uint32_t ifIndex = 0; ifIndex < ipv6->GetNInterfaces(); ++ifIndex) {
-                ipv6->SetDown(ifIndex);
+                if (ipv6->IsUp(ifIndex)) {
+                    ipv6->SetDown(ifIndex);
+                    isAnyUp = true;
+                }
             }
-            NS_LOG_UNCOND("Node " << node->GetId() << " isolated.");
+            
+            if (isAnyUp) {
+                NS_LOG_UNCOND("ACTION: Agent isolated Node " << node->GetId());
+            }
         }
     }
 
@@ -698,7 +744,7 @@ main(int argc, char* argv[])
 
     InstallFlowMonitor();
 
-    Simulator::Schedule(Seconds(detectInterval), &DetectAndMitigate, detectInterval, wifiStaNodes2, staDevices2);
+    // Simulator::Schedule(Seconds(detectInterval), &DetectAndMitigate, detectInterval, wifiStaNodes2, staDevices2);
   
     uint32_t openGymPort = 5555;
     double envStepTime = 1.0;
