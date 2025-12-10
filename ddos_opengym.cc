@@ -137,10 +137,10 @@ Ptr<OpenGymDataContainer> MyGetObservation(void)
   std::vector<uint32_t> shape = {nodeNum};
   Ptr<OpenGymBoxContainer<float>> box = CreateObject<OpenGymBoxContainer<float>>(shape);
 
-  // 1. Get Real Throughput Data
+  // 1. Coleta dados reais de throughput
   std::map<std::string, double> tpMap = CollectNodeThroughputs(1.0);
 
-  // 2. Map to nodes 0..9 of wifiStaNodes2
+  // 2. Mapeia para os nós monitorados
   for (uint32_t i = 0; i < nodeNum && i < wifiStaNodes2.GetN(); i++)
   {
     float val = 0.0f;
@@ -149,23 +149,14 @@ Ptr<OpenGymDataContainer> MyGetObservation(void)
     if (node) {
         Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
         if (ipv6) {
-            // Iterate over all interfaces on this node
             for(uint32_t ifIdx=0; ifIdx < ipv6->GetNInterfaces(); ++ifIdx) {
-                 
-                 // CRITICAL FIX: Check if we have enough addresses
-                 // Index 0 is Link-Local (fe80::), Index 1 is usually Global (2001::)
-                 // Loopback interface only has 1 address, so we must skip it.
-                 uint32_t nAddrs = ipv6->GetNAddresses(ifIdx);
-                 if (nAddrs < 2) {
-                     continue; 
-                 }
+                 // Segurança: garante que tem endereço global antes de acessar index 1
+                 if (ipv6->GetNAddresses(ifIdx) < 2) continue;
 
-                 // Now it is safe to access index 1
                  Ipv6Address addr = ipv6->GetAddress(ifIdx, 1).GetAddress();
                  std::ostringstream oss;
                  oss << addr;
                  
-                 // If this IP has traffic data, use it
                  if (tpMap.count(oss.str())) {
                      val = (float)tpMap[oss.str()];
                  }
@@ -175,7 +166,19 @@ Ptr<OpenGymDataContainer> MyGetObservation(void)
     box->AddValue(val);
   }
 
-  NS_LOG_INFO("MyGetObservation: Generated stats for " << box->GetData().size() << " nodes.");
+  // --- LOG VISUAL ---
+  std::vector<float> data = box->GetData();
+  std::stringstream ss;
+  ss << "[";
+  for (size_t i = 0; i < data.size(); ++i) {
+      ss << data[i];
+      if (i < data.size() - 1) ss << ", ";
+  }
+  ss << "]";
+
+  // Imprime o tempo atual e o vetor de dados
+  NS_LOG_UNCOND("MyGetObservation [Time: " << Simulator::Now().GetSeconds() << "s]: " << ss.str());
+
   return box;
 }
 
@@ -186,7 +189,7 @@ float MyGetReward(void)
 
 bool MyGetGameOver(void)
 {
-  return Now().GetSeconds() > 100.0;
+  return Now().GetSeconds() >= 100.0;
 }
 
 std::string MyGetExtraInfo(void)
@@ -203,27 +206,31 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
     }
 
     std::vector<float> actions = box->GetData();
-    NS_LOG_INFO("MyExecuteActions: Processing " << actions.size() << " actions.");
-
+    
+    // Iterar sobre as ações recebidas do Python
     for (uint32_t i = 0; i < actions.size() && i < wifiStaNodes2.GetN(); ++i) {
+        
+        // Se a ação for > 0.5, o Python mandou isolar este nó
         if (actions[i] > 0.5f) {
             Ptr<Node> node = wifiStaNodes2.Get(i);
 
-            // Safety Checks
             if (node == nullptr) continue;
             Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
             if (ipv6 == nullptr) continue;
 
-            // Isolate
-            bool isolated = false;
+            // Verifica se alguma interface está UP (Ligada)
+            bool wasUp = false;
             for (uint32_t ifIndex = 0; ifIndex < ipv6->GetNInterfaces(); ++ifIndex) {
                 if (ipv6->IsUp(ifIndex)) {
-                    ipv6->SetDown(ifIndex);
-                    isolated = true;
+                    ipv6->SetDown(ifIndex); // Desliga a interface
+                    wasUp = true;
                 }
             }
-            if (isolated) {
-                 NS_LOG_UNCOND("AGENT ACTION: Isolated Node " << node->GetId());
+            
+            // Só imprime a mensagem se o nó estava ligado e acabou de ser isolado
+            // Isso evita spam de mensagens para nós que já estão mortos
+            if (wasUp) {
+                NS_LOG_UNCOND(">>> [ALERTA] ACAO DO AGENTE: O No " << i << " (ID global: " << node->GetId() << ") foi identificado como anomalo e ISOLADO agora!");
             }
         }
     }
@@ -769,7 +776,7 @@ main(int argc, char* argv[])
         phy3.EnablePcap("ddosml_ap3", apDevices3.Get(0)); // AP1
     }
     
-    Simulator::Stop(Seconds(100.0));
+    Simulator::Stop(Seconds(101.0));
     Simulator::Run();
     Simulator::Destroy();
     return 0;
