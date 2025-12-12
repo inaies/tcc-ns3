@@ -199,38 +199,63 @@ std::string MyGetExtraInfo(void)
 
 bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
 {
+    // 1. Verificar o container de ação
+    if (!action) {
+        NS_LOG_ERROR("MyExecuteActions: Recebi ponteiro nulo de ação!");
+        return false;
+    }
+
     Ptr<OpenGymBoxContainer<float>> box = DynamicCast<OpenGymBoxContainer<float>>(action);
     if (!box) {
-        NS_LOG_ERROR("MyExecuteActions: Invalid Action Container!");
+        NS_LOG_ERROR("MyExecuteActions: Falha ao converter ação para BoxContainer!");
         return false;
     }
 
     std::vector<float> actions = box->GetData();
-    
-    // Iterar sobre as ações recebidas do Python
+    NS_LOG_UNCOND("DEBUG: Recebido vetor de acoes com tamanho " << actions.size());
+
     for (uint32_t i = 0; i < actions.size() && i < wifiStaNodes2.GetN(); ++i) {
         
-        // Se a ação for > 0.5, o Python mandou isolar este nó
         if (actions[i] > 0.5f) {
+            NS_LOG_UNCOND("DEBUG: Tentando isolar indice " << i);
+
+            // 2. Obter Nó com verificação
             Ptr<Node> node = wifiStaNodes2.Get(i);
+            if (node == nullptr) {
+                NS_LOG_UNCOND("ERRO CRITICO: Node " << i << " eh nulo!");
+                continue;
+            }
 
-            if (node == nullptr) continue;
+            // 3. Obter IPv6 com verificação
             Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
-            if (ipv6 == nullptr) continue;
+            if (ipv6 == nullptr) {
+                NS_LOG_UNCOND("ERRO CRITICO: Node " << i << " nao tem pilha IPv6!");
+                continue;
+            }
 
-            // Verifica se alguma interface está UP (Ligada)
+            NS_LOG_UNCOND("DEBUG: Node " << i << " e IPv6 validos. Verificando interfaces...");
+
             bool wasUp = false;
-            for (uint32_t ifIndex = 0; ifIndex < ipv6->GetNInterfaces(); ++ifIndex) {
+            uint32_t nInterfaces = ipv6->GetNInterfaces();
+            
+            for (uint32_t ifIndex = 0; ifIndex < nInterfaces; ++ifIndex) {
+                // Check antes de acessar
                 if (ipv6->IsUp(ifIndex)) {
-                    ipv6->SetDown(ifIndex); // Desliga a interface
+                    NS_LOG_UNCOND("DEBUG: Desligando interface " << ifIndex << " do no " << i);
+                    
+                    // --- PONTO CRÍTICO ---
+                    ipv6->SetDown(ifIndex); 
+                    // ---------------------
+                    
                     wasUp = true;
                 }
             }
-            
-            // Só imprime a mensagem se o nó estava ligado e acabou de ser isolado
-            // Isso evita spam de mensagens para nós que já estão mortos
+
             if (wasUp) {
-                NS_LOG_UNCOND(">>> [ALERTA] ACAO DO AGENTE: O No " << i << " (ID global: " << node->GetId() << ") foi identificado como anomalo e ISOLADO agora!");
+                // Imprime apenas o índice 'i' para evitar chamar node->GetId() se houver risco
+                NS_LOG_UNCOND(">>> [SUCESSO] Agente ISOLOU o No indice " << i);
+            } else {
+                NS_LOG_UNCOND("DEBUG: Nenhuma interface estava ligada no no " << i);
             }
         }
     }
