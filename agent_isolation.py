@@ -112,32 +112,41 @@ class IsolationIsolationAgent:
         Coleta warmup_steps de observações sem tomar ações de isolamento e treina IsolationForest.
         """
         logger.info("Warmup: coletando %d passos para aprender baseline...", self.warmup_steps)
-        obs = self.env.reset()
+        # Se precisar resetar explicitamente: obs = self.env.reset()
+        # Mas assumimos que o loop principal já iniciou o env ou vai pegar o primeiro obs.
+        
+        # Nota: O loop de warmup precisa interagir com env.step para avançar o tempo
+        # Assumindo que o script já recebeu o primeiro obs antes de chamar isso ou vai chamar reset.
+        obs = self.env.reset() 
+
         for step in range(self.warmup_steps):
-            # extrai features por nó
             X_nodes, node_ids = extract_node_features(obs)
-            # aplanar: concatenar todas as linhas para formar um vetor representando o passo
-            # alternativa: treinar por nó (aqui usamos vetores por nó agregados)
-            self.feature_buffer.append(X_nodes)  # guardamos por passo
-            # pass-through action: nenhuma ação (assumimos que env aceita zeros)
-            # montar ação neutra conforme a action_space
+            self.feature_buffer.append(X_nodes)
+            
             neutral_action = self.build_neutral_action_for_env(len(node_ids))
             obs, reward, done, info = self.env.step(neutral_action)
             if done:
                 logger.info("Env terminou durante warmup (done).")
                 break
 
-        # construir dataset de amostras por nó (cada linha = features de um nó no tempo)
+        # construir dataset
         all_rows = []
         for step_arr in self.feature_buffer:
             for r in step_arr:
                 all_rows.append(r)
         X = np.vstack(all_rows)
-        logger.info("Warmup coletou %d amostras (por-nó) para treinar IsolationForest.", X.shape[0])
+        
+        # --- CORREÇÃO: Adicionar ruído para evitar variância zero ---
+        # Como o warmup é todo 0.0, o IsolationForest pode falhar. 
+        # Adicionamos um ruído insignificante para criar uma distribuição "normal" em torno de zero.
+        noise = np.random.normal(0, 0.01, size=X.shape)
+        X_train = X + noise
+        # -----------------------------------------------------------
 
-        # treinar IsolationForest
+        logger.info("Warmup coletou %d amostras. Treinando com ruído...", X.shape[0])
+
         self.model = IsolationForest(contamination=self.contamination, random_state=42)
-        self.model.fit(X)
+        self.model.fit(X_train)
         logger.info("IsolationForest treinado (contamination=%s).", self.contamination)
 
     def build_neutral_action_for_env(self, n_nodes):
@@ -163,37 +172,34 @@ class IsolationIsolationAgent:
         return np.zeros(n_nodes, dtype=int)
 
     def step(self, obs, step_idx=None):
-        """
-        Recebe obs, detecta anomalias, decide quais nós isolar e retorna action.
-        """
         X_nodes, node_ids = extract_node_features(obs)
         N = len(node_ids)
         if self.model is None:
-            # sem modelo, ação neutra
             return self.build_neutral_action_for_env(N)
 
-        # prever anomalias por nó: predict retorna 1 (normal) e -1 (anomalia)
         try:
-            preds = self.model.predict(X_nodes)
-            # decision_function -> score (quanto maior, menos anomalia). Usamos scores para desempate.
+            preds = self.model.predict(X_nodes) # 1 = normal, -1 = anomalia
             scores = self.model.decision_function(X_nodes)
         except Exception as e:
-            logger.exception("Erro ao prever com IsolationForest: %s", e)
+            logger.exception("Erro ao prever: %s", e)
             return self.build_neutral_action_for_env(N)
 
-        # construir lista de (node_id, pred, score)
         candidates = []
         for i, nid in enumerate(node_ids):
             candidates.append((nid, int(preds[i]), float(scores[i]), X_nodes[i]))
+            
+            # --- LOG DE DEBUG (Mostra o que o agente está vendo no passo 31+) ---
+            # Se o tráfego for alto (>1000) e não foi detectado (-1), avise.
+            traffic_val = X_nodes[i][0]
+            if traffic_val > 10000:
+                is_anom = "ANOMALIA" if preds[i] == -1 else "Normal"
+                logger.info(f"DEBUG [Node {nid}]: Trafego={traffic_val:.1f} Score={scores[i]:.3f} Class={is_anom}")
+            # -------------------------------------------------------------------
 
-        # filtrar por pred==-1 (anomalia) e não estar na whitelist e estar vivo
         anomalous = [c for c in candidates if c[1] == -1 and c[0] not in self.whitelist_node_ids]
+        anomalous.sort(key=lambda t: t[2]) 
 
-        # ordenar por score (mais negativo = mais anomalous -> filas decrescentes)
-        anomalous.sort(key=lambda t: t[2])  # ascending: menor score (mais anômalo) primeiro
-
-        # aplicar cooldown: nós já isolados não sejam re-isolados, e decrementa timers
-        # decrementa timers
+        # Gerenciar Cooldown
         to_remove = []
         for nid in list(self.isolated_until.keys()):
             self.isolated_until[nid] -= 1
@@ -203,38 +209,34 @@ class IsolationIsolationAgent:
             del self.isolated_until[nid]
             logger.info("Node %d reativado (cooldown expirado).", nid)
 
-        # decidir quantos isolar (respeitar limites)
         allowed = self.max_isolations_per_step
         if self.max_total_isolations is not None:
             allowed = min(allowed, max(0, (self.max_total_isolations - self.total_isolated)))
+            
         chosen = []
         for (nid, pred, score, feat) in anomalous:
-            if allowed <= 0:
-                break
-            if nid in self.isolated_until:
-                continue
-            # adicional: verificar feature heuristics (por ex: tráfego muito alto) antes de isolar
-            # aqui assumimos coluna 0=traffic, 2=latency (ajuste conforme seu formato)
+            if allowed <= 0: break
+            if nid in self.isolated_until: continue
+            
+            # Regra extra: Só isola se tráfego > 1.0 (evita isolar ruído do warmup)
             try:
                 traffic = float(feat[0])
-            except Exception:
-                traffic = None
-            # Exemplo de regra adicional: exigir tráfego > threshold (evita falso positivo)
-            if traffic is not None and traffic < 1.0:
-                # ignora anomalias fracas
+            except: 
+                traffic = 0
+            
+            if traffic < 1.0: 
                 continue
+
             chosen.append(nid)
             allowed -= 1
 
-        # montar vetor de ação: 1 = isolar, 0 = manter
         action = np.zeros(N, dtype=int)
         for i, nid in enumerate(node_ids):
             if nid in chosen:
                 action[i] = 1
-                # marca cooldown
                 self.isolated_until[nid] = self.isolation_cooldown
                 self.total_isolated += 1
-                logger.info("Isolando node %d (score=%.4f).", nid, dict(((c[0], c[2]) for c in anomalous)).get(nid, 0.0))
+                logger.info(">>> ISOLANDO NODE %d (Score=%.4f Traffic=%.1f)", nid, score, float(X_nodes[i][0]))
             else:
                 action[i] = 0
 
