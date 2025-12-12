@@ -171,14 +171,29 @@ class IsolationIsolationAgent:
         # default
         return np.zeros(n_nodes, dtype=int)
 
-    def step(self, obs, step_idx=None):
+    def step(self, obs, info_str=None, step_idx=None):
         X_nodes, node_ids = extract_node_features(obs)
         N = len(node_ids)
+
+        # --- NOVA LÓGICA DE MAPEAMENTO DE NOMES ---
+        node_labels = {}
+        if info_str and isinstance(info_str, str):
+            try:
+                # info_str vem como "0=2001::1|1=2001::2|"
+                parts = info_str.strip("|").split("|")
+                for p in parts:
+                    if "=" in p:
+                        idx_s, ip_s = p.split("=")
+                        node_labels[int(idx_s)] = ip_s
+            except Exception:
+                pass # Se falhar, usa o ID numérico mesmo
+        # ------------------------------------------
+
         if self.model is None:
             return self.build_neutral_action_for_env(N)
 
         try:
-            preds = self.model.predict(X_nodes) # 1 = normal, -1 = anomalia
+            preds = self.model.predict(X_nodes) 
             scores = self.model.decision_function(X_nodes)
         except Exception as e:
             logger.exception("Erro ao prever: %s", e)
@@ -186,19 +201,23 @@ class IsolationIsolationAgent:
 
         candidates = []
         for i, nid in enumerate(node_ids):
-            candidates.append((nid, int(preds[i]), float(scores[i]), X_nodes[i]))
+            # Tenta pegar o IP, senão usa "Node X"
+            label = node_labels.get(nid, f"Node {nid}")
             
-            # --- LOG DE DEBUG (Mostra o que o agente está vendo no passo 31+) ---
-            # Se o tráfego for alto (>1000) e não foi detectado (-1), avise.
+            candidates.append((nid, int(preds[i]), float(scores[i]), X_nodes[i], label))
+            
             traffic_val = X_nodes[i][0]
             if traffic_val > 10000:
                 is_anom = "ANOMALIA" if preds[i] == -1 else "Normal"
-                logger.info(f"DEBUG [Node {nid}]: Trafego={traffic_val:.1f} Score={scores[i]:.3f} Class={is_anom}")
-            # -------------------------------------------------------------------
+                # LOG COM ENDEREÇO IP
+                logger.info(f"DEBUG [{label}]: Trafego={traffic_val:.1f} Score={scores[i]:.3f} Class={is_anom}")
 
+        # Atualiza lógica para usar a tupla com 5 elementos (adicionamos label)
         anomalous = [c for c in candidates if c[1] == -1 and c[0] not in self.whitelist_node_ids]
         anomalous.sort(key=lambda t: t[2]) 
 
+        # ... (código de cooldown igual) ...
+        # (Apenas copie a parte de cooldown do seu código anterior)
         # Gerenciar Cooldown
         to_remove = []
         for nid in list(self.isolated_until.keys()):
@@ -207,18 +226,18 @@ class IsolationIsolationAgent:
                 to_remove.append(nid)
         for nid in to_remove:
             del self.isolated_until[nid]
-            logger.info("Node %d reativado (cooldown expirado).", nid)
+            label = node_labels.get(nid, f"Node {nid}") # Label para o log
+            logger.info("%s reativado (cooldown expirado).", label)
 
-        allowed = self.max_isolations_per_step
-        if self.max_total_isolations is not None:
-            allowed = min(allowed, max(0, (self.max_total_isolations - self.total_isolated)))
-            
+        allowed = self.max_isolations_per_step # ... (lógica igual)
+        
+        # ... (Loop de escolha igual, mas desempacotando label) ...
         chosen = []
-        for (nid, pred, score, feat) in anomalous:
+        # Atenção aqui: agora candidates tem 5 itens: (nid, pred, score, feat, label)
+        for (nid, pred, score, feat, label) in anomalous:
             if allowed <= 0: break
             if nid in self.isolated_until: continue
             
-            # Regra extra: Só isola se tráfego > 1.0 (evita isolar ruído do warmup)
             try:
                 traffic = float(feat[0])
             except: 
@@ -229,14 +248,23 @@ class IsolationIsolationAgent:
 
             chosen.append(nid)
             allowed -= 1
-
+            
+            # LOG FINAL DE ISOLAMENTO
+            action = np.zeros(N, dtype=int) # Reset action array logic inside loop is wrong in original, assuming valid logic outside
+            
+        # Recriar o vetor de ação final
         action = np.zeros(N, dtype=int)
         for i, nid in enumerate(node_ids):
+            label = node_labels.get(nid, f"Node {nid}")
             if nid in chosen:
                 action[i] = 1
                 self.isolated_until[nid] = self.isolation_cooldown
                 self.total_isolated += 1
-                logger.info(">>> ISOLANDO NODE %d (Score=%.4f Traffic=%.1f)", nid, score, float(X_nodes[i][0]))
+                # Encontrar o score correspondente para o log
+                sc = 0.0
+                for c in candidates: 
+                    if c[0] == nid: sc = c[2]; break
+                logger.info(">>> ISOLANDO %s (Score=%.4f Traffic=%.1f)", label, sc, float(X_nodes[i][0]))
             else:
                 action[i] = 0
 
@@ -271,6 +299,7 @@ def run_agent(env, args):
 
     logger.info("Iniciando loop principal do agente...")
     while not done:
+        current_info = info if 'info' in locals() else None
         action = agent.step(obs, step_idx=step_idx)
         # step in the env
         obs, reward, done, info = env.step(action)

@@ -194,7 +194,27 @@ bool MyGetGameOver(void)
 
 std::string MyGetExtraInfo(void)
 {
-  return "step_info";
+  std::stringstream ss;
+  
+  for (uint32_t i = 0; i < wifiStaNodes2.GetN(); ++i) {
+      Ptr<Node> node = wifiStaNodes2.Get(i);
+      if (!node) continue;
+      
+      Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
+      if (!ipv6) continue;
+
+      // Busca o endereço global (pula o loopback e link-local)
+      for(uint32_t ifIdx=0; ifIdx < ipv6->GetNInterfaces(); ++ifIdx) {
+           if (ipv6->GetNAddresses(ifIdx) < 2) continue; 
+
+           Ipv6Address addr = ipv6->GetAddress(ifIdx, 1).GetAddress();
+           
+           // Formato: INDICE=IP|
+           ss << i << "=" << addr << "|";
+           break; // Pega o primeiro IP global e vai pro próximo nó
+      }
+  }
+  return ss.str();
 }
 
 bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
@@ -206,31 +226,36 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
     std::vector<float> actions = box->GetData();
 
     for (uint32_t i = 0; i < actions.size() && i < wifiStaNodes2.GetN(); ++i) {
-        
-        // Se a ação for ISOLAR (> 0.5)
         if (actions[i] > 0.5f) {
             Ptr<Node> node = wifiStaNodes2.Get(i);
             if (!node) continue;
 
-            // Estratégia: Parar a Aplicação OnOff imediatamente
+            // Tenta pegar o IP apenas para o log ficar bonito
+            std::string nodeIp = "Unknown";
+            Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
+            if (ipv6) {
+                for(uint32_t k=0; k<ipv6->GetNInterfaces(); ++k) {
+                    if (ipv6->GetNAddresses(k) >= 2) {
+                        std::ostringstream oss;
+                        oss << ipv6->GetAddress(k, 1).GetAddress();
+                        nodeIp = oss.str();
+                        break;
+                    }
+                }
+            }
+
+            // Parar Aplicação OnOff
             bool appStopped = false;
             for (uint32_t j = 0; j < node->GetNApplications(); ++j) {
                 Ptr<Application> app = node->GetApplication(j);
-                
-                // Verifica se é uma OnOffApplication antes de parar
                 if (app->GetInstanceTypeId() == OnOffApplication::GetTypeId()) {
-                    
-                    // CORREÇÃO AQUI:
-                    // Definimos o tempo de parada para AGORA.
-                    // Isso força o ns-3 a encerrar o envio de pacotes deste app imediatamente.
                     app->SetStopTime(Simulator::Now()); 
-                    
                     appStopped = true;
                 }
             }
             
             if (appStopped) {
-                NS_LOG_UNCOND(">>> [ACTION] Agente ISOLOU o No " << i << " (Parou Aplicacao OnOff)");
+                NS_LOG_UNCOND(">>> [ACTION] Agente ISOLOU Node " << i << " (IP: " << nodeIp << ")");
             }
         }
     }
