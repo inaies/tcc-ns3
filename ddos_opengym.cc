@@ -207,23 +207,24 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
 
     for (uint32_t i = 0; i < actions.size() && i < wifiStaNodes2.GetN(); ++i) {
         
-        // If action is to ISOLATE (> 0.5)
+        // Se a ação for ISOLAR (> 0.5)
         if (actions[i] > 0.5f) {
             Ptr<Node> node = wifiStaNodes2.Get(i);
             if (!node) continue;
 
-            // Strategy: Stop Applications instead of Interface Down
+            // Estratégia: Parar a Aplicação OnOff imediatamente
             bool appStopped = false;
             for (uint32_t j = 0; j < node->GetNApplications(); ++j) {
                 Ptr<Application> app = node->GetApplication(j);
                 
-                // Check if the app is currently running
-                // Note: There is no direct "IsRunning()" but we can check its type or just Stop it.
-                // Stopping an already stopped app is safe.
-                
-                // Optional: Check if it is an OnOffApplication to be specific
+                // Verifica se é uma OnOffApplication antes de parar
                 if (app->GetInstanceTypeId() == OnOffApplication::GetTypeId()) {
-                    app->Stop(Seconds(0.0)); // Stop immediately
+                    
+                    // CORREÇÃO AQUI:
+                    // Definimos o tempo de parada para AGORA.
+                    // Isso força o ns-3 a encerrar o envio de pacotes deste app imediatamente.
+                    app->SetStopTime(Simulator::Now()); 
+                    
                     appStopped = true;
                 }
             }
@@ -235,6 +236,7 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
     }
     return true;
 }
+
 void ScheduleNextStateRead(double envStepTime, Ptr<OpenGymInterface> openGym)
 {
   openGym->NotifyCurrentState();
