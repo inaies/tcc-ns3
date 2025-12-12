@@ -199,69 +199,42 @@ std::string MyGetExtraInfo(void)
 
 bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
 {
-    // 1. Verificar o container de ação
-    if (!action) {
-        NS_LOG_ERROR("MyExecuteActions: Recebi ponteiro nulo de ação!");
-        return false;
-    }
-
+    if (!action) return false;
     Ptr<OpenGymBoxContainer<float>> box = DynamicCast<OpenGymBoxContainer<float>>(action);
-    if (!box) {
-        NS_LOG_ERROR("MyExecuteActions: Falha ao converter ação para BoxContainer!");
-        return false;
-    }
+    if (!box) return false;
 
     std::vector<float> actions = box->GetData();
-    NS_LOG_UNCOND("DEBUG: Recebido vetor de acoes com tamanho " << actions.size());
 
     for (uint32_t i = 0; i < actions.size() && i < wifiStaNodes2.GetN(); ++i) {
         
+        // If action is to ISOLATE (> 0.5)
         if (actions[i] > 0.5f) {
-            NS_LOG_UNCOND("DEBUG: Tentando isolar indice " << i);
-
-            // 2. Obter Nó com verificação
             Ptr<Node> node = wifiStaNodes2.Get(i);
-            if (node == nullptr) {
-                NS_LOG_UNCOND("ERRO CRITICO: Node " << i << " eh nulo!");
-                continue;
-            }
+            if (!node) continue;
 
-            // 3. Obter IPv6 com verificação
-            Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
-            if (ipv6 == nullptr) {
-                NS_LOG_UNCOND("ERRO CRITICO: Node " << i << " nao tem pilha IPv6!");
-                continue;
-            }
-
-            NS_LOG_UNCOND("DEBUG: Node " << i << " e IPv6 validos. Verificando interfaces...");
-
-            bool wasUp = false;
-            uint32_t nInterfaces = ipv6->GetNInterfaces();
-            
-            for (uint32_t ifIndex = 0; ifIndex < nInterfaces; ++ifIndex) {
-                // Check antes de acessar
-                if (ipv6->IsUp(ifIndex)) {
-                    NS_LOG_UNCOND("DEBUG: Desligando interface " << ifIndex << " do no " << i);
-                    
-                    // --- PONTO CRÍTICO ---
-                    ipv6->SetDown(ifIndex); 
-                    // ---------------------
-                    
-                    wasUp = true;
+            // Strategy: Stop Applications instead of Interface Down
+            bool appStopped = false;
+            for (uint32_t j = 0; j < node->GetNApplications(); ++j) {
+                Ptr<Application> app = node->GetApplication(j);
+                
+                // Check if the app is currently running
+                // Note: There is no direct "IsRunning()" but we can check its type or just Stop it.
+                // Stopping an already stopped app is safe.
+                
+                // Optional: Check if it is an OnOffApplication to be specific
+                if (app->GetInstanceTypeId() == OnOffApplication::GetTypeId()) {
+                    app->Stop(Seconds(0.0)); // Stop immediately
+                    appStopped = true;
                 }
             }
-
-            if (wasUp) {
-                // Imprime apenas o índice 'i' para evitar chamar node->GetId() se houver risco
-                NS_LOG_UNCOND(">>> [SUCESSO] Agente ISOLOU o No indice " << i);
-            } else {
-                NS_LOG_UNCOND("DEBUG: Nenhuma interface estava ligada no no " << i);
+            
+            if (appStopped) {
+                NS_LOG_UNCOND(">>> [ACTION] Agente ISOLOU o No " << i << " (Parou Aplicacao OnOff)");
             }
         }
     }
     return true;
 }
-
 void ScheduleNextStateRead(double envStepTime, Ptr<OpenGymInterface> openGym)
 {
   openGym->NotifyCurrentState();
