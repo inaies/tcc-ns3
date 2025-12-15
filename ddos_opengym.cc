@@ -258,7 +258,7 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
                     // 2. FORÇA BRUTA: Muda a taxa de dados para 0 bits/s imediatamente.
                     // Isso impede que qualquer pacote residual seja gerado.
                     app->SetAttribute("DataRate", StringValue("0bps"));
-                    app->SetAttribute("PacketSize", UintegerValue(0));
+                    // app->SetAttribute("PacketSize", UintegerValue(0));
                     
                     appStopped = true;
                 }
