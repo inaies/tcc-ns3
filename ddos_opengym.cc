@@ -230,7 +230,7 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
             Ptr<Node> node = wifiStaNodes2.Get(i);
             if (!node) continue;
 
-            // Tenta pegar o IP apenas para o log ficar bonito
+            // Log visual com o IP
             std::string nodeIp = "Unknown";
             Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
             if (ipv6) {
@@ -244,18 +244,28 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
                 }
             }
 
-            // Parar Aplicação OnOff
             bool appStopped = false;
             for (uint32_t j = 0; j < node->GetNApplications(); ++j) {
                 Ptr<Application> app = node->GetApplication(j);
+                
+                // Verifica se é o OnOffApplication
                 if (app->GetInstanceTypeId() == OnOffApplication::GetTypeId()) {
-                    app->SetStopTime(Simulator::Now()); 
+                    
+                    // --- CORREÇÃO ROBUSTA ---
+                    // 1. Define o tempo de parada para agora (formalidade)
+                    app->SetStopTime(Simulator::Now());
+                    
+                    // 2. FORÇA BRUTA: Muda a taxa de dados para 0 bits/s imediatamente.
+                    // Isso impede que qualquer pacote residual seja gerado.
+                    app->SetAttribute("DataRate", StringValue("0bps"));
+                    app->SetAttribute("PacketSize", UintegerValue(0));
+                    
                     appStopped = true;
                 }
             }
             
             if (appStopped) {
-                NS_LOG_UNCOND(">>> [ACTION] Agente ISOLOU Node " << i << " (IP: " << nodeIp << ")");
+                NS_LOG_UNCOND(">>> [ACTION] Agente ISOLOU Node " << i << " (IP: " << nodeIp << ") - DataRate setado para 0bps");
             }
         }
     }
