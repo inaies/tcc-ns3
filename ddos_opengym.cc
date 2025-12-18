@@ -112,7 +112,7 @@ bool IsNodeActive(Ptr<Node> node)
 
 Ptr<OpenGymSpace> MyGetObservationSpace(void)
 {
-  uint32_t nodeNum = 10;
+  uint32_t nodeNum = 20;
   float low = 0.0;
   float high = 1e9; // 1 Gbps max
   std::vector<uint32_t> shape = {nodeNum};
@@ -123,7 +123,7 @@ Ptr<OpenGymSpace> MyGetObservationSpace(void)
 
 Ptr<OpenGymSpace> MyGetActionSpace(void)
 {
-    uint32_t N = 10; 
+    uint32_t N = 20;
     std::vector<uint32_t> shape = {N};
     std::vector<float> low(N, 0.0f);
     std::vector<float> high(N, 1.0f);
@@ -133,7 +133,7 @@ Ptr<OpenGymSpace> MyGetActionSpace(void)
 
 Ptr<OpenGymDataContainer> MyGetObservation(void)
 {
-  uint32_t nodeNum = 10;
+  uint32_t nodeNum = 20;
   std::vector<uint32_t> shape = {nodeNum};
   Ptr<OpenGymBoxContainer<float>> box = CreateObject<OpenGymBoxContainer<float>>(shape);
 
