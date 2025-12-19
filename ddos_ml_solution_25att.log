@@ -1,0 +1,276 @@
+(ns3ai_env) inae@flamma:~/ns-allinone-3.40/ns-3.40$ ./ns3 run "ddos_opengym"
+Consolidate compiler generated dependencies of target scratch_ddos_opengym
+[  1%] Building CXX object scratch/CMakeFiles/scratch_ddos_opengym.dir/ddos_opengym.cc.o
+/home/inae/ns-allinone-3.40/ns-3.40/scratch/ddos_opengym.cc:32:15: warning: ‘detectInterval’ defined but not used [-Wunused-variable]
+   32 | static double detectInterval = 1.0; // segundos entre verificações
+      |               ^~~~~~~~~~~~~~
+[  1%] Linking CXX executable ../../build/scratch/ns3.40-ddos_opengym-default
+Simulation process id: 69088 (parent (waf shell) id: 68739)
+Waiting for Python process to connect on port: tcp://localhost:5555
+Please start proper Python Gym Agent
+MyGetObservation [Time: 0s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 1s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 2s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 3s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 4s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 5s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 6s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 7s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 8s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 9s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 10s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 11s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12576, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 12s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 13s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12576, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 14s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 15s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12576, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 16s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 17s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12576, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 18s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 19s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12576, 0, 0, 0, 0]
+MyGetObservation [Time: 20s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 21s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12576, 0, 0, 0]
+MyGetObservation [Time: 22s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 23s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12576, 0, 0]
+MyGetObservation [Time: 24s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 25s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12576, 0]
+MyGetObservation [Time: 26s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 27s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12576]
+MyGetObservation [Time: 28s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 29s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 30s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 31s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 32s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 33s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 34s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 35s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 36s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 37s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 38s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 39s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 40s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 41s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 42s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 43s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 44s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 45s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 46s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 47s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 48s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 49s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 50s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 51s]: [60032, 0, 0, 0, 443808, 0, 0, 295872, 0, 0, 49312, 0, 107200, 43952, 13936, 0, 0, 0, 0, 0, 0, 925136, 433088, 600320, 324816, 0, 0, 0, 0, 0]
+>>> [ACTION] Agente ISOLOU Node 0 (IP: 2001:4::200:ff:fe00:b5) - DataRate reduzido para 1bps (Virtualmente Zero)
+>>> [ACTION] Agente ISOLOU Node 4 (IP: 2001:4::200:ff:fe00:b9) - DataRate reduzido para 1bps (Virtualmente Zero)
+>>> [ACTION] Agente ISOLOU Node 7 (IP: 2001:4::200:ff:fe00:bc) - DataRate reduzido para 1bps (Virtualmente Zero)
+>>> [ACTION] Agente ISOLOU Node 10 (IP: 2001:4::200:ff:fe00:bf) - DataRate reduzido para 1bps (Virtualmente Zero)
+>>> [ACTION] Agente ISOLOU Node 12 (IP: 2001:4::200:ff:fe00:c1) - DataRate reduzido para 1bps (Virtualmente Zero)
+MyGetObservation [Time: 52s]: [2144, 2144, 11792, 0, 98624, 0, 321600, 167232, 24656, 99696, 197248, 0, 8576, 10720, 9648, 53600, 1072, 0, 0, 97552, 299088, 798640, 264784, 298016, 49312, 0, 0, 0, 0, 0]
+>>> [ACTION] Agente ISOLOU Node 2 (IP: 2001:4::200:ff:fe00:b7) - DataRate reduzido para 1bps (Virtualmente Zero)
+>>> [ACTION] Agente ISOLOU Node 6 (IP: 2001:4::200:ff:fe00:bb) - DataRate reduzido para 1bps (Virtualmente Zero)
+>>> [ACTION] Agente ISOLOU Node 8 (IP: 2001:4::200:ff:fe00:bd) - DataRate reduzido para 1bps (Virtualmente Zero)
+>>> [ACTION] Agente ISOLOU Node 9 (IP: 2001:4::200:ff:fe00:be) - DataRate reduzido para 1bps (Virtualmente Zero)
+>>> [ACTION] Agente ISOLOU Node 15 (IP: 2001:4::200:ff:fe00:c4) - DataRate reduzido para 1bps (Virtualmente Zero)
+MyGetObservation [Time: 53s]: [0, 65392, 23584, 0, 0, 197248, 197248, 0, 68608, 197248, 0, 0, 0, 0, 93264, 71824, 92192, 0, 0, 995888, 332320, 132928, 466320, 299088, 24656, 0, 0, 0, 0, 0]
+>>> [ACTION] Agente ISOLOU Node 1 (IP: 2001:4::200:ff:fe00:b6) - DataRate reduzido para 1bps (Virtualmente Zero)
+>>> [ACTION] Agente ISOLOU Node 5 (IP: 2001:4::200:ff:fe00:ba) - DataRate reduzido para 1bps (Virtualmente Zero)
+>>> [ACTION] Agente ISOLOU Node 14 (IP: 2001:4::200:ff:fe00:c3) - DataRate reduzido para 1bps (Virtualmente Zero)
+>>> [ACTION] Agente ISOLOU Node 16 (IP: 2001:4::200:ff:fe00:c5) - DataRate reduzido para 1bps (Virtualmente Zero)
+>>> [ACTION] Agente ISOLOU Node 19 (IP: 2001:4::200:ff:fe00:c8) - DataRate reduzido para 1bps (Virtualmente Zero)
+MyGetObservation [Time: 54s]: [0, 21440, 0, 0, 0, 315168, 0, 0, 0, 0, 0, 0, 0, 0, 98624, 0, 226192, 0, 0, 200464, 597104, 860816, 764336, 400928, 369840, 0, 0, 0, 0, 0]
+>>> [ACTION] Agente ISOLOU Node 20 (IP: 2001:4::200:ff:fe00:c9) - DataRate reduzido para 1bps (Virtualmente Zero)
+>>> [ACTION] Agente ISOLOU Node 21 (IP: 2001:4::200:ff:fe00:ca) - DataRate reduzido para 1bps (Virtualmente Zero)
+>>> [ACTION] Agente ISOLOU Node 22 (IP: 2001:4::200:ff:fe00:cb) - DataRate reduzido para 1bps (Virtualmente Zero)
+>>> [ACTION] Agente ISOLOU Node 23 (IP: 2001:4::200:ff:fe00:cc) - DataRate reduzido para 1bps (Virtualmente Zero)
+>>> [ACTION] Agente ISOLOU Node 24 (IP: 2001:4::200:ff:fe00:cd) - DataRate reduzido para 1bps (Virtualmente Zero)
+MyGetObservation [Time: 55s]: [0, 0, 0, 1120, 0, 0, 0, 0, 0, 0, 0, 0, 0, 454528, 0, 0, 0, 1120, 126544, 0, 799712, 1.12989e+06, 305520, 887616, 413792, 0, 0, 0, 0, 0]
+>>> [ACTION] Agente ISOLOU Node 3 (IP: 2001:4::200:ff:fe00:b8) - DataRate reduzido para 1bps (Virtualmente Zero)
+>>> [ACTION] Agente ISOLOU Node 13 (IP: 2001:4::200:ff:fe00:c2) - DataRate reduzido para 1bps (Virtualmente Zero)
+>>> [ACTION] Agente ISOLOU Node 17 (IP: 2001:4::200:ff:fe00:c6) - DataRate reduzido para 1bps (Virtualmente Zero)
+>>> [ACTION] Agente ISOLOU Node 18 (IP: 2001:4::200:ff:fe00:c7) - DataRate reduzido para 1bps (Virtualmente Zero)
+MyGetObservation [Time: 56s]: [0, 0, 0, 3216, 0, 0, 0, 0, 0, 0, 0, 0, 0, 390208, 0, 0, 0, 3216, 1.41504e+06, 0, 0, 1.00446e+06, 0, 66464, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 57s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 58s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 59s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 60s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 61s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 62s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 63s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 64s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 65s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 66s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 67s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 68s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 69s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 70s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 71s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 72s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 73s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 74s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 75s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 76s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 77s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 78s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 79s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 80s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 81s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 82s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 83s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 84s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 85s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 86s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 87s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 88s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 89s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 90s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 91s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 92s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 93s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 94s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 95s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 96s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 97s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 98s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 99s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+MyGetObservation [Time: 100s]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+
+
+
+
+
+
+
+
+
+
+(ns3ai_env) inae@flamma:~/ns-allinone-3.40/ns-3.40/contrib/opengym/examples/ddos$ python3 agent_isolation.py 
+Gym has been unmaintained since 2022 and does not support NumPy 2.0 amongst other critical functionality.
+Please upgrade to Gymnasium, the maintained drop-in replacement of Gym, or contact the authors of your software and request that they upgrade.
+Users of this version of Gym should be able to simply replace 'import gym' with 'import gymnasium as gym' in the vast majority of cases.
+See the migration guide at https://gymnasium.farama.org/introduction/migration_guide/ for additional information.
+Waiting for simulation script to connect on port: tcp://localhost:5555
+Please start proper ns-3 simulation script using ./waf --run "..."
+2025-12-19 01:51:21,029 INFO Ambiente criado via ns3gym.RLEnvironment()
+2025-12-19 01:51:21,029 INFO Warmup: coletando 30 passos para aprender baseline...
+2025-12-19 01:52:57,378 INFO Warmup coletou 900 amostras. Treinando com ruído...
+2025-12-19 01:52:57,526 INFO IsolationForest treinado (contamination=0.05).
+2025-12-19 01:52:57,951 INFO Iniciando loop principal do agente...
+2025-12-19 01:53:01,507 INFO Step 10 done=False reward=1.0
+2025-12-19 01:53:16,640 INFO Step 20 done=False reward=1.0
+2025-12-19 01:53:16,658 INFO DEBUG [Node 0]: Trafego=60032.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:16,659 INFO DEBUG [Node 4]: Trafego=443808.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:16,659 INFO DEBUG [Node 7]: Trafego=295872.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:16,659 INFO DEBUG [Node 10]: Trafego=49312.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:16,659 INFO DEBUG [Node 12]: Trafego=107200.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:16,659 INFO DEBUG [Node 13]: Trafego=43952.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:16,659 INFO DEBUG [Node 14]: Trafego=13936.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:16,659 INFO DEBUG [Node 21]: Trafego=925136.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:16,659 INFO DEBUG [Node 22]: Trafego=433088.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:16,659 INFO DEBUG [Node 23]: Trafego=600320.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:16,659 INFO DEBUG [Node 24]: Trafego=324816.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:16,659 INFO >>> ISOLANDO Node 0 (Score=-0.2739 Traffic=60032.0)
+2025-12-19 01:53:16,659 INFO >>> ISOLANDO Node 4 (Score=-0.2739 Traffic=443808.0)
+2025-12-19 01:53:16,659 INFO >>> ISOLANDO Node 7 (Score=-0.2739 Traffic=295872.0)
+2025-12-19 01:53:16,659 INFO >>> ISOLANDO Node 10 (Score=-0.2739 Traffic=49312.0)
+2025-12-19 01:53:16,659 INFO >>> ISOLANDO Node 12 (Score=-0.2739 Traffic=107200.0)
+2025-12-19 01:53:27,325 INFO DEBUG [Node 2]: Trafego=11792.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:27,325 INFO DEBUG [Node 4]: Trafego=98624.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:27,325 INFO DEBUG [Node 6]: Trafego=321600.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:27,325 INFO DEBUG [Node 7]: Trafego=167232.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:27,325 INFO DEBUG [Node 8]: Trafego=24656.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:27,325 INFO DEBUG [Node 9]: Trafego=99696.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:27,325 INFO DEBUG [Node 10]: Trafego=197248.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:27,325 INFO DEBUG [Node 13]: Trafego=10720.0 Score=-0.265 Class=ANOMALIA
+2025-12-19 01:53:27,325 INFO DEBUG [Node 15]: Trafego=53600.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:27,325 INFO DEBUG [Node 19]: Trafego=97552.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:27,325 INFO DEBUG [Node 20]: Trafego=299088.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:27,325 INFO DEBUG [Node 21]: Trafego=798640.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:27,325 INFO DEBUG [Node 22]: Trafego=264784.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:27,325 INFO DEBUG [Node 23]: Trafego=298016.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:27,325 INFO DEBUG [Node 24]: Trafego=49312.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:27,325 INFO >>> ISOLANDO Node 2 (Score=-0.2740 Traffic=11792.0)
+2025-12-19 01:53:27,325 INFO >>> ISOLANDO Node 6 (Score=-0.2739 Traffic=321600.0)
+2025-12-19 01:53:27,325 INFO >>> ISOLANDO Node 8 (Score=-0.2739 Traffic=24656.0)
+2025-12-19 01:53:27,325 INFO >>> ISOLANDO Node 9 (Score=-0.2739 Traffic=99696.0)
+2025-12-19 01:53:27,325 INFO >>> ISOLANDO Node 15 (Score=-0.2739 Traffic=53600.0)
+2025-12-19 01:53:37,655 INFO DEBUG [Node 1]: Trafego=65392.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:37,655 INFO DEBUG [Node 2]: Trafego=23584.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:37,655 INFO DEBUG [Node 5]: Trafego=197248.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:37,655 INFO DEBUG [Node 6]: Trafego=197248.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:37,655 INFO DEBUG [Node 8]: Trafego=68608.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:37,655 INFO DEBUG [Node 9]: Trafego=197248.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:37,655 INFO DEBUG [Node 14]: Trafego=93264.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:37,655 INFO DEBUG [Node 15]: Trafego=71824.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:37,655 INFO DEBUG [Node 16]: Trafego=92192.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:37,655 INFO DEBUG [Node 19]: Trafego=995888.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:37,655 INFO DEBUG [Node 20]: Trafego=332320.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:37,655 INFO DEBUG [Node 21]: Trafego=132928.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:37,655 INFO DEBUG [Node 22]: Trafego=466320.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:37,656 INFO DEBUG [Node 23]: Trafego=299088.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:37,656 INFO DEBUG [Node 24]: Trafego=24656.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:37,656 INFO >>> ISOLANDO Node 1 (Score=-0.2739 Traffic=65392.0)
+2025-12-19 01:53:37,656 INFO >>> ISOLANDO Node 5 (Score=-0.2739 Traffic=197248.0)
+2025-12-19 01:53:37,656 INFO >>> ISOLANDO Node 14 (Score=-0.2739 Traffic=93264.0)
+2025-12-19 01:53:37,656 INFO >>> ISOLANDO Node 16 (Score=-0.2739 Traffic=92192.0)
+2025-12-19 01:53:37,656 INFO >>> ISOLANDO Node 19 (Score=-0.2739 Traffic=995888.0)
+2025-12-19 01:53:46,515 INFO DEBUG [Node 1]: Trafego=21440.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:46,515 INFO DEBUG [Node 5]: Trafego=315168.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:46,515 INFO DEBUG [Node 14]: Trafego=98624.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:46,515 INFO DEBUG [Node 16]: Trafego=226192.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:46,515 INFO DEBUG [Node 19]: Trafego=200464.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:46,515 INFO DEBUG [Node 20]: Trafego=597104.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:46,515 INFO DEBUG [Node 21]: Trafego=860816.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:46,515 INFO DEBUG [Node 22]: Trafego=764336.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:46,515 INFO DEBUG [Node 23]: Trafego=400928.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:46,515 INFO DEBUG [Node 24]: Trafego=369840.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:46,515 INFO >>> ISOLANDO Node 20 (Score=-0.2739 Traffic=597104.0)
+2025-12-19 01:53:46,515 INFO >>> ISOLANDO Node 21 (Score=-0.2739 Traffic=860816.0)
+2025-12-19 01:53:46,515 INFO >>> ISOLANDO Node 22 (Score=-0.2739 Traffic=764336.0)
+2025-12-19 01:53:46,515 INFO >>> ISOLANDO Node 23 (Score=-0.2739 Traffic=400928.0)
+2025-12-19 01:53:46,515 INFO >>> ISOLANDO Node 24 (Score=-0.2739 Traffic=369840.0)
+2025-12-19 01:53:53,827 INFO DEBUG [Node 13]: Trafego=454528.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:53,827 INFO DEBUG [Node 18]: Trafego=126544.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:53,827 INFO DEBUG [Node 20]: Trafego=799712.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:53,827 INFO DEBUG [Node 21]: Trafego=1129888.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:53,827 INFO DEBUG [Node 22]: Trafego=305520.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:53,827 INFO DEBUG [Node 23]: Trafego=887616.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:53,827 INFO DEBUG [Node 24]: Trafego=413792.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:53,827 INFO >>> ISOLANDO Node 3 (Score=-0.1635 Traffic=1120.0)
+2025-12-19 01:53:53,827 INFO >>> ISOLANDO Node 13 (Score=-0.2739 Traffic=454528.0)
+2025-12-19 01:53:53,828 INFO >>> ISOLANDO Node 17 (Score=-0.1635 Traffic=1120.0)
+2025-12-19 01:53:53,828 INFO >>> ISOLANDO Node 18 (Score=-0.2739 Traffic=126544.0)
+2025-12-19 01:53:58,639 INFO DEBUG [Node 13]: Trafego=390208.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:58,639 INFO DEBUG [Node 18]: Trafego=1415040.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:58,639 INFO DEBUG [Node 21]: Trafego=1004464.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:53:58,639 INFO DEBUG [Node 23]: Trafego=66464.0 Score=-0.274 Class=ANOMALIA
+2025-12-19 01:54:02,731 INFO Step 30 done=False reward=1.0
+2025-12-19 01:54:02,749 INFO Node 0 reativado (cooldown expirado).
+2025-12-19 01:54:02,750 INFO Node 4 reativado (cooldown expirado).
+2025-12-19 01:54:02,750 INFO Node 7 reativado (cooldown expirado).
+2025-12-19 01:54:02,750 INFO Node 10 reativado (cooldown expirado).
+2025-12-19 01:54:02,750 INFO Node 12 reativado (cooldown expirado).
+2025-12-19 01:54:03,412 INFO Node 2 reativado (cooldown expirado).
+2025-12-19 01:54:03,412 INFO Node 6 reativado (cooldown expirado).
+2025-12-19 01:54:03,412 INFO Node 8 reativado (cooldown expirado).
+2025-12-19 01:54:03,412 INFO Node 9 reativado (cooldown expirado).
+2025-12-19 01:54:03,412 INFO Node 15 reativado (cooldown expirado).
+2025-12-19 01:54:04,212 INFO Node 1 reativado (cooldown expirado).
+2025-12-19 01:54:04,212 INFO Node 5 reativado (cooldown expirado).
+2025-12-19 01:54:04,212 INFO Node 14 reativado (cooldown expirado).
+2025-12-19 01:54:04,212 INFO Node 16 reativado (cooldown expirado).
+2025-12-19 01:54:04,212 INFO Node 19 reativado (cooldown expirado).
+2025-12-19 01:54:04,814 INFO Node 20 reativado (cooldown expirado).
+2025-12-19 01:54:04,814 INFO Node 21 reativado (cooldown expirado).
+2025-12-19 01:54:04,814 INFO Node 22 reativado (cooldown expirado).
+2025-12-19 01:54:04,814 INFO Node 23 reativado (cooldown expirado).
+2025-12-19 01:54:04,815 INFO Node 24 reativado (cooldown expirado).
+2025-12-19 01:54:05,552 INFO Node 3 reativado (cooldown expirado).
+2025-12-19 01:54:05,552 INFO Node 13 reativado (cooldown expirado).
+2025-12-19 01:54:05,552 INFO Node 17 reativado (cooldown expirado).
+2025-12-19 01:54:05,553 INFO Node 18 reativado (cooldown expirado).
+2025-12-19 01:54:09,248 INFO Step 40 done=False reward=1.0
+2025-12-19 01:54:15,415 INFO Step 50 done=False reward=1.0
+2025-12-19 01:54:21,950 INFO Step 60 done=False reward=1.0
+2025-12-19 01:54:25,903 INFO Env terminou. Agent steps: 69
+
