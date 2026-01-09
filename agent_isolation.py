@@ -38,7 +38,7 @@ logger = logging.getLogger("agent_isolation")
 # -----------------------------
 # Parâmetros do agente
 # -----------------------------
-DEFAULT_WARMUP_STEPS = 120          # passos coletados antes de treinar o IsolationForest
+DEFAULT_WARMUP_STEPS = 150         # passos coletados antes de treinar o IsolationForest
 DEFAULT_CONTAMINATION = 0.05       # proporção esperada de anomalias
 MAX_ISOLATIONS_PER_STEP = 5        # limite de quantos nós isolar por passo
 ISOLATION_COOLDOWN = 10            # passos para manter nó isolado antes de poder reativar
