@@ -189,7 +189,7 @@ float MyGetReward(void)
 
 bool MyGetGameOver(void)
 {
-  return Now().GetSeconds() >= 100.0;
+  return Now().GetSeconds() >= 200.0;
 }
 
 std::string MyGetExtraInfo(void)
@@ -710,7 +710,7 @@ main(int argc, char* argv[])
     );
     ApplicationContainer sinkApp = sinkHelper.Install(ap2_receptor);
     sinkApp.Start(Seconds(1.5)); // Começa cedo
-    sinkApp.Stop(Seconds(100.0)); // Para cedo
+    sinkApp.Stop(Seconds(200.0)); // Para cedo
 
     // 2. Configuração do Emissor (OnOff)
     
@@ -762,7 +762,7 @@ main(int argc, char* argv[])
     );
     ApplicationContainer sinkAppAttack = udpSinkHelper.Install(victim);
     sinkAppAttack.Start(Seconds(1.0));
-    sinkAppAttack.Stop(Seconds(110.0));
+    sinkAppAttack.Stop(Seconds(200.0));
   
     for (uint32_t i = 0; i < attackerNodes.GetN(); i++)
     {
@@ -776,8 +776,8 @@ main(int argc, char* argv[])
       onoff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
 
       ApplicationContainer attackApp = onoff.Install(attackerNodes);
-      attackApp.Start(Seconds(50.0));
-      attackApp.Stop(Seconds(90.0));
+      attackApp.Start(Seconds(121.0));
+      attackApp.Stop(Seconds(190.0));
     }
 
     InstallFlowMonitor();
@@ -812,7 +812,7 @@ main(int argc, char* argv[])
         phy3.EnablePcap("ddosml_ap3", apDevices3.Get(0)); // AP1
     }
     
-    Simulator::Stop(Seconds(101.0));
+    Simulator::Stop(Seconds(201.0));
     Simulator::Run();
     Simulator::Destroy();
     return 0;
