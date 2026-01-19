@@ -776,7 +776,7 @@ main(int argc, char* argv[])
       onoff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
 
       ApplicationContainer attackApp = onoff.Install(attackerNodes);
-      attackApp.Start(Seconds(160.0));
+      attackApp.Start(Seconds(155.0));
       attackApp.Stop(Seconds(190.0));
     }
 
