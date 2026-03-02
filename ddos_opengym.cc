@@ -226,47 +226,26 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
     std::vector<float> actions = box->GetData();
 
     for (uint32_t i = 0; i < actions.size() && i < wifiStaNodes2.GetN(); ++i) {
+        Ptr<Node> node = wifiStaNodes2.Get(i);
+        if (!node) continue;
+
+        Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
+        if (!ipv6) continue;
+
         if (actions[i] > 0.5f) {
-            Ptr<Node> node = wifiStaNodes2.Get(i);
-            if (!node) continue;
-
-            // Log visual com o IP (apenas cosmético)
-            std::string nodeIp = "Unknown";
-            Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
-            if (ipv6) {
-                for(uint32_t k=0; k<ipv6->GetNInterfaces(); ++k) {
-                    if (ipv6->GetNAddresses(k) >= 2) {
-                        std::ostringstream oss;
-                        oss << ipv6->GetAddress(k, 1).GetAddress();
-                        nodeIp = oss.str();
-                        break;
-                    }
+            // AGENTE DECIDIU ISOLAR
+            for (uint32_t ifIndex = 1; ifIndex < ipv6->GetNInterfaces(); ++ifIndex) {
+                if (ipv6->IsUp(ifIndex)) {
+                    ipv6->SetDown(ifIndex);
                 }
             }
-
-            bool appStopped = false;
-            for (uint32_t j = 0; j < node->GetNApplications(); ++j) {
-                Ptr<Application> app = node->GetApplication(j);
-                
-                // Verifica se é o OnOffApplication (Gerador do Ataque)
-                if (app->GetInstanceTypeId() == OnOffApplication::GetTypeId()) {
-                    
-                    // --- CORREÇÃO FINAL: Use 1bps em vez de 0bps ---
-                    // 1. Define parada formal (pode demorar a surtir efeito devido ao OnTime)
-                    app->SetStopTime(Simulator::Now());
-                    
-                    // 2. "Sufoca" a aplicação.
-                    // Com 1bps, o próximo pacote será agendado para daqui a ~8000 segundos.
-                    // Como a simulação acaba em 100s, o pacote nunca sai.
-                    // Isso evita a divisão por zero do "0bps".
-                    app->SetAttribute("DataRate", StringValue("1bps"));
-                    
-                    appStopped = true;
+        } 
+        else {
+            // AGENTE DECIDIU NÃO ISOLAR (ou o Cooldown expirou)
+            for (uint32_t ifIndex = 1; ifIndex < ipv6->GetNInterfaces(); ++ifIndex) {
+                if (!ipv6->IsUp(ifIndex)) {
+                    ipv6->SetUp(ifIndex);
                 }
-            }
-            
-            if (appStopped) {
-                NS_LOG_UNCOND(">>> [ACTION] Agente ISOLOU Node " << i << " (IP: " << nodeIp << ") - DataRate reduzido para 1bps (Virtualmente Zero)");
             }
         }
     }
@@ -744,18 +723,25 @@ main(int argc, char* argv[])
       clientApp.Stop(Seconds(start_offset + (i-21) * interval + 1.0)); // Roda por 1 segundo apenas
     }
 
-/* ///////////   ataque ddos   ////////// */
+/* ///////////   ATAQUE DDOS (DUAS ONDAS, NÓS DIFERENTES)   ////////// */
 
-    NodeContainer attackerNodes;
-    for (int i = 0; i < 20; i ++)
-      attackerNodes.Add(wifiStaNodes2.Get(i));
+    // Grupo 1: Nós 0 a 9
+    NodeContainer attackerNodesWave1;
+    for (int i = 0; i < 10; i++) {
+        attackerNodesWave1.Add(wifiStaNodes2.Get(i));
+    }
+
+    // Grupo 2: Nós 10 a 19
+    NodeContainer attackerNodesWave2;
+    for (int i = 10; i < 20; i++) {
+        attackerNodesWave2.Add(wifiStaNodes2.Get(i));
+    }
 
     Ptr<Node> victim = wifiApNode2.Get(0);
-    
     Ipv6Address victimAddress = apInterfaces2.GetAddress(0, 1);
-
     uint16_t attackPort = 9001;
     
+    // Configura o Receptor (Sink) na Vítima
     PacketSinkHelper udpSinkHelper(
       "ns3::UdpSocketFactory",
       Inet6SocketAddress(Ipv6Address::GetAny(), attackPort)
@@ -764,21 +750,31 @@ main(int argc, char* argv[])
     sinkAppAttack.Start(Seconds(1.0));
     sinkAppAttack.Stop(Seconds(400.0));
   
-    for (uint32_t i = 0; i < attackerNodes.GetN(); i++)
-    {
-      OnOffHelper onoff(
-        "ns3::UdpSocketFactory",
-        Address(Inet6SocketAddress(victimAddress, attackPort))
-      );
-      onoff.SetAttribute("DataRate", StringValue("5Mbps"));
-      onoff.SetAttribute("PacketSize", UintegerValue(1024));
-      onoff.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=15]"));
-      onoff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
+    // ==========================================
+    // ONDA 1: Atacantes 0 a 9 (155s até 200s)
+    // ==========================================
+    OnOffHelper onoffWave1("ns3::UdpSocketFactory", Address(Inet6SocketAddress(victimAddress, attackPort)));
+    onoffWave1.SetAttribute("DataRate", StringValue("5Mbps"));
+    onoffWave1.SetAttribute("PacketSize", UintegerValue(1024));
+    onoffWave1.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=15]"));
+    onoffWave1.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
 
-      ApplicationContainer attackApp = onoff.Install(attackerNodes);
-      attackApp.Start(Seconds(155.0));
-      attackApp.Stop(Seconds(250.0));
-    }
+    ApplicationContainer attackApp1 = onoffWave1.Install(attackerNodesWave1);
+    attackApp1.Start(Seconds(155.0));
+    attackApp1.Stop(Seconds(200.0));
+
+    // ==========================================
+    // ONDA 2: Atacantes 10 a 19 (250s até 300s)
+    // ==========================================
+    OnOffHelper onoffWave2("ns3::UdpSocketFactory", Address(Inet6SocketAddress(victimAddress, attackPort)));
+    onoffWave2.SetAttribute("DataRate", StringValue("5Mbps"));
+    onoffWave2.SetAttribute("PacketSize", UintegerValue(1024));
+    onoffWave2.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=15]"));
+    onoffWave2.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
+
+    ApplicationContainer attackApp2 = onoffWave2.Install(attackerNodesWave2);
+    attackApp2.Start(Seconds(250.0));
+    attackApp2.Stop(Seconds(300.0));
 
     InstallFlowMonitor();
 
