@@ -22,6 +22,8 @@ import argparse
 import time
 from sklearn.ensemble import IsolationForest
 import gym
+import subprocess
+import os
 import logging
 
 # Tente importar ns3-gym se disponível (opcional)
@@ -38,7 +40,7 @@ logger = logging.getLogger("agent_isolation")
 # -----------------------------
 # Parâmetros do agente
 # -----------------------------
-DEFAULT_WARMUP_STEPS = 50         # passos coletados antes de treinar o IsolationForest
+DEFAULT_WARMUP_STEPS = 150         # passos coletados antes de treinar o IsolationForest
 DEFAULT_CONTAMINATION = 0.05       # proporção esperada de anomalias
 MAX_ISOLATIONS_PER_STEP = 5        # limite de quantos nós isolar por passo
 ISOLATION_COOLDOWN = 10            # passos para manter nó isolado antes de poder reativar
@@ -331,23 +333,39 @@ def main():
             logger.info("Ambiente criado via gym.make('%s')", args.env_id)
         except Exception as e:
             logger.warning("gym.make falhou: %s", e)
-    if env is None and ns3gym is not None:
-        try:
-            # ADAPTAR: se o seu ns3-gym fornece uma factory diferente, mude aqui
-            env = ns3env.Ns3Env(
-                port=5555,        # mesma porta usada no seu ResilientEnv
-                stepTime=0.5,     # intervalo de decisão entre passos
-                startSim=False,   # True se quiser que o NS-3 inicie junto
-                simSeed=0,
-                simArgs={},
-                debug=False)            
-            logger.info("Ambiente criado via ns3gym.RLEnvironment()")
-        except Exception as e:
-            logger.exception("Falha ao criar ambiente via ns3gym: %s", e)
-            raise
+    # No arquivo agent_isolation.py
+    env = None
+    ns3_root = "/home/inae/ns-allinone-3.40/ns-3.40"
 
-    if env is None:
-        raise RuntimeError("Não foi possível criar o ambiente ns3-gym. Ajuste --env-id ou instale ns3gym.")
+    try:
+        # 1. Mata qualquer processo do ns-3 ou porta 5555 presa
+        logging.info("Limpando portas e processos antigos...")
+        subprocess.run(["fuser", "-k", "5555/tcp"], stderr=subprocess.DEVNULL)
+        
+        # 2. Inicia o ns-3 em background
+        cmd = "./ns3 run ddos_opengym"
+        logging.info(f"Executando ns-3: {cmd}")
+        
+        # shell=True ou split() ajuda a garantir que o binário seja encontrado
+        ns3_process = subprocess.Popen(
+            cmd.split(),
+            cwd=ns3_root,
+            stdout=None,
+            stderr=None
+        )
+
+        # 3. Aguarda o ns-3 carregar as bibliotecas e abrir o socket
+        time.sleep(5) 
+
+        # 4. Conecta o ambiente Gym
+        env = ns3env.Ns3Env(port=5555, stepTime=1.0, startSim=False)
+        logging.info("Sucesso: Agente conectado ao ns-3!")
+
+    except Exception as e:
+        logging.error(f"Erro na sincronização: {e}")
+        if 'ns3_process' in locals():
+            ns3_process.terminate()
+        raise
 
     run_agent(env, args)
 

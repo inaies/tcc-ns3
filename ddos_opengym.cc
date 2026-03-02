@@ -177,7 +177,7 @@ Ptr<OpenGymDataContainer> MyGetObservation(void)
   ss << "]";
 
   // Imprime o tempo atual e o vetor de dados
-  NS_LOG_UNCOND("MyGetObservation [Time: " << Simulator::Now().GetSeconds() << "s]: " << ss.str());
+//   NS_LOG_UNCOND("MyGetObservation [Time: " << Simulator::Now().GetSeconds() << "s]: " << ss.str());
 
   return box;
 }
@@ -189,7 +189,7 @@ float MyGetReward(void)
 
 bool MyGetGameOver(void)
 {
-  return Now().GetSeconds() >= 400.0;
+  return Now().GetSeconds() >= 250.0;
 }
 
 std::string MyGetExtraInfo(void)
@@ -222,51 +222,21 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
     if (!action) return false;
     Ptr<OpenGymBoxContainer<float>> box = DynamicCast<OpenGymBoxContainer<float>>(action);
     if (!box) return false;
-
     std::vector<float> actions = box->GetData();
 
     for (uint32_t i = 0; i < actions.size() && i < wifiStaNodes2.GetN(); ++i) {
-        if (actions[i] > 0.5f) {
-            Ptr<Node> node = wifiStaNodes2.Get(i);
-            if (!node) continue;
+        Ptr<Node> node = wifiStaNodes2.Get(i);
+        if (!node) continue;
 
-            // Log visual com o IP (apenas cosmético)
-            std::string nodeIp = "Unknown";
-            Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
-            if (ipv6) {
-                for(uint32_t k=0; k<ipv6->GetNInterfaces(); ++k) {
-                    if (ipv6->GetNAddresses(k) >= 2) {
-                        std::ostringstream oss;
-                        oss << ipv6->GetAddress(k, 1).GetAddress();
-                        nodeIp = oss.str();
-                        break;
-                    }
-                }
-            }
+        // Se Action > 0.5 (Isolar) -> DataRate 0bps
+        std::string targetRate = (actions[i] > 0.5f) ? "0bps" : "5Mbps";
 
-            bool appStopped = false;
-            for (uint32_t j = 0; j < node->GetNApplications(); ++j) {
-                Ptr<Application> app = node->GetApplication(j);
-                
-                // Verifica se é o OnOffApplication (Gerador do Ataque)
-                if (app->GetInstanceTypeId() == OnOffApplication::GetTypeId()) {
-                    
-                    // --- CORREÇÃO FINAL: Use 1bps em vez de 0bps ---
-                    // 1. Define parada formal (pode demorar a surtir efeito devido ao OnTime)
-                    app->SetStopTime(Simulator::Now());
-                    
-                    // 2. "Sufoca" a aplicação.
-                    // Com 1bps, o próximo pacote será agendado para daqui a ~8000 segundos.
-                    // Como a simulação acaba em 100s, o pacote nunca sai.
-                    // Isso evita a divisão por zero do "0bps".
-                    app->SetAttribute("DataRate", StringValue("1bps"));
-                    
-                    appStopped = true;
-                }
-            }
-            
-            if (appStopped) {
-                NS_LOG_UNCOND(">>> [ACTION] Agente ISOLOU Node " << i << " (IP: " << nodeIp << ") - DataRate reduzido para 1bps (Virtualmente Zero)");
+        for (uint32_t j = 0; j < node->GetNApplications(); ++j) {
+            Ptr<Application> app = node->GetApplication(j);
+            // Verifica se é um App de Ataque (OnOff)
+            if (app->GetInstanceTypeId() == OnOffApplication::GetTypeId()) {
+                // Aplica a taxa (Pausa ou Normal) dinamicamente
+                app->SetAttribute("DataRate", StringValue(targetRate));
             }
         }
     }
@@ -710,7 +680,7 @@ main(int argc, char* argv[])
     );
     ApplicationContainer sinkApp = sinkHelper.Install(ap2_receptor);
     sinkApp.Start(Seconds(1.5)); // Começa cedo
-    sinkApp.Stop(Seconds(400.0)); // Para cedo
+    sinkApp.Stop(Seconds(250.0)); // Para cedo
 
     // 2. Configuração do Emissor (OnOff)
     
@@ -744,41 +714,43 @@ main(int argc, char* argv[])
       clientApp.Stop(Seconds(start_offset + (i-21) * interval + 1.0)); // Roda por 1 segundo apenas
     }
 
-/* ///////////   ataque ddos   ////////// */
-
+    // Seleciona os primeiros 20 nós da rede 2 como atacantes
+/* ///////////   ATAQUE DDOS CONFIGURADO   ////////// */
     NodeContainer attackerNodes;
-    for (int i = 0; i < 20; i ++)
-      attackerNodes.Add(wifiStaNodes2.Get(i));
+    for (int i = 0; i < 20; i++) {
+        attackerNodes.Add(wifiStaNodes2.Get(i));
+    }
 
-    Ptr<Node> victim = wifiApNode2.Get(0);
-    
     Ipv6Address victimAddress = apInterfaces2.GetAddress(0, 1);
-
     uint16_t attackPort = 9001;
-    
-    PacketSinkHelper udpSinkHelper(
-      "ns3::UdpSocketFactory",
-      Inet6SocketAddress(Ipv6Address::GetAny(), attackPort)
-    );
-    ApplicationContainer sinkAppAttack = udpSinkHelper.Install(victim);
+
+    // Sink de pacotes na vítima
+    PacketSinkHelper udpSinkHelper("ns3::UdpSocketFactory", Inet6SocketAddress(Ipv6Address::GetAny(), attackPort));
+    ApplicationContainer sinkAppAttack = udpSinkHelper.Install(wifiApNode2.Get(0));
     sinkAppAttack.Start(Seconds(1.0));
     sinkAppAttack.Stop(Seconds(400.0));
-  
-    for (uint32_t i = 0; i < attackerNodes.GetN(); i++)
-    {
-      OnOffHelper onoff(
-        "ns3::UdpSocketFactory",
-        Address(Inet6SocketAddress(victimAddress, attackPort))
-      );
-      onoff.SetAttribute("DataRate", StringValue("5Mbps"));
-      onoff.SetAttribute("PacketSize", UintegerValue(1024));
-      onoff.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=15]"));
-      onoff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
 
-      ApplicationContainer attackApp = onoff.Install(attackerNodes);
-      attackApp.Start(Seconds(155.0));
-      attackApp.Stop(Seconds(250.0));
-    }
+    // Helper do Ataque
+    OnOffHelper onoffAttack("ns3::UdpSocketFactory", Address(Inet6SocketAddress(victimAddress, attackPort)));
+    onoffAttack.SetAttribute("DataRate", StringValue("5Mbps"));
+    onoffAttack.SetAttribute("PacketSize", UintegerValue(1024));
+    onoffAttack.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]"));
+    onoffAttack.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
+
+    // INSTALAÇÃO ÚNICA: O OnOffHelper já aceita um NodeContainer
+    ApplicationContainer attackApps = onoffAttack.Install(attackerNodes);
+
+    // ONDA 1: Inicia em 155s e para em 200s
+    attackApps.Start(Seconds(155.0));
+    attackApps.Stop(Seconds(200.0));
+
+    // ONDA 2: Inicia em 250s e para em 300s
+    // Nota: No NS-3, para rodar a mesma aplicação duas vezes, é melhor criar 
+    // um segundo container ou gerenciar o restart via Simulator::Schedule.
+    // Para simplicidade, vamos instalar uma segunda aplicação para a segunda onda:
+    ApplicationContainer attackAppsWave2 = onoffAttack.Install(attackerNodes);
+    attackAppsWave2.Start(Seconds(250.0));
+    attackAppsWave2.Stop(Seconds(300.0));
 
     InstallFlowMonitor();
 
@@ -812,7 +784,7 @@ main(int argc, char* argv[])
         phy3.EnablePcap("ddosml_ap3", apDevices3.Get(0)); // AP1
     }
     
-    Simulator::Stop(Seconds(401.0));
+    Simulator::Stop(Seconds(251.0));
     Simulator::Run();
     Simulator::Destroy();
     return 0;
