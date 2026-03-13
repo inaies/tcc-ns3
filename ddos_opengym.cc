@@ -700,7 +700,7 @@ main(int argc, char* argv[])
         Address(Inet6SocketAddress(ap2_address, sinkPort)));
     
     // Taxa baixa para garantir que o AP possa receber (ex: 100kbps)
-    onoff.SetAttribute("DataRate", StringValue("100kbps"));
+    onoff.SetAttribute("DataRate", StringValue("64kbps"));
     // Envia apenas UM pacote por intervalo, para garantir que o AP consiga processar
     onoff.SetAttribute("PacketSize", UintegerValue(1000)); // Tamanho do pacote em bytes
     // O "OnTime" será o tempo de transmissão de um único pacote (muito curto)
@@ -803,9 +803,9 @@ main(int argc, char* argv[])
         phy2.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
         phy3.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
 
-        phy1.EnablePcap("ddosml_ap1", apDevices1.Get(0)); // AP1
-        phy2.EnablePcap("ddosml_ap2", apDevices2.Get(0)); // AP1
-        phy3.EnablePcap("ddosml_ap3", apDevices3.Get(0)); // AP1
+        phy1.EnablePcap("ddosml_dataset_ap1", apDevices1.Get(0)); // AP1
+        phy2.EnablePcap("ddosml_dataset_ap2", apDevices2.Get(0)); // AP1
+        phy3.EnablePcap("ddosml_dataset_ap3", apDevices3.Get(0)); // AP1
     }
     
     Simulator::Stop(Seconds(401.0));
