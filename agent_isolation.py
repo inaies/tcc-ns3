@@ -23,6 +23,7 @@ import time
 from sklearn.ensemble import IsolationForest
 import gym
 import logging
+import pandas as pd
 
 # Tente importar ns3-gym se disponível (opcional)
 try:
@@ -148,6 +149,61 @@ class IsolationIsolationAgent:
         self.model = IsolationForest(contamination=self.contamination, random_state=42)
         self.model.fit(X_train)
         logger.info("IsolationForest treinado (contamination=%s).", self.contamination)
+
+    def train_with_weather_dataset(self, dataset_path):
+        """
+        Lê o dataset Train_Test_IoT_weather.csv e treina o modelo.
+        Converte o packet_rate para bytes_per_sec multiplicando pelo tamanho do pacote (1024).
+        """
+        logger.info(f"A tentar carregar o dataset IoT Weather: {dataset_path}...")
+        
+        try:
+            import pandas as pd
+            # 1. Carrega o ficheiro CSV
+            df = pd.read_csv(dataset_path)
+            
+            # 2. Filtra apenas o tráfego legítimo
+            # O ficheiro tem a coluna 'label' (0 = normal) e 'type' ('normal')
+            if 'label' in df.columns:
+                df_normal = df[df['label'] == 0].copy()
+            elif 'type' in df.columns:
+                df_normal = df[df['type'] == 'normal'].copy()
+            else:
+                logger.error("Colunas de classificação não encontradas!")
+                return False
+
+            if len(df_normal) == 0:
+                logger.warning("Nenhum tráfego 'normal' encontrado. A usar tudo.")
+                df_normal = df.copy()
+
+            # 3. Faz a ponte matemática: packet_rate * 1024 = bytes por segundo
+            if 'packet_rate' in df_normal.columns:
+                df_normal['bytes_per_sec'] = df_normal['packet_rate'] * 1024.0
+            else:
+                logger.error("Coluna 'packet_rate' não encontrada!")
+                return False
+
+            # 4. Extrai a coluna para o formato de treino do Scikit-Learn
+            X_train = df_normal[['bytes_per_sec']].values
+            
+            logger.info("A treinar a IA com %d amostras de telemetria IoT real...", X_train.shape[0])
+
+            # 5. Treina o Isolation Forest
+            self.model = IsolationForest(contamination=self.contamination, random_state=42)
+            self.model.fit(X_train)
+            
+            # Printa uma estatística para provar o funcionamento (ótimo para o seu TCC)
+            media_bytes = df_normal['bytes_per_sec'].mean()
+            logger.info(f"Modelo TREINADO COM SUCESSO! Média de tráfego legítimo: {media_bytes:.2f} Bytes/s")
+            
+            return True
+            
+        except FileNotFoundError:
+            logger.error(f"Ficheiro não encontrado: {dataset_path}. Vai usar o warmup padrão.")
+            return False
+        except Exception as e:
+            logger.exception("Erro ao carregar o dataset: %s", e)
+            return False
 
     def build_neutral_action_for_env(self, n_nodes):
         """
@@ -281,9 +337,15 @@ def run_agent(env, args):
                                     isolation_cooldown=args.cooldown,
                                     max_total_isolations=args.max_total_isolations)
 
-    agent.warmup_and_train()
+    # Verifica se passou o CSV por linha de comandos
+    if args.dataset:
+        sucesso = agent.train_with_weather_dataset(args.dataset)
+        if not sucesso:
+            agent.warmup_and_train()
+    else:
+        agent.warmup_and_train()
 
-    # loop
+    # Daqui para baixo continua igual ao que você já tem...
     obs = None
     done = False
     step_idx = 0
@@ -314,13 +376,18 @@ def run_agent(env, args):
 # -----------------------------
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--env-id", type=str, default=None,
-                        help="ID do ambiente ns3-gym (ou caminho para wrapper). Ex: 'ns3gym-v0' ou None para usar gym.make")
-    parser.add_argument("--warmup", type=int, default=DEFAULT_WARMUP_STEPS)
-    parser.add_argument("--contamination", type=float, default=DEFAULT_CONTAMINATION)
-    parser.add_argument("--max-isolations", type=int, default=MAX_ISOLATIONS_PER_STEP)
-    parser.add_argument("--cooldown", type=int, default=ISOLATION_COOLDOWN)
-    parser.add_argument("--max-total-isolations", type=int, default=None)
+    parser.add_argument("--env-id", type=str, default=None, help="ID do ambiente ns3-gym")
+    
+    # === ADICIONE ESTA LINHA AQUI ===
+    parser.add_argument("--dataset", type=str, default=None, help="Caminho para o ficheiro CSV")
+    # ================================
+    
+    parser.add_argument("--warmup", type=int, default=150)
+    parser.add_argument("--contamination", type=float, default=0.1)
+    parser.add_argument("--max-isolations", type=int, default=5)
+    parser.add_argument("--cooldown", type=int, default=10)
+    parser.add_argument("--max-total-isolations", type=int, default=10)
+    
     args = parser.parse_args()
 
     # Cria ambiente: tenta gym.make, senão usa ns3gym wrapper se disponível
