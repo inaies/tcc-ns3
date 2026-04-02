@@ -189,7 +189,7 @@ float MyGetReward(void)
 
 bool MyGetGameOver(void)
 {
-  return Now().GetSeconds() >= 400.0;
+  return Now().GetSeconds() >= 900.0;
 }
 
 std::string MyGetExtraInfo(void)
@@ -689,38 +689,42 @@ main(int argc, char* argv[])
     );
     ApplicationContainer sinkApp = sinkHelper.Install(ap2_receptor);
     sinkApp.Start(Seconds(1.5)); // Começa cedo
-    sinkApp.Stop(Seconds(400.0)); // Para cedo
+    sinkApp.Stop(Seconds(900.0)); // Para cedo
 
     // 2. Configuração do Emissor (OnOff)
-    
-    // O AP2 está na rede 2001:4::/64. O AP2 é o sink.
     Ipv6Address ap2_address = apInterfaces2.GetAddress(0, 1); 
 
     OnOffHelper onoff("ns3::UdpSocketFactory",
         Address(Inet6SocketAddress(ap2_address, sinkPort)));
     
-    // Taxa baixa para garantir que o AP possa receber (ex: 100kbps)
-    onoff.SetAttribute("DataRate", StringValue("64kbps"));
-    // Envia apenas UM pacote por intervalo, para garantir que o AP consiga processar
-    onoff.SetAttribute("PacketSize", UintegerValue(1000)); // Tamanho do pacote em bytes
-    // O "OnTime" será o tempo de transmissão de um único pacote (muito curto)
-    onoff.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]")); 
-    // O "OffTime" deve ser um tempo grande para o nó não repetir o envio
-    onoff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
-
-    // 3. Agendamento Sequencial
-    double start_offset = 10.0; // Tempo inicial de start
-    double interval = 2;     // Intervalo entre o start de cada nó (50ms)
+    // Configuração para enviar aproximadamente 1 pacote por ciclo
+    onoff.SetAttribute("DataRate", StringValue("8kbps")); 
+    onoff.SetAttribute("PacketSize", UintegerValue(1000)); 
     
-    // Apenas nos nós da Rede 2 (wifiStaNodes2)
+    // --- O TEU CICLO DE 19 SEGUNDOS ---
+    // O nó fica ligado durante 1 segundo (tempo suficiente para enviar o seu pacote)
+    onoff.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1.0]")); 
+    // O nó dorme durante 18 segundos
+    onoff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=18.0]"));
+
+    // 3. Agendamento Simultâneo com Jitter (Espalhamento)
+    // Para que a linha no Wireshark fique reta e constante (8 pacotes/s),
+    // precisamos espalhar o arranque dos 152 nós ao longo de toda a janela de 19 segundos!
+    Ptr<UniformRandomVariable> jitter = CreateObject<UniformRandomVariable>();
+    jitter->SetAttribute("Min", DoubleValue(0.0));
+    jitter->SetAttribute("Max", DoubleValue(19.0)); 
+    
     for (uint32_t i = 21; i < wifiStaNodes2.GetN(); i++)
     {
-      // Cria uma instância do OnOffHelper para cada nó
       ApplicationContainer clientApp = onoff.Install(wifiStaNodes2.Get(i));
       
-      // Agenda o início da transmissão do nó 'i'
-      clientApp.Start(Seconds(start_offset + (i-21) * interval));
-      clientApp.Stop(Seconds(start_offset + (i-21) * interval + 1.0)); // Roda por 1 segundo apenas
+      // Cada nó vai sortear um momento para começar, entre o segundo 10 e o 29.
+      // Depois de começar, ele entra no ciclo infinito de 1s ligado / 18s desligado.
+      double start_time = 10.0 + jitter->GetValue();
+      clientApp.Start(Seconds(start_time));
+      
+      // Mantém este comportamento até ao fim da simulação
+      clientApp.Stop(Seconds(900.0)); 
     }
 
 /* ///////////   ATAQUE DDOS (DUAS ONDAS, NÓS DIFERENTES)   ////////// */
@@ -748,7 +752,7 @@ main(int argc, char* argv[])
     );
     ApplicationContainer sinkAppAttack = udpSinkHelper.Install(victim);
     sinkAppAttack.Start(Seconds(1.0));
-    sinkAppAttack.Stop(Seconds(400.0));
+    sinkAppAttack.Stop(Seconds(900.0));
   
     // ==========================================
     // ONDA 1: Atacantes 0 a 9 (155s até 200s)
@@ -808,7 +812,7 @@ main(int argc, char* argv[])
         phy3.EnablePcap("ddosml_dataset_ap3", apDevices3.Get(0)); // AP1
     }
     
-    Simulator::Stop(Seconds(401.0));
+    Simulator::Stop(Seconds(901.0));
     Simulator::Run();
     Simulator::Destroy();
     return 0;
