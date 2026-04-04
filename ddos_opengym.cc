@@ -758,8 +758,12 @@ main(int argc, char* argv[])
     // ONDA 1: Atacantes 0 a 9 (155s até 200s)
     // ==========================================
     OnOffHelper onoffWave1("ns3::UdpSocketFactory", Address(Inet6SocketAddress(victimAddress, attackPort)));
-    onoffWave1.SetAttribute("DataRate", StringValue("5Mbps"));
-    onoffWave1.SetAttribute("PacketSize", UintegerValue(1024));
+    
+    // --- ALTERAÇÃO AQUI: Multiplicamos a largura de banda do ataque por 10 ---
+    // Cada um dos 10 atacantes vai tentar empurrar 50Mbps, gerando 500Mbps no total!
+    onoffWave1.SetAttribute("DataRate", StringValue("50Mbps")); 
+    
+    onoffWave1.SetAttribute("PacketSize", UintegerValue(256));
     onoffWave1.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=15]"));
     onoffWave1.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
 
@@ -771,8 +775,11 @@ main(int argc, char* argv[])
     // ONDA 2: Atacantes 10 a 19 (250s até 300s)
     // ==========================================
     OnOffHelper onoffWave2("ns3::UdpSocketFactory", Address(Inet6SocketAddress(victimAddress, attackPort)));
-    onoffWave2.SetAttribute("DataRate", StringValue("5Mbps"));
-    onoffWave2.SetAttribute("PacketSize", UintegerValue(1024));
+    
+    // --- ALTERAÇÃO AQUI: Multiplicamos a largura de banda do ataque por 10 ---
+    onoffWave2.SetAttribute("DataRate", StringValue("50Mbps")); 
+    
+    onoffWave2.SetAttribute("PacketSize", UintegerValue(256));
     onoffWave2.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=15]"));
     onoffWave2.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
 
@@ -807,9 +814,9 @@ main(int argc, char* argv[])
         phy2.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
         phy3.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
 
-        phy1.EnablePcap("ddosml_dataset_ap1", apDevices1.Get(0)); // AP1
-        phy2.EnablePcap("ddosml_dataset_ap2", apDevices2.Get(0)); // AP1
-        phy3.EnablePcap("ddosml_dataset_ap3", apDevices3.Get(0)); // AP1
+        phy1.EnablePcap("ddosml_highatt_ap1", apDevices1.Get(0)); // AP1
+        phy2.EnablePcap("ddosml_highatt_ap2", apDevices2.Get(0)); // AP1
+        phy3.EnablePcap("ddosml_highatt_ap3", apDevices3.Get(0)); // AP1
     }
     
     Simulator::Stop(Seconds(901.0));
