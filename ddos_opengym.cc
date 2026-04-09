@@ -697,33 +697,30 @@ main(int argc, char* argv[])
     OnOffHelper onoff("ns3::UdpSocketFactory",
         Address(Inet6SocketAddress(ap2_address, sinkPort)));
     
-    // Configuração para enviar aproximadamente 1 pacote por ciclo
-    onoff.SetAttribute("DataRate", StringValue("8kbps")); 
-    onoff.SetAttribute("PacketSize", UintegerValue(1000)); 
+    // O CSV tem uma média de ~7 pacotes/s. Com pacotes de 1024 bytes, são ~7168 Bytes/s.
+    // 7168 Bytes/s * 8 bits = 57.344 bits por segundo (aproximadamente 56kbps).
+    onoff.SetAttribute("DataRate", StringValue("56kbps")); 
+    onoff.SetAttribute("PacketSize", UintegerValue(1024)); 
     
-    // --- O TEU CICLO DE 19 SEGUNDOS ---
-    // O nó fica ligado durante 1 segundo (tempo suficiente para enviar o seu pacote)
+    // Tráfego contínuo e ininterrupto para manter a média de 7 pacotes/s
     onoff.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1.0]")); 
-    // O nó dorme durante 18 segundos
-    onoff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=18.0]"));
+    onoff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0.0]")); // Nunca dorme
 
-    // 3. Agendamento Simultâneo com Jitter (Espalhamento)
-    // Para que a linha no Wireshark fique reta e constante (8 pacotes/s),
-    // precisamos espalhar o arranque dos 152 nós ao longo de toda a janela de 19 segundos!
+    // 3. Agendamento Simultâneo com Jitter
+    // Cria um atraso aleatório entre 0 e 2 segundos
     Ptr<UniformRandomVariable> jitter = CreateObject<UniformRandomVariable>();
     jitter->SetAttribute("Min", DoubleValue(0.0));
-    jitter->SetAttribute("Max", DoubleValue(19.0)); 
+    jitter->SetAttribute("Max", DoubleValue(2.0)); 
     
     for (uint32_t i = 21; i < wifiStaNodes2.GetN(); i++)
     {
       ApplicationContainer clientApp = onoff.Install(wifiStaNodes2.Get(i));
       
-      // Cada nó vai sortear um momento para começar, entre o segundo 10 e o 29.
-      // Depois de começar, ele entra no ciclo infinito de 1s ligado / 18s desligado.
+      // Todos os 152 nós começam a transmitir entre os segundos 10 e 12
       double start_time = 10.0 + jitter->GetValue();
       clientApp.Start(Seconds(start_time));
       
-      // Mantém este comportamento até ao fim da simulação
+      // Param apenas no fim da simulação (900s)
       clientApp.Stop(Seconds(900.0)); 
     }
 
