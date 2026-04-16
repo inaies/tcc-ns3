@@ -688,39 +688,41 @@ main(int argc, char* argv[])
       Inet6SocketAddress(Ipv6Address::GetAny(), sinkPort)
     );
     ApplicationContainer sinkApp = sinkHelper.Install(ap2_receptor);
-    sinkApp.Start(Seconds(1.5)); // Começa cedo
-    sinkApp.Stop(Seconds(900.0)); // Para cedo
+    sinkApp.Start(Seconds(1.5)); 
+    sinkApp.Stop(Seconds(900.0));
 
-    // 2. Configuração do Emissor (OnOff)
+// ==========================================
+    // TRÁFEGO COMUM (Volume Alto + Variação Natural)
+    // ==========================================
     Ipv6Address ap2_address = apInterfaces2.GetAddress(0, 1); 
 
     OnOffHelper onoff("ns3::UdpSocketFactory",
         Address(Inet6SocketAddress(ap2_address, sinkPort)));
     
-    // O CSV tem uma média de ~7 pacotes/s. Com pacotes de 1024 bytes, são ~7168 Bytes/s.
-    // 7168 Bytes/s * 8 bits = 57.344 bits por segundo (aproximadamente 56kbps).
+    // Aumentamos a taxa individual para casar com a IA (~7 pacotes/s por nó ativo)
     onoff.SetAttribute("DataRate", StringValue("56kbps")); 
-    onoff.SetAttribute("PacketSize", UintegerValue(1024)); 
+    onoff.SetAttribute("PacketSize", UintegerValue(1000)); 
     
-    // Tráfego contínuo e ininterrupto para manter a média de 7 pacotes/s
+    // O nó transmite durante 1 segundo...
     onoff.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1.0]")); 
-    onoff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0.0]")); // Nunca dorme
+    
+    // ... e dorme apenas entre 2 a 4 segundos (Média de 3s).
+    // Isto significa que ~25% da rede está sempre ativa simultaneamente, gerando muito tráfego!
+    onoff.SetAttribute("OffTime", StringValue("ns3::UniformRandomVariable[Min=2.0|Max=4.0]"));
 
-    // 3. Agendamento Simultâneo com Jitter
-    // Cria um atraso aleatório entre 0 e 2 segundos
-    Ptr<UniformRandomVariable> jitter = CreateObject<UniformRandomVariable>();
-    jitter->SetAttribute("Min", DoubleValue(0.0));
-    jitter->SetAttribute("Max", DoubleValue(2.0)); 
+    // Como o ciclo médio agora é de 4 segundos (1s ON + 3s OFF),
+    // ajustamos o espalhamento para estabilizar a rede nos primeiros 4 segundos.
+    uint32_t numNodes = wifiStaNodes2.GetN() - 21; 
+    double spread_interval = 4.0 / numNodes;      
     
     for (uint32_t i = 21; i < wifiStaNodes2.GetN(); i++)
     {
       ApplicationContainer clientApp = onoff.Install(wifiStaNodes2.Get(i));
       
-      // Todos os 152 nós começam a transmitir entre os segundos 10 e 12
-      double start_time = 10.0 + jitter->GetValue();
-      clientApp.Start(Seconds(start_time));
+      // Arranque suave nos primeiros 4 segundos da simulação
+      double start_time = 1.0 + ((i - 21) * spread_interval);
       
-      // Param apenas no fim da simulação (900s)
+      clientApp.Start(Seconds(start_time));
       clientApp.Stop(Seconds(900.0)); 
     }
 
@@ -756,11 +758,10 @@ main(int argc, char* argv[])
     // ==========================================
     OnOffHelper onoffWave1("ns3::UdpSocketFactory", Address(Inet6SocketAddress(victimAddress, attackPort)));
     
-    // --- ALTERAÇÃO AQUI: Multiplicamos a largura de banda do ataque por 10 ---
-    // Cada um dos 10 atacantes vai tentar empurrar 50Mbps, gerando 500Mbps no total!
-    onoffWave1.SetAttribute("DataRate", StringValue("50Mbps")); 
+    // Aumentado para 100Mbps por nó atacante!
+    onoffWave1.SetAttribute("DataRate", StringValue("100Mbps")); 
     
-    onoffWave1.SetAttribute("PacketSize", UintegerValue(256));
+    onoffWave1.SetAttribute("PacketSize", UintegerValue(1024));
     onoffWave1.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=15]"));
     onoffWave1.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
 
@@ -773,10 +774,10 @@ main(int argc, char* argv[])
     // ==========================================
     OnOffHelper onoffWave2("ns3::UdpSocketFactory", Address(Inet6SocketAddress(victimAddress, attackPort)));
     
-    // --- ALTERAÇÃO AQUI: Multiplicamos a largura de banda do ataque por 10 ---
-    onoffWave2.SetAttribute("DataRate", StringValue("50Mbps")); 
+    // Aumentado para 100Mbps por nó atacante!
+    onoffWave2.SetAttribute("DataRate", StringValue("100Mbps")); 
     
-    onoffWave2.SetAttribute("PacketSize", UintegerValue(256));
+    onoffWave2.SetAttribute("PacketSize", UintegerValue(1024));
     onoffWave2.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=15]"));
     onoffWave2.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
 
