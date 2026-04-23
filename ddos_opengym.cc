@@ -453,6 +453,10 @@ main(int argc, char* argv[])
     LogComponentEnable("UdpEchoClientApplication", LOG_LEVEL_INFO);
     LogComponentEnable("UdpEchoServerApplication", LOG_LEVEL_INFO);
 
+    // LIMITAÇÃO DE BUFFER PARA EVIDENCIAR O IMPACTO DO DDOS
+    Config::SetDefault("ns3::WifiMacQueue::MaxSize", StringValue("5p"));
+    Config::SetDefault("ns3::WifiMacQueue::MaxDelay", TimeValue(MilliSeconds(10)));
+
     bool verbose = true;
     uint32_t nWifiCsma = 173; // nCsma renomeado para nWifiCsma
     uint32_t nWifi = 173;
@@ -692,39 +696,35 @@ main(int argc, char* argv[])
     sinkApp.Stop(Seconds(900.0));
 
 // ==========================================
-    // TRÁFEGO COMUM (Volume Alto + Variação Natural)
+    // TRÁFEGO COMUM (Planalto Super Estável)
     // ==========================================
-    Ipv6Address ap2_address = apInterfaces2.GetAddress(0, 1); 
+Ipv6Address ap2_address = apInterfaces2.GetAddress(0, 1); 
 
-    OnOffHelper onoff("ns3::UdpSocketFactory",
-        Address(Inet6SocketAddress(ap2_address, sinkPort)));
-    
-    // Aumentamos a taxa individual para casar com a IA (~7 pacotes/s por nó ativo)
-    onoff.SetAttribute("DataRate", StringValue("56kbps")); 
-    onoff.SetAttribute("PacketSize", UintegerValue(1000)); 
-    
-    // O nó transmite durante 1 segundo...
-    onoff.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1.0]")); 
-    
-    // ... e dorme apenas entre 2 a 4 segundos (Média de 3s).
-    // Isto significa que ~25% da rede está sempre ativa simultaneamente, gerando muito tráfego!
-    onoff.SetAttribute("OffTime", StringValue("ns3::UniformRandomVariable[Min=2.0|Max=4.0]"));
+OnOffHelper onoff("ns3::UdpSocketFactory", Address(Inet6SocketAddress(ap2_address, sinkPort)));
 
-    // Como o ciclo médio agora é de 4 segundos (1s ON + 3s OFF),
-    // ajustamos o espalhamento para estabilizar a rede nos primeiros 4 segundos.
-    uint32_t numNodes = wifiStaNodes2.GetN() - 21; 
-    double spread_interval = 4.0 / numNodes;      
-    
-    for (uint32_t i = 21; i < wifiStaNodes2.GetN(); i++)
-    {
-      ApplicationContainer clientApp = onoff.Install(wifiStaNodes2.Get(i));
-      
-      // Arranque suave nos primeiros 4 segundos da simulação
-      double start_time = 1.0 + ((i - 21) * spread_interval);
-      
-      clientApp.Start(Seconds(start_time));
-      clientApp.Stop(Seconds(900.0)); 
-    }
+// Taxa baixa (16kbps) mas sem dormir, criando um fluxo contínuo e orgânico
+onoff.SetAttribute("DataRate", StringValue("16kbps")); 
+onoff.SetAttribute("PacketSize", UintegerValue(1000)); 
+
+// Sem tempos de sono (OffTime = 0.0) para evitar a sincronização global (efeito de ondas)
+onoff.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1.0]")); 
+onoff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0.0]"));
+
+// Espalhamento orgânico do momento de inicialização
+Ptr<UniformRandomVariable> uv = CreateObject<UniformRandomVariable>();
+uv->SetAttribute("Min", DoubleValue(0.0));
+uv->SetAttribute("Max", DoubleValue(2.0));
+
+for (uint32_t i = 21; i < wifiStaNodes2.GetN(); i++)
+{
+ApplicationContainer clientApp = onoff.Install(wifiStaNodes2.Get(i));
+
+// Cada nó arranca num milissegundo aleatório entre 1.0s e 3.0s
+double start_time = 1.0 + uv->GetValue();
+
+clientApp.Start(Seconds(start_time));
+clientApp.Stop(Seconds(900.0)); 
+}
 
 /* ///////////   ATAQUE DDOS (DUAS ONDAS, NÓS DIFERENTES)   ////////// */
 
@@ -753,37 +753,38 @@ main(int argc, char* argv[])
     sinkAppAttack.Start(Seconds(1.0));
     sinkAppAttack.Stop(Seconds(900.0));
   
-    // ==========================================
+// ==========================================
     // ONDA 1: Atacantes 0 a 9 (155s até 200s)
     // ==========================================
     OnOffHelper onoffWave1("ns3::UdpSocketFactory", Address(Inet6SocketAddress(victimAddress, attackPort)));
-    
-    // Aumentado para 100Mbps por nó atacante!
     onoffWave1.SetAttribute("DataRate", StringValue("100Mbps")); 
-    
-    onoffWave1.SetAttribute("PacketSize", UintegerValue(1024));
+    onoffWave1.SetAttribute("PacketSize", UintegerValue(64));
     onoffWave1.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=15]"));
     onoffWave1.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
 
-    ApplicationContainer attackApp1 = onoffWave1.Install(attackerNodesWave1);
-    attackApp1.Start(Seconds(155.0));
-    attackApp1.Stop(Seconds(200.0));
+    // Espalhamos o arranque em 0.5 segundos para evitar colisão instantânea no Wi-Fi
+    for (uint32_t i = 0; i < attackerNodesWave1.GetN(); i++) {
+        ApplicationContainer attackApp1 = onoffWave1.Install(attackerNodesWave1.Get(i));
+        double start_time = 155.0 + (i * 0.05); 
+        attackApp1.Start(Seconds(start_time));
+        attackApp1.Stop(Seconds(200.0));
+    }
 
     // ==========================================
     // ONDA 2: Atacantes 10 a 19 (250s até 300s)
     // ==========================================
     OnOffHelper onoffWave2("ns3::UdpSocketFactory", Address(Inet6SocketAddress(victimAddress, attackPort)));
-    
-    // Aumentado para 100Mbps por nó atacante!
     onoffWave2.SetAttribute("DataRate", StringValue("100Mbps")); 
-    
-    onoffWave2.SetAttribute("PacketSize", UintegerValue(1024));
+    onoffWave2.SetAttribute("PacketSize", UintegerValue(64));
     onoffWave2.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=15]"));
     onoffWave2.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
 
-    ApplicationContainer attackApp2 = onoffWave2.Install(attackerNodesWave2);
-    attackApp2.Start(Seconds(250.0));
-    attackApp2.Stop(Seconds(300.0));
+    for (uint32_t i = 0; i < attackerNodesWave2.GetN(); i++) {
+        ApplicationContainer attackApp2 = onoffWave2.Install(attackerNodesWave2.Get(i));
+        double start_time = 250.0 + (i * 0.05); 
+        attackApp2.Start(Seconds(start_time));
+        attackApp2.Stop(Seconds(300.0));
+    }
 
     InstallFlowMonitor();
 
