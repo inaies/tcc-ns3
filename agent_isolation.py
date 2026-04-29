@@ -48,7 +48,7 @@ MAX_TOTAL_ISOLATIONS = None        # limitador global (None = sem limite)
 # --- A GRANDE PROTEÇÃO: THRESHOLD SEGURO ---
 # Tráfego legítimo ronda os 2.000 Bytes/s. Ataque ronda os 12.000.000 Bytes/s.
 # Só isolamos se o nó enviar mais de 500.000 Bytes/s.
-THRESHOLD_SEGURO = 500000.0 
+THRESHOLD_SEGURO = 85000.0 
 # -------------------------------------------
 
 # -----------------------------

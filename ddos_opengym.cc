@@ -112,7 +112,7 @@ bool IsNodeActive(Ptr<Node> node)
 
 Ptr<OpenGymSpace> MyGetObservationSpace(void)
 {
-  uint32_t nodeNum = 30;
+  uint32_t nodeNum = 173;
   float low = 0.0;
   float high = 1e9; // 1 Gbps max
   std::vector<uint32_t> shape = {nodeNum};
@@ -123,7 +123,7 @@ Ptr<OpenGymSpace> MyGetObservationSpace(void)
 
 Ptr<OpenGymSpace> MyGetActionSpace(void)
 {
-    uint32_t N = 30;
+    uint32_t N = 173;
     std::vector<uint32_t> shape = {N};
     std::vector<float> low(N, 0.0f);
     std::vector<float> high(N, 1.0f);
@@ -133,7 +133,7 @@ Ptr<OpenGymSpace> MyGetActionSpace(void)
 
 Ptr<OpenGymDataContainer> MyGetObservation(void)
 {
-  uint32_t nodeNum = 30;
+  uint32_t nodeNum = 173;
   std::vector<uint32_t> shape = {nodeNum};
   Ptr<OpenGymBoxContainer<float>> box = CreateObject<OpenGymBoxContainer<float>>(shape);
 
@@ -455,7 +455,7 @@ main(int argc, char* argv[])
 
     // LIMITAÇÃO DE BUFFER PARA EVIDENCIAR O IMPACTO DO DDOS
     Config::SetDefault("ns3::WifiMacQueue::MaxSize", StringValue("5p"));
-    Config::SetDefault("ns3::WifiMacQueue::MaxDelay", TimeValue(MilliSeconds(10)));
+    Config::SetDefault("ns3::WifiMacQueue::MaxDelay", TimeValue(MilliSeconds(50)));
 
     bool verbose = true;
     uint32_t nWifiCsma = 173; // nCsma renomeado para nWifiCsma
