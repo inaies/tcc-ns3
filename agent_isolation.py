@@ -24,6 +24,13 @@ from sklearn.ensemble import IsolationForest
 import gym
 import logging
 import pandas as pd
+import csv
+import os
+
+# Cria/Limpa o ficheiro de métricas da IA
+with open('metricas_ia.csv', mode='w', newline='') as file:
+    writer = csv.writer(file)
+    writer.writerow(['Step_Segundo', 'Anomalias_Detetadas', 'Nos_Isolados_Total', 'Score_Mais_Perigoso', 'Score_Medio_Rede'])
 
 # Tente importar ns3-gym se disponível (opcional)
 try:
@@ -96,6 +103,7 @@ class IsolationIsolationAgent:
                  isolation_cooldown=ISOLATION_COOLDOWN,
                  max_total_isolations=MAX_TOTAL_ISOLATIONS):
         self.env = env
+        self.idle_steps = 15     # Ignora os primeiros 15s (fase de arranque/rampa)
         self.warmup_steps = warmup_steps
         self.contamination = contamination
         self.max_isolations_per_step = max_isolations_per_step
@@ -113,38 +121,43 @@ class IsolationIsolationAgent:
         self.whitelist_node_ids = set()  # preencher se quiser ex: {ap_index}
 
     def warmup_and_train(self):
-        """
-        Coleta warmup_steps de observações sem tomar ações de isolamento e treina IsolationForest.
-        """
-        logger.info("Warmup: coletando %d passos para aprender baseline...", self.warmup_steps)
+        logger.info("Iniciando a simulação... Aguardando %d passos para a rede estabilizar.", self.idle_steps)
         obs = self.env.reset() 
 
+        # 1. FASE DE ESPERA (Ignorar os dados iniciais enquanto os nós acordam)
+        for step in range(self.idle_steps):
+            _, node_ids = extract_node_features(obs)
+            neutral_action = self.build_neutral_action_for_env(len(node_ids))
+            obs, reward, done, info = self.env.step(neutral_action)
+            if done: return
+
+        # 2. FASE DE TREINO (Capturar dados limpos da rede estabilizada)
+        logger.info("Rede estabilizada! Coletando %d passos para treinar a IA...", self.warmup_steps)
         for step in range(self.warmup_steps):
             X_nodes, node_ids = extract_node_features(obs)
             self.feature_buffer.append(X_nodes)
             
             neutral_action = self.build_neutral_action_for_env(len(node_ids))
             obs, reward, done, info = self.env.step(neutral_action)
-            if done:
-                logger.info("Env terminou durante warmup (done).")
-                break
+            if done: return
 
-        # construir dataset
+        # Construir dataset e treinar o Isolation Forest
         all_rows = []
         for step_arr in self.feature_buffer:
             for r in step_arr:
                 all_rows.append(r)
         X = np.vstack(all_rows)
         
-        # Adicionar ruído para evitar variância zero
+        # NOVA LÓGICA: Calcula a MÉDIA (e não o máximo)
+        self.mean_normal_traffic = float(np.mean(X))
+        logger.info("Média de tráfego legítimo memorizada: %.2f Bytes/s", self.mean_normal_traffic)
+
         noise = np.random.normal(0, 0.01, size=X.shape)
         X_train = X + noise
 
-        logger.info("Warmup coletou %d amostras. Treinando com ruído...", X.shape[0])
-
         self.model = IsolationForest(contamination=self.contamination, random_state=42)
         self.model.fit(X_train)
-        logger.info("IsolationForest treinado (contamination=%s).", self.contamination)
+        logger.info("IA Treinada com sucesso! 100% Autônoma.")
 
     def train_with_weather_dataset(self, dataset_path):
         """
@@ -242,10 +255,9 @@ class IsolationIsolationAgent:
                 is_anom = "ANOMALIA" if preds[i] == -1 else "Normal"
                 logger.info(f"DEBUG [{label}]: Trafego={traffic_val:.1f} Score={scores[i]:.3f} Class={is_anom}")
 
-        anomalous = [c for c in candidates if c[1] == -1 and c[0] not in self.whitelist_node_ids]
-        anomalous.sort(key=lambda t: t[2]) 
-
-        # Gerenciar Cooldown
+        # ========================================================
+        # 1. GERENCIAR COOLDOWN (O bloco que tinha desaparecido!)
+        # ========================================================
         to_remove = []
         for nid in list(self.isolated_until.keys()):
             self.isolated_until[nid] -= 1
@@ -256,27 +268,31 @@ class IsolationIsolationAgent:
             label = node_labels.get(nid, f"Node {nid}") 
             logger.info("%s reativado (cooldown expirado).", label)
 
+        # ========================================================
+        # 2. DEFINIR LIMITE DE ISOLAMENTOS (A variável que deu erro)
+        # ========================================================
         allowed = self.max_isolations_per_step 
-        
+
+        # ========================================================
+        # 3. FILTRAGEM PURA PELA IA (Anomaly Score)
+        # ========================================================
+        anomalous = [c for c in candidates if c[1] == -1 and c[0] not in self.whitelist_node_ids]
+        anomalous.sort(key=lambda t: t[2]) 
+
         chosen = []
         for (nid, pred, score, feat, label) in anomalous:
             if allowed <= 0: break
             if nid in self.isolated_until: continue
             
-            try:
-                traffic = float(feat[0])
-            except: 
-                traffic = 0
+            # SCORE DE CORTE DINÂMICO
+            # Filtra os verdadeiros atacantes (< -0.2) e perdoa as vítimas de inanição
+            if score < -0.2: 
+                chosen.append(nid)
+                allowed -= 1
             
-            # --- PROTEÇÃO CONTRA FALSOS POSITIVOS ---
-            if traffic < THRESHOLD_SEGURO: 
-                # Se o tráfego for menor que 50.000 Bytes/s, ignorar (proteger tráfego comum)
-                continue
-
-            chosen.append(nid)
-            allowed -= 1
-            
-        # Recriar o vetor de ação final
+        # ========================================================
+        # 4. EXECUTAR AÇÃO DE ISOLAMENTO
+        # ========================================================
         action = np.zeros(N, dtype=int)
         for i, nid in enumerate(node_ids):
             label = node_labels.get(nid, f"Node {nid}")
@@ -291,7 +307,13 @@ class IsolationIsolationAgent:
             else:
                 action[i] = 0
 
-        return action
+        # Calcular estatísticas do score para o gráfico (Usando np.min para ver a pior ameaça)
+        score_mais_perigoso = float(np.min(scores)) if len(scores) > 0 else 0.0
+        score_medio = float(np.mean(scores)) if len(scores) > 0 else 0.0
+        total_anomalias_detetadas = len(anomalous)
+        nos_isolados_neste_momento = len(self.isolated_until)
+
+        return action, total_anomalias_detetadas, nos_isolados_neste_momento, score_mais_perigoso, score_medio
 
 # -----------------------------
 # Loop principal
@@ -323,11 +345,22 @@ def run_agent(env, args):
     logger.info("Iniciando loop principal do agente...")
     while not done:
         current_info = info if 'info' in locals() else None
-        action = agent.step(obs, info_str=current_info, step_idx=step_idx) # Passei info_str corrigido
+        
+        # Recebe a ação e as métricas da IA
+        action, anom_detetadas, nos_isol, score_max, score_med = agent.step(obs, info_str=current_info, step_idx=step_idx) 
+        
+        # Envia a ação para o ns-3
         obs, reward, done, info = env.step(action)
+        
+        # Grava os dados da IA no CSV
+        with open('metricas_ia.csv', mode='a', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow([step_idx, anom_detetadas, nos_isol, score_max, score_med])
+            
         step_idx += 1
         if step_idx % 10 == 0:
-            logger.info("Step %d done=%s reward=%s", step_idx, done, reward)
+            logger.info("Step %d done=%s. Isolados: %d | Max Score: %.3f", step_idx, done, nos_isol, score_max)
+            
     logger.info("Env terminou. Agent steps: %d", step_idx)
 
 # -----------------------------
@@ -337,7 +370,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--env-id", type=str, default=None, help="ID do ambiente ns3-gym")
     parser.add_argument("--dataset", type=str, default=None, help="Caminho para o ficheiro CSV")
-    parser.add_argument("--warmup", type=int, default=150)
+    parser.add_argument("--warmup", type=int, default=100)
     parser.add_argument("--contamination", type=float, default=0.1)
     parser.add_argument("--max-isolations", type=int, default=5)
     parser.add_argument("--cooldown", type=int, default=10)
