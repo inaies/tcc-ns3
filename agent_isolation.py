@@ -104,6 +104,7 @@ class IsolationIsolationAgent:
                  max_total_isolations=MAX_TOTAL_ISOLATIONS):
         self.env = env
         self.idle_steps = 15     # Ignora os primeiros 15s (fase de arranque/rampa)
+        self.warmup_steps = 100
         self.warmup_steps = warmup_steps
         self.contamination = contamination
         self.max_isolations_per_step = max_isolations_per_step
@@ -370,7 +371,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--env-id", type=str, default=None, help="ID do ambiente ns3-gym")
     parser.add_argument("--dataset", type=str, default=None, help="Caminho para o ficheiro CSV")
-    parser.add_argument("--warmup", type=int, default=100)
+    parser.add_argument("--warmup", type=int, default=150)
     parser.add_argument("--contamination", type=float, default=0.1)
     parser.add_argument("--max-isolations", type=int, default=5)
     parser.add_argument("--cooldown", type=int, default=10)
