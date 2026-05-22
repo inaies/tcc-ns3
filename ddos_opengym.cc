@@ -765,9 +765,9 @@ clientApp.Stop(Seconds(900.0));
     // Espalhamos o arranque em 0.5 segundos para evitar colisão instantânea no Wi-Fi
     for (uint32_t i = 0; i < attackerNodesWave1.GetN(); i++) {
         ApplicationContainer attackApp1 = onoffWave1.Install(attackerNodesWave1.Get(i));
-        double start_time = 155.0 + (i * 0.05); 
+        double start_time = 170.0 + (i * 0.05); 
         attackApp1.Start(Seconds(start_time));
-        attackApp1.Stop(Seconds(200.0));
+        attackApp1.Stop(Seconds(220.0));
     }
 
     // ==========================================

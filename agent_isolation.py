@@ -151,8 +151,11 @@ class IsolationIsolationAgent:
         
         # NOVA LÓGICA: Calcula a MÉDIA (e não o máximo)
         self.mean_normal_traffic = float(np.mean(X))
-        logger.info("Média de tráfego legítimo memorizada: %.2f Bytes/s", self.mean_normal_traffic)
-
+        self.std_normal_traffic = float(np.std(X))
+        self.limite_seguranca = self.mean_normal_traffic + (3 * self.std_normal_traffic)
+        
+        logger.info("Baseline -> Média: %.2f | Limite de Segurança (3-Sigma): %.2f Bytes/s", 
+                    self.mean_normal_traffic, self.limite_seguranca)
         noise = np.random.normal(0, 0.01, size=X.shape)
         X_train = X + noise
 
@@ -275,7 +278,7 @@ class IsolationIsolationAgent:
         allowed = self.max_isolations_per_step 
 
         # ========================================================
-        # 3. FILTRAGEM PURA PELA IA (Anomaly Score)
+        # 3. FILTRAGEM DUPLA (100% AUTÓNOMA E ADAPTÁVEL)
         # ========================================================
         anomalous = [c for c in candidates if c[1] == -1 and c[0] not in self.whitelist_node_ids]
         anomalous.sort(key=lambda t: t[2]) 
@@ -285,9 +288,12 @@ class IsolationIsolationAgent:
             if allowed <= 0: break
             if nid in self.isolated_until: continue
             
-            # SCORE DE CORTE DINÂMICO
-            # Filtra os verdadeiros atacantes (< -0.2) e perdoa as vítimas de inanição
-            if score < -0.2: 
+            traffic_bytes = float(feat[0])
+            
+            # O ESCUDO ESTATÍSTICO (3-SIGMA):
+            # Comparamos o tráfego com o limite superior estatístico da rede normal.
+            # Um pico natural passa impune. Um ataque DDoS ultrapassa isto facilmente.
+            if traffic_bytes > self.limite_seguranca:
                 chosen.append(nid)
                 allowed -= 1
             
@@ -297,14 +303,17 @@ class IsolationIsolationAgent:
         action = np.zeros(N, dtype=int)
         for i, nid in enumerate(node_ids):
             label = node_labels.get(nid, f"Node {nid}")
-            if nid in chosen:
+            
+            if nid in chosen or nid in self.isolated_until:
                 action[i] = 1
-                self.isolated_until[nid] = self.isolation_cooldown
-                self.total_isolated += 1
-                sc = 0.0
-                for c in candidates: 
-                    if c[0] == nid: sc = c[2]; break
-                logger.info(">>> ISOLANDO %s (Score=%.4f Traffic=%.1f)", label, sc, float(X_nodes[i][0]))
+                
+                if nid in chosen:
+                    self.isolated_until[nid] = self.isolation_cooldown
+                    self.total_isolated += 1
+                    sc = 0.0
+                    for c in candidates: 
+                        if c[0] == nid: sc = c[2]; break
+                    logger.info(">>> ISOLANDO %s (Score=%.4f Traffic=%.1f)", label, sc, float(X_nodes[i][0]))
             else:
                 action[i] = 0
 
@@ -374,8 +383,8 @@ def main():
     parser.add_argument("--warmup", type=int, default=150)
     parser.add_argument("--contamination", type=float, default=0.1)
     parser.add_argument("--max-isolations", type=int, default=5)
-    parser.add_argument("--cooldown", type=int, default=10)
-    parser.add_argument("--max-total-isolations", type=int, default=10)
+    parser.add_argument("--cooldown", type=int, default=20)
+    parser.add_argument("--max-total-isolations", type=int, default=20)
     
     args = parser.parse_args()
 
