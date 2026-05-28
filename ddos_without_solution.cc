@@ -282,7 +282,7 @@ int main(int argc, char* argv[])
     sinkAppAttack.Start(Seconds(1.0));
     sinkAppAttack.Stop(Seconds(900.0));
   
-    // ONDA 1: 155s até 200s
+    // ONDA 1: 170s até 220s
     OnOffHelper onoffWave1("ns3::UdpSocketFactory", Address(Inet6SocketAddress(ap2_address, attackPort)));
     onoffWave1.SetAttribute("DataRate", StringValue("100Mbps")); 
     onoffWave1.SetAttribute("PacketSize", UintegerValue(64));
@@ -291,9 +291,9 @@ int main(int argc, char* argv[])
 
     for (uint32_t i = 0; i < attackerNodesWave1.GetN(); i++) {
         ApplicationContainer attackApp1 = onoffWave1.Install(attackerNodesWave1.Get(i));
-        double start_time = 155.0 + (i * 0.05); 
+        double start_time = 170.0 + (i * 0.05); 
         attackApp1.Start(Seconds(start_time));
-        attackApp1.Stop(Seconds(200.0));
+        attackApp1.Stop(Seconds(220.0));
     }
 
     // ONDA 2: 250s até 300s
