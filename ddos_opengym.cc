@@ -1,10 +1,9 @@
-// third_three_wifi_fixed_ipv6_mobility.cc
-#include "ns3/opengym-module.h"   // nome exato conforme sua versão do ns3-gym
+#include "ns3/opengym-module.h"
 #include "ns3/flow-monitor-module.h"
 #include "ns3/ipv6-flow-classifier.h"
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
-#include "ns3/csma-module.h" // Mantido por compatibilidade de includes, mas CSMA removido
+#include "ns3/csma-module.h"
 #include "ns3/internet-module.h"
 #include "ns3/mobility-module.h"
 #include "ns3/network-module.h"
@@ -43,12 +42,10 @@ void InstallFlowMonitor()
     ipv6Classifier = DynamicCast<Ipv6FlowClassifier>(flowmonHelper.GetClassifier6());
     if (ipv6Classifier == nullptr) {
         NS_LOG_WARN("Ipv6FlowClassifier not available in this build; flow->address mapping will be unavailable.");
-        // Neste caso, DetectAndMitigate terá que usar outra fonte de informação
     }
     lastRxBytesPerFlow.clear();
 }
 
-// ----------------------
 // Coleta de "throughput" por source node usando FlowMonitor
 // Retorna map: sourceIpv6String -> throughput (bytes/s) durante o intervalo
 std::map<std::string, double> CollectNodeThroughputs(double intervalSeconds)
@@ -58,13 +55,16 @@ std::map<std::string, double> CollectNodeThroughputs(double intervalSeconds)
     if (!flowMonitor) return throughputBySrc;
 
     flowMonitor->CheckForLostPackets();
+    // Obtem lista de fluxos ativos 
     std::map<FlowId, FlowMonitor::FlowStats> stats = flowMonitor->GetFlowStats();
 
+    // Itera sobre cada fluxo e armazena suas estatísticas brutas
     for (auto &kv : stats) {
         FlowId fid = kv.first;
         FlowMonitor::FlowStats fs = kv.second;
 
-        // mapeamento flow -> five-tuple usando classifier (se disponível)
+        // Mapeamento flow -> five-tuple usando classifier (se disponível)
+        // Ip de origem; Ip de destino; porta origem; porta destino; protocolo
         Ipv6FlowClassifier::FiveTuple t;
 
         if (ipv6Classifier == nullptr) {
@@ -80,52 +80,42 @@ std::map<std::string, double> CollectNodeThroughputs(double intervalSeconds)
         uint64_t rxBytes = fs.rxBytes;
 
         uint64_t prev = 0;
-        if (lastRxBytesPerFlow.count(fid)) prev = lastRxBytesPerFlow[fid];
+        if (lastRxBytesPerFlow.count(fid)) 
+            prev = lastRxBytesPerFlow[fid];
+
         uint64_t delta = 0;
-        if (rxBytes >= prev) delta = rxBytes - prev;
+        if (rxBytes >= prev) 
+            delta = rxBytes - prev;
+
         lastRxBytesPerFlow[fid] = rxBytes;
 
         double bps = (double)delta / intervalSeconds; // bytes por segundo
-        // acumula por source
+        // acumula por IP
         throughputBySrc[src] += bps;
     }
     return throughputBySrc;
 }
 
-// Helper to check if a node is already down to avoid redundant operations
-bool IsNodeActive(Ptr<Node> node)
-{
-    if (!node) return false;
-    Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
-    if (!ipv6) return false;
-    // Check first interface (assuming index 1 is the main mesh/wifi interface)
-    // Adjust index if necessary based on your topology (usually 0 is loopback, 1 is wifi)
-    if (ipv6->GetNInterfaces() > 1) {
-        return ipv6->IsUp(1); 
-    }
-    return false;
-}
-
 /* --------------------------
- *  OpenGym Interface Callbacks
+ *  OpenGym Callbacks
  * -------------------------- */
 
 Ptr<OpenGymSpace> MyGetObservationSpace(void)
 {
-  uint32_t nodeNum = 173;
+  uint32_t nodeNum = 173; // Nós ativos na rede monitorada
   float low = 0.0;
-  float high = 1e9; // 1 Gbps max
-  std::vector<uint32_t> shape = {nodeNum};
-  std::string dtype = TypeNameGet<float>();
-  Ptr<OpenGymBoxSpace> space = CreateObject<OpenGymBoxSpace>(low, high, shape, dtype);
-  return space;
+  float high = 1e9; // Tráfego máximo possível
+  std::vector<uint32_t> shape = {nodeNum}; // vetor com a quantidade de nós monitorados
+  std::string dtype = TypeNameGet<float>(); // tipo de dado que recebe o throughput
+  Ptr<OpenGymBoxSpace> space = CreateObject<OpenGymBoxSpace>(low, high, shape, dtype); // espaço contínuo
+  return space; 
 }
 
 Ptr<OpenGymSpace> MyGetActionSpace(void)
 {
     uint32_t N = 173;
     std::vector<uint32_t> shape = {N};
-    std::vector<float> low(N, 0.0f);
+    std::vector<float> low(N, 0.0f); // ação 0 = não isolar, 1 = isolar
     std::vector<float> high(N, 1.0f);
     Ptr<OpenGymBoxSpace> space = CreateObject<OpenGymBoxSpace>(low, high, shape, "float32");
     return space;
@@ -137,10 +127,10 @@ Ptr<OpenGymDataContainer> MyGetObservation(void)
   std::vector<uint32_t> shape = {nodeNum};
   Ptr<OpenGymBoxContainer<float>> box = CreateObject<OpenGymBoxContainer<float>>(shape);
 
-  // 1. Coleta dados reais de throughput
+  // Dicionário para coleta dados reais de throughput a cada intervalo de 1 segundo da simulação
   std::map<std::string, double> tpMap = CollectNodeThroughputs(1.0);
 
-  // 2. Mapeia para os nós monitorados
+  // Mapeia os nós monitorados
   for (uint32_t i = 0; i < nodeNum && i < wifiStaNodes2.GetN(); i++)
   {
     float val = 0.0f;
@@ -149,14 +139,17 @@ Ptr<OpenGymDataContainer> MyGetObservation(void)
     if (node) {
         Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
         if (ipv6) {
+            // Percorre interfaces de rede do nó para encontrar o endereço IPv6 global
             for(uint32_t ifIdx=0; ifIdx < ipv6->GetNInterfaces(); ++ifIdx) {
                  // Segurança: garante que tem endereço global antes de acessar index 1
                  if (ipv6->GetNAddresses(ifIdx) < 2) continue;
 
+                 // Armazena e converte para string o IP global
                  Ipv6Address addr = ipv6->GetAddress(ifIdx, 1).GetAddress();
                  std::ostringstream oss;
                  oss << addr;
                  
+                 // Verifica tráfego encontrado para o IP global e atribui ao vetor de observação
                  if (tpMap.count(oss.str())) {
                      val = (float)tpMap[oss.str()];
                  }
@@ -192,6 +185,7 @@ bool MyGetGameOver(void)
   return Now().GetSeconds() >= 900.0;
 }
 
+// Trata endereços IPv6 para geração de logs
 std::string MyGetExtraInfo(void)
 {
   std::stringstream ss;
@@ -217,8 +211,10 @@ std::string MyGetExtraInfo(void)
   return ss.str();
 }
 
+// Executa ação de isolamento
 bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
 {
+    // Verifica pacote recebido pelo agente e converte para vetor de ações
     if (!action) return false;
     Ptr<OpenGymBoxContainer<float>> box = DynamicCast<OpenGymBoxContainer<float>>(action);
     if (!box) return false;
@@ -232,8 +228,9 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
         Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
         if (!ipv6) continue;
 
+        // Verificação segura se agente decidiu isolar (1)
         if (actions[i] > 0.5f) {
-            // AGENTE DECIDIU ISOLAR
+            // Agente decidiu isolar
             for (uint32_t ifIndex = 1; ifIndex < ipv6->GetNInterfaces(); ++ifIndex) {
                 if (ipv6->IsUp(ifIndex)) {
                     ipv6->SetDown(ifIndex);
@@ -241,7 +238,7 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
             }
         } 
         else {
-            // AGENTE DECIDIU NÃO ISOLAR (ou o Cooldown expirou)
+            // Agente decidiu não isolar (ou o Cooldown expirou)
             for (uint32_t ifIndex = 1; ifIndex < ipv6->GetNInterfaces(); ++ifIndex) {
                 if (!ipv6->IsUp(ifIndex)) {
                     ipv6->SetUp(ifIndex);
@@ -252,179 +249,12 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
     return true;
 }
 
+// Agendador de eventos nativo do ns3 para o ns3gym
 void ScheduleNextStateRead(double envStepTime, Ptr<OpenGymInterface> openGym)
 {
   openGym->NotifyCurrentState();
   Simulator::Schedule(Seconds(envStepTime), &ScheduleNextStateRead, envStepTime, openGym);
 }
-
-// ----------------------
-// Detecta anomalias por z-score sobre a taxa agregada por fonte.
-// Retorna set de endereços IPv6 (strings) considerados anômalos.
-std::set<std::string> DetectAnomalousSources(const std::map<std::string,double> &throughputMap)
-{
-    std::set<std::string> anomalies;
-    if (throughputMap.empty()) return anomalies;
-
-    // extrai valores
-    std::vector<double> vals;
-    vals.reserve(throughputMap.size());
-    for (auto &kv : throughputMap) vals.push_back(kv.second);
-
-    double mean = 0.0;
-    for (double v : vals) mean += v;
-    mean /= (double)vals.size();
-
-    double var = 0.0;
-    for (double v : vals) var += (v - mean)*(v - mean);
-    var /= (double)vals.size();
-    double stdv = sqrt(std::max(var, 1e-9));
-
-    // calcula score (|z|) por fonte
-    std::vector<std::pair<std::string,double>> scored;
-    for (auto &kv : throughputMap) {
-        double z = fabs((kv.second - mean) / stdv);
-        scored.emplace_back(kv.first, z);
-    }
-    // ordena por score decrescente
-    sort(scored.begin(), scored.end(), [](auto &a, auto &b){ return a.second > b.second; });
-
-    // top-k por contamination
-    int n = (int)scored.size();
-    int k = std::max(1, (int)round(contamination * n));
-    for (int i = 0; i < k && i < n; ++i) {
-        anomalies.insert(scored[i].first);
-    }
-    return anomalies;
-}
-
-void ShutDownNode(Ptr<Node> node)
-{
-    if (node == nullptr)
-    {
-        NS_LOG_WARN("Attempted to shut down null node.");
-        return;
-    }
-
-    Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
-    if (ipv6 == nullptr)
-    {
-        NS_LOG_WARN("Node " << node->GetId() << " has no IPv6 stack, cannot shut down.");
-        return;
-    }
-
-    for (uint32_t ifIndex = 0; ifIndex < ipv6->GetNInterfaces(); ++ifIndex)
-    {
-        ipv6->SetDown(ifIndex);
-
-        // Simulator::Schedule(Seconds(5.0), &Ipv6::SetDown, ipv6, ifIndex);
-    }
-
-    NS_LOG_INFO("Node " << node->GetId() << " shutdown (interfaces down).");
-}
-
-// ----------------------
-// Aplica mitigação: isola nós que correspondem aos endereços anômalos.
-// Estratégia: para cada address anômalo, procura o Node que tem aquela interface
-// IPv6 e chama ipv6->SetDown(ifIndex) para "tirar a interface do ar" (isolar tráfego).
-// OBS: este método exige que você saiba quais containers/devices correspondem a cada nó.
-// Passe aqui os containers (ex.: wifiStaNodes2 e staDevices2) ou ajuste a busca.
-void IsolateSourcesByAddress(const std::set<std::string> &anomalousSources,
-                             NodeContainer &nodes,
-                             NetDeviceContainer &devices)
-{
-    for (auto &s : anomalousSources)
-    {
-        for (uint32_t i = 0; i < nodes.GetN(); ++i)
-        {
-            Ptr<Node> node = nodes.Get(i);
-            if (node == nullptr)
-            {
-                NS_LOG_WARN("Skipping null node pointer.");
-                continue;
-            }
-
-            Ptr<Ipv6> ipv6 = node->GetObject<Ipv6>();
-            if (ipv6 == nullptr)
-            {
-                NS_LOG_WARN("Node " << node->GetId() << " has no IPv6 interface, skipping.");
-                continue;
-            }
-
-            for (uint32_t ifIndex = 0; ifIndex < ipv6->GetNInterfaces(); ++ifIndex)
-            {
-                if (ipv6->GetNAddresses(ifIndex) == 0)
-                    continue;
-
-                Ipv6InterfaceAddress ifAddr = ipv6->GetAddress(ifIndex, 0);
-                if (ifAddr.GetAddress().IsAny())
-                    continue;
-
-                Ipv6Address addr = ifAddr.GetAddress();
-                if (addr == Ipv6Address(s.c_str()))
-                {
-                    NS_LOG_INFO("Isolating node " << node->GetId()
-                                 << " with address " << s
-                                 << " (ifIndex " << ifIndex << ")");
-                    ShutDownNode(node);
-                }
-            }
-        }
-    }
-}
-
-// ----------------------
-// Função agendada: executa coleta, detecção e mitigação periódica
-// Chamar a primeira vez antes do Simulator::Run, por exemplo:
-// Simulator::Schedule(Seconds( detectInterval ), &DetectAndMitigate, detectInterval, wifiStaNodes2, staDevices2);
-void DetectAndMitigate(double intervalSeconds, NodeContainer allStaNodes, NetDeviceContainer allStaDevices)
-{
-    // 1) coleta
-    auto tp = CollectNodeThroughputs(intervalSeconds);
-
-    // 2) detectar anomalias
-    auto anoms = DetectAnomalousSources(tp);
-    if (!anoms.empty()) {
-        NS_LOG_INFO("Anomalous sources detected: ");
-        for (auto &a : anoms) NS_LOG_INFO("  " << a);
-    } else {
-        NS_LOG_INFO("No anomalies detected in this interval.");
-    }
-
-    // 3) aplicar mitigação (isolation) — exemplo: apenas nos STAs do segundo AP (wifiStaNodes2)
-    IsolateSourcesByAddress(anoms, allStaNodes, allStaDevices);
-
-    // 4) reagendar próxima verificação
-    Simulator::Schedule(Seconds(intervalSeconds), &DetectAndMitigate, intervalSeconds, allStaNodes, allStaDevices);
-}
-
-class DdosEnv : public Object {
-public:
-  DdosEnv(Ptr<Node> apNode, std::vector<Ptr<Node>> staNodes /*...*/) {
-    m_openGym = CreateObject<OpenGymInterface>();
-    // registo callbacks — sintaxe depende da versão; exemplo conceitual:
-    m_openGym->SetGetObservationSpaceCb(MakeCallback(&DdosEnv::GetObservationSpace, this));
-    // similarly for others...
-  }
-
-  Ptr<OpenGymSpace> GetObservationSpace() { return nullptr; }
-  Ptr<OpenGymSpace> GetActionSpace() { return nullptr; }
-  Ptr<OpenGymDataContainer> GetObservation() { return nullptr; }
-  float GetReward() { return 0.0f; }
-  bool GetGameOver() { return false; }
-  std::string GetExtraInfo() { return std::string("info"); }
-  bool ExecuteActions(Ptr<OpenGymDataContainer> action) {
-      // converter 'action' para operações ns-3:
-      // - isolar nó -> desabilitar NetDevice do STA ou SetDown interface IPv6
-      // - promover deputy -> alterar variáveis internas do sim (ex.: marcar outro AP como leader)
-      // - reforçar malha -> adicionar rota alternativa/reativar link
-      return true;
-  }
-private:
-  Ptr<OpenGymInterface> m_openGym;
-  // referência para nós/containers do seu cenário
-};
-
 
 static Ptr<ListPositionAllocator>
 CreateGridPositionAllocator (uint32_t nNodes, double spacing, double offsetX, double offsetY)
