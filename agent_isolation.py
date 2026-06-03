@@ -46,26 +46,21 @@ logger = logging.getLogger("agent_isolation")
 # -----------------------------
 # Parâmetros do agente
 # -----------------------------
-DEFAULT_WARMUP_STEPS = 50        # passos coletados antes de treinar o IsolationForest
+DEFAULT_WARMUP_STEPS = 150        # passos coletados antes de treinar o IsolationForest
 DEFAULT_CONTAMINATION = 0.05      # proporção esperada de anomalias
 MAX_ISOLATIONS_PER_STEP = 5        # limite de quantos nós isolar por passo
 ISOLATION_COOLDOWN = 10            # passos para manter nó isolado antes de poder reativar
 MAX_TOTAL_ISOLATIONS = None        # limitador global (None = sem limite)
 
-# --- A GRANDE PROTEÇÃO: THRESHOLD SEGURO ---
-# Tráfego legítimo ronda os 2.000 Bytes/s. Ataque ronda os 12.000.000 Bytes/s.
-# Só isolamos se o nó enviar mais de 500.000 Bytes/s.
-THRESHOLD_SEGURO = 85000.0 
-# -------------------------------------------
-
 # -----------------------------
 # Funções utilitárias
 # -----------------------------
+
+# Transforma a observação do ambiente em uma matriz de features (N_nodes, F) e uma lista de node_ids
 def extract_node_features(obs):
-    """
-    Adapta-se automaticamente a observações 1D (N,) ou 2D (N, F) do ns3-gym.
-    Retorna (X, node_ids).
-    """
+
+    # Adapta-se automaticamente a observações 1D (N,) ou 2D (N, F) do ns3-gym.    
+    # Retorna (X, node_ids).
     a = np.array(obs, dtype=float)
 
     # Caso 2D (N, F)
@@ -73,6 +68,7 @@ def extract_node_features(obs):
         return a.copy(), list(range(a.shape[0]))
 
     # Caso 1D (N,) — só 1 feature por nó
+    # Retorna uma matriz de uma coluna só
     if a.ndim == 1:
         N = a.size
         F = 1  # uma feature por nó
@@ -104,7 +100,6 @@ class IsolationIsolationAgent:
                  max_total_isolations=MAX_TOTAL_ISOLATIONS):
         self.env = env
         self.idle_steps = 15     # Ignora os primeiros 15s (fase de arranque/rampa)
-        self.warmup_steps = 100
         self.warmup_steps = warmup_steps
         self.contamination = contamination
         self.max_isolations_per_step = max_isolations_per_step
@@ -112,44 +107,49 @@ class IsolationIsolationAgent:
         self.max_total_isolations = max_total_isolations
 
         self.model = None
-        self.feature_buffer = []  # lista de arrays (N_nodes, F) dos passos de warmup (aplanados)
+        self.feature_buffer = []  # Lista de arrays (N_nodes, F) dos passos de warmup (aplanados)
         self.total_isolated = 0
 
-        # estado de isolamento por nó: dict node_id -> steps_remaining (>=1 se isolado)
+        # Estado de isolamento por nó: dict node_id -> steps_remaining (>=1 se isolado)
         self.isolated_until = {}
 
-        # whitelist opcional (ex: não isolar APs)
-        self.whitelist_node_ids = set()  # preencher se quiser ex: {ap_index}
+        # Whitelist opcional (ex: não isolar APs)
+        self.whitelist_node_ids = set()  # Preencher se quiser ex: {ap_index}
 
     def warmup_and_train(self):
         logger.info("Iniciando a simulação... Aguardando %d passos para a rede estabilizar.", self.idle_steps)
         obs = self.env.reset() 
 
-        # 1. FASE DE ESPERA (Ignorar os dados iniciais enquanto os nós acordam)
+        # Fase de espera - Ignora os dados iniciais enquanto os nós acordam
         for step in range(self.idle_steps):
             _, node_ids = extract_node_features(obs)
+            # Gera uma ação neutra - array de zeros
             neutral_action = self.build_neutral_action_for_env(len(node_ids))
+
+            # Envia uma ação neutra (sem isolamento)
             obs, reward, done, info = self.env.step(neutral_action)
             if done: return
 
-        # 2. FASE DE TREINO (Capturar dados limpos da rede estabilizada)
+        # Fase de treino - Capturar dados limpos da rede estabilizada
         logger.info("Rede estabilizada! Coletando %d passos para treinar a IA...", self.warmup_steps)
         for step in range(self.warmup_steps):
+            # Armazena as features de cada nó para treinar o modelo depois
             X_nodes, node_ids = extract_node_features(obs)
             self.feature_buffer.append(X_nodes)
             
+            # Envia uma ação neutra (sem isolamento) durante o warmup
             neutral_action = self.build_neutral_action_for_env(len(node_ids))
             obs, reward, done, info = self.env.step(neutral_action)
             if done: return
 
-        # Construir dataset e treinar o Isolation Forest
+        # Construi dataset e treina o Isolation Forest
         all_rows = []
         for step_arr in self.feature_buffer:
             for r in step_arr:
                 all_rows.append(r)
         X = np.vstack(all_rows)
         
-        # NOVA LÓGICA: Calcula a MÉDIA (e não o máximo)
+        # Calcula a MÉDIA (e não o máximo) com base nos dados coletados do tráfego comum
         self.mean_normal_traffic = float(np.mean(X))
         self.std_normal_traffic = float(np.std(X))
         self.limite_seguranca = self.mean_normal_traffic + (3 * self.std_normal_traffic)
@@ -164,10 +164,9 @@ class IsolationIsolationAgent:
         logger.info("IA Treinada com sucesso! 100% Autônoma.")
 
     def train_with_weather_dataset(self, dataset_path):
-        """
-        Lê o dataset Train_Test_IoT_weather.csv e treina o modelo.
-        Converte o packet_rate para bytes_per_sec multiplicando pelo tamanho do pacote (1024).
-        """
+        # Lê o dataset Train_Test_IoT_weather.csv e treina o modelo.
+        # Converte o packet_rate para bytes_per_sec multiplicando pelo tamanho do pacote (1024).
+
         logger.info(f"A tentar carregar o dataset IoT Weather: {dataset_path}...")
         
         try:
@@ -199,9 +198,11 @@ class IsolationIsolationAgent:
             self.model = IsolationForest(contamination=self.contamination, random_state=42)
             self.model.fit(X_train)
             
-            media_bytes = df_normal['bytes_per_sec'].mean()
-            logger.info(f"Modelo TREINADO COM SUCESSO! Média de tráfego legítimo: {media_bytes:.2f} Bytes/s")
-            
+            self.mean_normal_traffic = float(df_normal['bytes_per_sec'].mean())
+            self.std_normal_traffic = float(df_normal['bytes_per_sec'].std())
+            self.limite_seguranca = self.mean_normal_traffic + (3 * self.std_normal_traffic)
+            logger.info(f"Modelo TREINADO COM SUCESSO! Média: {self.mean_normal_traffic:.2f} | Limite (3-Sigma): {self.limite_seguranca:.2f} Bytes/s")
+
             return True
             
         except FileNotFoundError:
@@ -211,6 +212,7 @@ class IsolationIsolationAgent:
             logger.exception("Erro ao carregar o dataset: %s", e)
             return False
 
+    # Constrói uma ação neutra (sem isolamento) adaptada ao formato do ambiente
     def build_neutral_action_for_env(self, n_nodes):
         a_space = getattr(self.env, "action_space", None)
         if a_space is None:
@@ -223,7 +225,9 @@ class IsolationIsolationAgent:
             pass
         return np.zeros(n_nodes, dtype=int)
 
+    # Recebe a observação, faz a previsão de anomalias e retorna a ação de isolamento
     def step(self, obs, info_str=None, step_idx=None):
+        # Extrai as features dos nós e seus IDs
         X_nodes, node_ids = extract_node_features(obs)
         N = len(node_ids)
 
@@ -231,24 +235,31 @@ class IsolationIsolationAgent:
         node_labels = {}
         if info_str and isinstance(info_str, str):
             try:
+                # Remove a barra | da string com os IPs, transforma numa lista
                 parts = info_str.strip("|").split("|")
+                # Mapeia cada parte "idx=ip" para o dicionário node_labels
                 for p in parts:
                     if "=" in p:
                         idx_s, ip_s = p.split("=")
                         node_labels[int(idx_s)] = ip_s
+            # Caso em que a string vem corrompida é ignorado no mapeamento, usando o ID numérico
             except Exception:
                 pass
 
+        # Caso a IA não tenha sido treinada (ex: falha no dataset), retorna ação neutra para evitar erros
         if self.model is None:
             return self.build_neutral_action_for_env(N)
 
+        # Previsão de anomalias e scores para cada nó
         try:
             preds = self.model.predict(X_nodes) 
+            # Devolve score da anomalia (quanto mais negativo, mais anômalo)
             scores = self.model.decision_function(X_nodes)
         except Exception as e:
             logger.exception("Erro ao prever: %s", e)
             return self.build_neutral_action_for_env(N)
 
+        # Preenche a lista de nós com info sobre a previsão e score para filtragem e logging
         candidates = []
         for i, nid in enumerate(node_ids):
             label = node_labels.get(nid, f"Node {nid}")
@@ -259,55 +270,57 @@ class IsolationIsolationAgent:
                 is_anom = "ANOMALIA" if preds[i] == -1 else "Normal"
                 logger.info(f"DEBUG [{label}]: Trafego={traffic_val:.1f} Score={scores[i]:.3f} Class={is_anom}")
 
-        # ========================================================
-        # 1. GERENCIAR COOLDOWN (O bloco que tinha desaparecido!)
-        # ========================================================
+        # Gerencimento do Cooldown
         to_remove = []
+        # Percorre lista de nós isolados e decrementa o contador de cooldown
         for nid in list(self.isolated_until.keys()):
             self.isolated_until[nid] -= 1
+            # Tempo de isolamento (20s) expirou, nó é adicionado a lista de reativação
             if self.isolated_until[nid] <= 0:
                 to_remove.append(nid)
+        # Remove os nós que expiraram do isolamento
         for nid in to_remove:
             del self.isolated_until[nid]
             label = node_labels.get(nid, f"Node {nid}") 
             logger.info("%s reativado (cooldown expirado).", label)
 
-        # ========================================================
-        # 2. DEFINIR LIMITE DE ISOLAMENTOS (A variável que deu erro)
-        # ========================================================
+        # Defini limite de isolamentos
         allowed = self.max_isolations_per_step 
 
-        # ========================================================
-        # 3. FILTRAGEM DUPLA (100% AUTÓNOMA E ADAPTÁVEL)
-        # ========================================================
+        # Filtragem dupla
         anomalous = [c for c in candidates if c[1] == -1 and c[0] not in self.whitelist_node_ids]
+        # Ordena anomalias pelo score para priorizar os piores casos
         anomalous.sort(key=lambda t: t[2]) 
 
+        # Isolamento dos nós
         chosen = []
         for (nid, pred, score, feat, label) in anomalous:
+            # Checa o limit de isolamentos por passo
             if allowed <= 0: break
+            # Checa nó já bloqueado
             if nid in self.isolated_until: continue
             
             traffic_bytes = float(feat[0])
             
-            # O ESCUDO ESTATÍSTICO (3-SIGMA):
-            # Comparamos o tráfego com o limite superior estatístico da rede normal.
-            # Um pico natural passa impune. Um ataque DDoS ultrapassa isto facilmente.
+            # Escuo estatístico (3-SIGMA):
+            # Comparação do tráfego com o limite superior estatístico da rede normal.
             if traffic_bytes > self.limite_seguranca:
                 chosen.append(nid)
                 allowed -= 1
             
-        # ========================================================
-        # 4. EXECUTAR AÇÃO DE ISOLAMENTO
-        # ========================================================
+        # Executa ação de isolamento
         action = np.zeros(N, dtype=int)
         for i, nid in enumerate(node_ids):
             label = node_labels.get(nid, f"Node {nid}")
             
+            # Verifica nó isolado ou escolhido para isolamento
             if nid in chosen or nid in self.isolated_until:
+                # Ação de isolamento
                 action[i] = 1
                 
+                # Verifica nó escolhido para isolamento nesse passo
                 if nid in chosen:
+                    # Marca início do isolamento de 20s
                     self.isolated_until[nid] = self.isolation_cooldown
                     self.total_isolated += 1
                     sc = 0.0
@@ -317,7 +330,7 @@ class IsolationIsolationAgent:
             else:
                 action[i] = 0
 
-        # Calcular estatísticas do score para o gráfico (Usando np.min para ver a pior ameaça)
+        # Calcular estatísticas do score
         score_mais_perigoso = float(np.min(scores)) if len(scores) > 0 else 0.0
         score_medio = float(np.mean(scores)) if len(scores) > 0 else 0.0
         total_anomalias_detetadas = len(anomalous)
@@ -325,9 +338,7 @@ class IsolationIsolationAgent:
 
         return action, total_anomalias_detetadas, nos_isolados_neste_momento, score_mais_perigoso, score_medio
 
-# -----------------------------
 # Loop principal
-# -----------------------------
 def run_agent(env, args):
     agent = IsolationIsolationAgent(env,
                                     warmup_steps=args.warmup,
@@ -346,6 +357,7 @@ def run_agent(env, args):
     obs = None
     done = False
     step_idx = 0
+    # Primeira ação neutra para inciar o loop e obter obs
     try:
         neutral = agent.build_neutral_action_for_env(1) 
         obs, reward, done, info = env.step(neutral)
