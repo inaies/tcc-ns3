@@ -147,16 +147,17 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action) {
         bool isolate = actions[i] > 0.5f;
         
         Ptr<Node> node = monitoredNodes.Get(i);
+        // Agora o nó pode ter até 3 aplicações (0: Normal, 1: Ataque 1, 2: Ataque 2)
         for (uint32_t a = 0; a < node->GetNApplications(); ++a) {
             Ptr<OnOffApplication> onoff = DynamicCast<OnOffApplication>(node->GetApplication(a));
             if (onoff) {
                 if (isolate) {
-                    onoff->SetAttribute("DataRate", StringValue("1bps")); 
+                    onoff->SetAttribute("DataRate", StringValue("1bps")); // Isola totalmente
                 } else {
                     if (a == 0) {
-                        onoff->SetAttribute("DataRate", StringValue("50kbps")); 
-                    } else if (a == 1) {
-                        onoff->SetAttribute("DataRate", StringValue("128kbps")); 
+                        onoff->SetAttribute("DataRate", StringValue("50kbps")); // Restaura tráfego normal
+                    } else {
+                        onoff->SetAttribute("DataRate", StringValue("5Mbps"));  // Restaura ataques
                     }
                 }
             }
@@ -385,30 +386,29 @@ int main(int argc, char* argv[]) {
         app.Stop(Seconds(900.0));
     }
 
-   // =================================================================
-    // ATAQUE DDoS: Buffer Overflow (Alvo: ~35% de Perda Real)
+    // =================================================================
+    // ATAQUE DDoS: Duas Ondas de Buffer Overflow (170-220s e 250-300s)
     // =================================================================
     if (g_attack) {
         for (uint32_t j = 0; j < attackerIdx.size(); ++j) {
             uint32_t node = attackerIdx[j];
-            uint32_t k = node / nodesPerPan; // Roteamento Correto: Ataca a própria antena
+            uint32_t k = node / nodesPerPan; // Roteamento Correto
             
             OnOffHelper atk("ns3::UdpSocketFactory", Inet6SocketAddress(apAddr[k], attackPort));
-            
-            // A MÁGICA DOS 35%: 5 Mbps de rajada contínua!
-            // Isto vai encher a Fila (Queue) de 100 pacotes do atacante quase instantaneamente.
-            // Quando a aplicação Normal tentar colocar o seu pacote na fila, será 
-            // sumariamente descartado, silenciando os 60 nós permanentemente durante o ataque.
             atk.SetAttribute("DataRate",   StringValue("5Mbps"));
             atk.SetAttribute("PacketSize", UintegerValue(1000)); 
-            
             atk.SetAttribute("OnTime",  StringValue("ns3::ConstantRandomVariable[Constant=15]"));
-            atk.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]")); // Zero pausa
+            atk.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
             
-            ApplicationContainer app = atk.Install(monitoredNodes.Get(node));
-            
-            app.Start(Seconds(170.0 + (j % 5))); 
-            app.Stop(Seconds(350.0));
+            // ONDA 1: Inicia aos 170s e termina aos 220s
+            ApplicationContainer app1 = atk.Install(monitoredNodes.Get(node));
+            app1.Start(Seconds(170.0 + (j % 5))); // Jitter para o ns-3 não travar
+            app1.Stop(Seconds(220.0));
+
+            // ONDA 2: Inicia aos 250s e termina aos 300s
+            ApplicationContainer app2 = atk.Install(monitoredNodes.Get(node));
+            app2.Start(Seconds(250.0 + (j % 5))); // Jitter para o ns-3 não travar
+            app2.Stop(Seconds(300.0));
         }
     }
     Config::ConnectWithoutContext("/NodeList/*/DeviceList/*/$ns3::LrWpanNetDevice/Mac/MacTxDrop", MakeCallback(&MacTxDropCb));
