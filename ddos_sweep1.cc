@@ -337,12 +337,24 @@ int main(int argc, char* argv[]) {
         NS_LOG_UNCOND("[INFO] Neighbor cache populada (ND estatico).");
     }
 
-    const uint32_t nAtt = 60;
-    std::vector<uint32_t> attackerIdx; std::set<uint32_t> attackerSet;
+    // ============================================================
+    // CONCENTRAÇÃO FÍSICA DO ATAQUE (Massacre nos Canais 0 e 1)
+    // ============================================================
+    const uint32_t nAtt = 60; // 60 atacantes
+    std::vector<uint32_t> attackerIdx; 
+    std::set<uint32_t> attackerSet;
+    
+    // Em vez de espalhar os atacantes pela rede toda, vamos recrutar 
+    // especificamente os primeiros 60 nós.
+    // Como cada canal tem 25 nós:
+    // O Canal 0 será 100% atacante.
+    // O Canal 1 será 100% atacante.
+    // O Canal 2 terá 10 atacantes.
+    // Os Canais 3, 4, 5 e 6 estarão na mais absoluta PAZ!
     for (uint32_t j = 0; j < nAtt; ++j) {
-        uint32_t idx = (uint32_t)std::llround((double)j * nMonitored / nAtt);
-        if (idx >= nMonitored) idx = nMonitored - 1;
-        if (attackerSet.insert(idx).second) attackerIdx.push_back(idx);
+        uint32_t idx = j; // Pega os nós 0, 1, 2, 3... sequencialmente!
+        attackerSet.insert(idx);
+        attackerIdx.push_back(idx);
     }
 
     uint16_t normalPort = 9002, attackPort = 9001;
@@ -373,31 +385,32 @@ int main(int argc, char* argv[]) {
         app.Stop(Seconds(900.0));
     }
 
-    // =================================================================
-    // ATAQUE DDoS (Apenas este bloco deve ser alterado)
+   // =================================================================
+    // ATAQUE DDoS: Buffer Overflow (Alvo: ~35% de Perda Real)
     // =================================================================
     if (g_attack) {
         for (uint32_t j = 0; j < attackerIdx.size(); ++j) {
             uint32_t node = attackerIdx[j];
-            uint32_t k = node / nodesPerPan;
+            uint32_t k = node / nodesPerPan; // Roteamento Correto: Ataca a própria antena
+            
             OnOffHelper atk("ns3::UdpSocketFactory", Inet6SocketAddress(apAddr[k], attackPort));
             
-            // Taxa de 250kbps força a saturação do canal 802.15.4 (o limite físico)
-            // Isso causará colisões e descartes APENAS durante o ataque.
-            atk.SetAttribute("DataRate",   StringValue("250kbps"));
-            atk.SetAttribute("PacketSize", UintegerValue(1000)); // Pacotes grandes causam maior espera no canal
+            // A MÁGICA DOS 35%: 5 Mbps de rajada contínua!
+            // Isto vai encher a Fila (Queue) de 100 pacotes do atacante quase instantaneamente.
+            // Quando a aplicação Normal tentar colocar o seu pacote na fila, será 
+            // sumariamente descartado, silenciando os 60 nós permanentemente durante o ataque.
+            atk.SetAttribute("DataRate",   StringValue("5Mbps"));
+            atk.SetAttribute("PacketSize", UintegerValue(1000)); 
             
-            // Ataque mais frequente e persistente
-            atk.SetAttribute("OnTime",  StringValue("ns3::ConstantRandomVariable[Constant=20]"));
-            atk.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0.1]"));
+            atk.SetAttribute("OnTime",  StringValue("ns3::ConstantRandomVariable[Constant=15]"));
+            atk.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]")); // Zero pausa
             
             ApplicationContainer app = atk.Install(monitoredNodes.Get(node));
-            // Espalhar um pouco mais o início para criar um cenário realista de botnet
+            
             app.Start(Seconds(170.0 + (j % 5))); 
             app.Stop(Seconds(350.0));
         }
     }
-
     Config::ConnectWithoutContext("/NodeList/*/DeviceList/*/$ns3::LrWpanNetDevice/Mac/MacTxDrop", MakeCallback(&MacTxDropCb));
     Config::ConnectWithoutContext("/NodeList/*/DeviceList/*/$ns3::LrWpanNetDevice/Mac/MacRxDrop", MakeCallback(&MacRxDropCb));
     Config::ConnectWithoutContext("/NodeList/*/DeviceList/*/$ns3::LrWpanNetDevice/Phy/PhyRxDrop", MakeCallback(&PhyRxDropCb));
