@@ -49,6 +49,7 @@ NS_LOG_COMPONENT_DEFINE("DdosApCentral");
 static NodeContainer monitoredNodes;        // os 173 dispositivos IIoT (flat)
 static uint32_t g_nNodes = 173;             // dimensao observacao/acao
 static Ptr<Node> g_ap;                      // o AP central
+static bool g_attack = false;               // Modo de ataque global
 
 static FlowMonitorHelper flowmonHelper;
 static Ptr<FlowMonitor> flowMonitor;
@@ -79,7 +80,7 @@ void ImprimirDescartes() {
     if (tx) std::cout << "TX=" << tx << "  RX=" << rx
                       << "  PERDA=" << 100.0*(tx-rx)/(double)tx << "%\n";
     std::cout << "=== ONDE OS PACOTES FORAM DESCARTADOS? ===\n"
-              << "Fila RAM (Overflow do Traffic Control) : " << g_queueDrop << "\n" // <-- Adicionado!
+              << "Fila RAM (Overflow do Traffic Control) : " << g_queueDrop << "\n" 
               << "MacTxDrop (colisao / sem ACK)          : " << g_macTxDrop << "\n"
               << "MacRxDrop (fila / malformado)          : " << g_macRxDrop << "\n"
               << "PhyRxDrop (interferencia)              : " << g_phyRxDrop << "\n"
@@ -160,6 +161,12 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action) {
     
     for (uint32_t i = 0; i < actions.size() && i < monitoredNodes.GetN(); ++i) {
         bool isolate = actions[i] > 0.5f;
+        
+        // MODO AUDITORIA: Ignora as ordens da IA se estamos a correr o cenário Baseline
+        if (!g_attack) {
+            isolate = false;
+        }
+        
         Ptr<Node> node = monitoredNodes.Get(i);
 
         // =================================================================
@@ -233,19 +240,25 @@ int main(int argc, char* argv[]) {
     uint32_t nodesPerPan = 25;       // dispositivos por canal (~25)
     std::string normalRate = "200bps";
     uint32_t normalPkt = 50;
-    bool attack    = true;
+    g_attack = true; // Por defeito, ligado
     bool staticNd  = true;
-    uint32_t radioQueue = 8;
+    uint32_t radioQueue = 100; // Alterado para 100
     bool tracing   = false;
     std::string tag = "apcentral";
 
     Config::SetDefault("ns3::Icmpv6L4Protocol::DAD", BooleanValue(false));
+    
+    // ============================================================
+    // VACINA IPV6: Fim dos pacotes perdidos silenciosamente no ND
+    // ============================================================
+    Config::SetDefault("ns3::Icmpv6L4Protocol::ReachableTime", TimeValue(Seconds(36000.0)));
+    Config::SetDefault("ns3::Icmpv6L4Protocol::RetransmissionTime", TimeValue(MilliSeconds(10)));
 
     CommandLine cmd(__FILE__);
     cmd.AddValue("nodesPerPan", "Dispositivos por canal 802.15.4", nodesPerPan);
     cmd.AddValue("normalRate",  "Taxa por dispositivo (ex: 200bps,100bps,67bps)", normalRate);
     cmd.AddValue("normalPkt",   "Bytes de payload por pacote normal", normalPkt);
-    cmd.AddValue("attack",      "Liga o ataque DDoS", attack);
+    cmd.AddValue("attack",      "Liga o ataque DDoS", g_attack);
     cmd.AddValue("staticNd",    "Popula neighbor cache (ND estatico)", staticNd);
     cmd.AddValue("radioQueue",  "Fila do radio em pacotes (0 = default)", radioQueue);
     cmd.AddValue("tracing",     "Habilita pcap", tracing);
@@ -256,7 +269,7 @@ int main(int argc, char* argv[]) {
     const uint32_t K = (nMonitored + nodesPerPan - 1) / nodesPerPan;
     NS_LOG_UNCOND("AP central com " << K << " radios (canais), "
                   << nMonitored << " dispositivos | normalRate=" << normalRate
-                  << " | attack=" << attack);
+                  << " | attack=" << g_attack);
 
     // ---- Nos: 173 dispositivos + 1 AP central ----
     monitoredNodes.Create(nMonitored);
@@ -271,7 +284,7 @@ int main(int argc, char* argv[]) {
     apMob.SetPositionAllocator(apPos);
     apMob.Install(apNode);
 
-    const double spacing = 1.0; // Era 5.0. Agora a distância máxima entre sensores é 5.6 metros!
+    const double spacing = 1.0; // Espaçamento colado para eliminar o Hidden Terminal Problem!
     const uint32_t cols = 5;
 
     std::vector<NetDeviceContainer> panSix(K);
@@ -314,18 +327,15 @@ int main(int argc, char* argv[]) {
         
         // AO NÃO CHAMAR "SetChannel", O NS-3 CRIA AUTOMATICAMENTE UM CANAL 
         // ISOLADO PARA CADA PAN, INCLUINDO AS LEIS DA FÍSICA (DELAY E LOSS)!
-        
         NetDeviceContainer dev = lrwpan.Install(panNodes);
         lrwpan.CreateAssociatedPan(dev, (uint16_t)(k + 1));
 
-        // CSMA-CA tuning 
+        // CSMA-CA tuning: Tolerância a colisões
         for (uint32_t di = 0; di < dev.GetN(); ++di) {
             Ptr<LrWpanNetDevice> ld = DynamicCast<LrWpanNetDevice>(dev.Get(di));
             if (!ld) continue;
-            ld->GetCsmaCa()->SetMacMinBE(5);
-            ld->GetCsmaCa()->SetMacMaxBE(8);
             ld->GetCsmaCa()->SetMacMaxCSMABackoffs(5);  // max permitido = 5
-            ld->GetMac()->SetMacMaxFrameRetries(5);
+            ld->GetMac()->SetMacMaxFrameRetries(7); // Maximas retentativas
         }
 
         SixLowPanHelper sixlow;
@@ -407,8 +417,6 @@ int main(int argc, char* argv[]) {
         
         // O SEGREDO: Tempo aleatório, mas com um limite mínimo rígido!
         // Min=1.0 garante que o sensor dorme PELO MENOS 1 segundo.
-        // Assim, o máximo de pacotes enviados é 1 por segundo.
-        // A IA não ataca nós limpos e o CSMA/CA não congestiona!
         onoff.SetAttribute("OffTime", StringValue("ns3::UniformRandomVariable[Min=1.0|Max=2.0]"));
 
         ApplicationContainer app = onoff.Install(monitoredNodes.Get(i));
@@ -418,7 +426,7 @@ int main(int argc, char* argv[]) {
     }
 
     // ---- ATAQUE: atacante -> AP do seu canal (satura o canal local) ----
-    if (attack) {
+    if (g_attack) {
         for (uint32_t j = 0; j < attackerIdx.size(); ++j) {
             uint32_t node = attackerIdx[j];
             uint32_t k = node / nodesPerPan;
@@ -438,14 +446,12 @@ int main(int argc, char* argv[]) {
     Config::ConnectWithoutContext("/NodeList/*/DeviceList/*/$ns3::LrWpanNetDevice/Mac/MacRxDrop", MakeCallback(&MacRxDropCb));
     Config::ConnectWithoutContext("/NodeList/*/DeviceList/*/$ns3::LrWpanNetDevice/Phy/PhyRxDrop", MakeCallback(&PhyRxDropCb));
     Config::ConnectWithoutContext("/NodeList/*/DeviceList/*/$ns3::SixLowPanNetDevice/Drop", MakeCallback(&SixDropCb));
-    // ADICIONE ESTA LINHA AQUI:
     Config::ConnectWithoutContext("/NodeList/*/$ns3::TrafficControlLayer/RootQueueDiscList/*/Drop", MakeCallback(&QueueDropCb));
 
     // ---- FlowMonitor + logger ----
     InstallFlowMonitor();
     Simulator::Schedule(Seconds(899.9), &SaveFlowMonXml, tag);
     g_flowCsv.open("flowmon_persec_" + tag + ".csv");
-    // CABEÇALHO CORRIGIDO:
     g_flowCsv << "tempo,normal_tx_pps,normal_rx_pps,ataque_tx_pps,ataque_rx_pps\n";
     Simulator::Schedule(Seconds(1.0), &LogFlowPerSecond);
 
@@ -462,7 +468,7 @@ int main(int argc, char* argv[]) {
     Simulator::Schedule(Seconds(0.0), &ScheduleNextStateRead, envStepTime, openGym);
 
     Simulator::ScheduleDestroy(&ImprimirDescartes);
-    Simulator::Stop(Seconds(901.0));
+    Simulator::Stop(Seconds(915.0)); // Tempo extra para os pacotes em voo!
     Simulator::Run();
     g_flowCsv.close();
     Simulator::Destroy();
