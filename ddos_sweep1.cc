@@ -1,21 +1,6 @@
 // =============================================================================
 //  DDoS detection em ns-3 + ns3-gym, IEEE 802.15.4 (LR-WPAN) + 6LoWPAN
 //  TOPOLOGIA: UM AP CENTRAL (gateway + sistema de deteccao)
-//
-//  Um unico no "AP" possui K radios 802.15.4, um por canal. Cada canal atende
-//  ~25 dispositivos IIoT. Todos os dispositivos enviam direto para o AP (que e
-//  o sink). NAO ha coordenadores intermediarios nem backbone cabeado.
-//
-//  Por que K radios em vez de 1: um unico radio/canal de 250 kbps NAO comporta
-//  173 nos (colapso de canal ja medido). Separar por canal (frequencia) e a
-//  unica forma de manter os 173 dispositivos sob um AP fisicamente viavel.
-//  Os radios ficam todos no MESMO no (o AP), entao continua sendo 1 AP central.
-//
-//  Deteccao: o agente (OpenGym) observa a carga OFERTADA por dispositivo
-//  (txBytes) -- e nao o que chega -- porque o flood de saturacao de canal morre
-//  no ar antes de chegar ao AP. A acao de isolamento desliga a interface do no.
-//
-//  Alvo: ns-3.40.
 // =============================================================================
 
 #include "ns3/opengym-module.h"
@@ -46,10 +31,10 @@ NS_LOG_COMPONENT_DEFINE("DdosApCentral");
 // ----------------------------------------------------------------------------
 //  Estado global
 // ----------------------------------------------------------------------------
-static NodeContainer monitoredNodes;        // os 173 dispositivos IIoT (flat)
-static uint32_t g_nNodes = 173;             // dimensao observacao/acao
-static Ptr<Node> g_ap;                      // o AP central
-static bool g_attack = false;               // Modo de ataque global
+static NodeContainer monitoredNodes;        
+static uint32_t g_nNodes = 173;             
+static Ptr<Node> g_ap;                      
+static bool g_attack = false;               
 
 static FlowMonitorHelper flowmonHelper;
 static Ptr<FlowMonitor> flowMonitor;
@@ -59,7 +44,7 @@ static std::map<uint32_t, uint64_t> lastTxBytesPerFlow;
 static std::ofstream g_flowCsv;
 static std::map<ns3::FlowId, uint64_t> g_lastTxB, g_lastRxB;
 
-// Contadores de descarte (diagnostico: onde o pacote morre)
+// Contadores de descarte
 static uint64_t g_macTxDrop=0, g_macRxDrop=0, g_phyRxDrop=0, g_sixDrop=0;
 static void MacTxDropCb(Ptr<const Packet>) { g_macTxDrop++; }
 static void MacRxDropCb(Ptr<const Packet>) { g_macRxDrop++; }
@@ -94,7 +79,6 @@ void InstallFlowMonitor() {
     lastTxBytesPerFlow.clear();
 }
 
-// Observacao = carga OFERTADA por origem (txBytes), nao a entregue.
 std::map<std::string, double> CollectNodeThroughputs(double intervalSeconds) {
     std::map<std::string, double> tpBySrc;
     if (!flowMonitor || !ipv6Classifier) return tpBySrc;
@@ -162,30 +146,17 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action) {
     for (uint32_t i = 0; i < actions.size() && i < monitoredNodes.GetN(); ++i) {
         bool isolate = actions[i] > 0.5f;
         
-        // MODO AUDITORIA: Ignora as ordens da IA se estamos a correr o cenário Baseline
-        if (!g_attack) {
-            isolate = false;
-        }
-        
         Ptr<Node> node = monitoredNodes.Get(i);
-
-        // =================================================================
-        // ESTRATÉGIA DE ISOLAMENTO: Host IPS / Throttling
-        // Mantém a estabilidade absoluta do simulador ns-3. Em vez de 
-        // desligar a antena (SetDown), estrangulamos a aplicação para 1bps.
-        // =================================================================
         for (uint32_t a = 0; a < node->GetNApplications(); ++a) {
             Ptr<OnOffApplication> onoff = DynamicCast<OnOffApplication>(node->GetApplication(a));
             if (onoff) {
                 if (isolate) {
-                    // IA Isolou o nó: Bloqueio virtual (1bps evita erro matemático de divisão por zero)
                     onoff->SetAttribute("DataRate", StringValue("1bps")); 
                 } else {
-                    // IA Libertou o nó: Restaura a banda
                     if (a == 0) {
-                        onoff->SetAttribute("DataRate", StringValue("50kbps")); // Tráfego Paz
+                        onoff->SetAttribute("DataRate", StringValue("50kbps")); 
                     } else if (a == 1) {
-                        onoff->SetAttribute("DataRate", StringValue("128kbps")); // Tráfego Ataque
+                        onoff->SetAttribute("DataRate", StringValue("128kbps")); 
                     }
                 }
             }
@@ -213,8 +184,6 @@ void LogFlowPerSecond() {
             else if (t.destinationPort == 9001) { aTx += dtx; aRx += drx; }
         }
         double now = Simulator::Now().GetSeconds();
-        
-        // GRAVAÇÃO CORRIGIDA: Exporta Pacotes por Segundo (PPS) puros!
         g_flowCsv << now << "," << nTx << "," << nRx << "," << aTx << "," << aRx << "\n";
         g_flowCsv.flush();
     }
@@ -237,20 +206,22 @@ int main(int argc, char* argv[]) {
     LogComponentEnable("DdosApCentral", LOG_LEVEL_INFO);
 
     uint32_t nMonitored = 173;
-    uint32_t nodesPerPan = 25;       // dispositivos por canal (~25)
+    uint32_t nodesPerPan = 25;       
     std::string normalRate = "200bps";
     uint32_t normalPkt = 50;
-    g_attack = true; // Por defeito, ligado
+    
+    // VARIÁVEIS DE CONTROLO PRINCIPAL (Podem ser alteradas via terminal)
+    bool attack    = true; 
+    bool useAi     = false; // <-- CHAVE MESTRA DA IA (Desligada por padrão)
+
     bool staticNd  = true;
-    uint32_t radioQueue = 100; // Alterado para 100
+    uint32_t radioQueue = 100; 
     bool tracing   = false;
     std::string tag = "apcentral";
 
     Config::SetDefault("ns3::Icmpv6L4Protocol::DAD", BooleanValue(false));
     
-    // ============================================================
-    // VACINA IPV6: Fim dos pacotes perdidos silenciosamente no ND
-    // ============================================================
+    // VACINA IPV6: Sem perda de pacotes por memória expirada
     Config::SetDefault("ns3::Icmpv6L4Protocol::ReachableTime", TimeValue(Seconds(36000.0)));
     Config::SetDefault("ns3::Icmpv6L4Protocol::RetransmissionTime", TimeValue(MilliSeconds(10)));
 
@@ -258,25 +229,28 @@ int main(int argc, char* argv[]) {
     cmd.AddValue("nodesPerPan", "Dispositivos por canal 802.15.4", nodesPerPan);
     cmd.AddValue("normalRate",  "Taxa por dispositivo (ex: 200bps,100bps,67bps)", normalRate);
     cmd.AddValue("normalPkt",   "Bytes de payload por pacote normal", normalPkt);
-    cmd.AddValue("attack",      "Liga o ataque DDoS", g_attack);
+    cmd.AddValue("attack",      "Liga o ataque DDoS", attack);
+    cmd.AddValue("useAi",       "Liga o Agente Python OpenGym", useAi); // <-- Adicionado ao CMD
     cmd.AddValue("staticNd",    "Popula neighbor cache (ND estatico)", staticNd);
     cmd.AddValue("radioQueue",  "Fila do radio em pacotes (0 = default)", radioQueue);
     cmd.AddValue("tracing",     "Habilita pcap", tracing);
     cmd.AddValue("tag",         "Sufixo dos arquivos de saida", tag);
     cmd.Parse(argc, argv);
 
+    g_attack = attack; // Passa para a variável global
     g_nNodes = nMonitored;
     const uint32_t K = (nMonitored + nodesPerPan - 1) / nodesPerPan;
-    NS_LOG_UNCOND("AP central com " << K << " radios (canais), "
-                  << nMonitored << " dispositivos | normalRate=" << normalRate
-                  << " | attack=" << g_attack);
+    
+    NS_LOG_UNCOND("==========================================================");
+    NS_LOG_UNCOND("AP central com " << K << " radios (canais), " << nMonitored << " dispositivos");
+    NS_LOG_UNCOND("ATAQUE DDoS LIGADO? " << (g_attack ? "SIM" : "NAO"));
+    NS_LOG_UNCOND("AGENTE IA LIGADO?   " << (useAi ? "SIM" : "NAO (Rodando Nativo)"));
+    NS_LOG_UNCOND("==========================================================");
 
-    // ---- Nos: 173 dispositivos + 1 AP central ----
     monitoredNodes.Create(nMonitored);
     NodeContainer apNode; apNode.Create(1);
     g_ap = apNode.Get(0);
 
-    // AP fixo no centro; todos os dispositivos ficam ao redor, no alcance.
     MobilityHelper apMob;
     apMob.SetMobilityModel("ns3::ConstantPositionMobilityModel");
     Ptr<ListPositionAllocator> apPos = CreateObject<ListPositionAllocator>();
@@ -284,14 +258,13 @@ int main(int argc, char* argv[]) {
     apMob.SetPositionAllocator(apPos);
     apMob.Install(apNode);
 
-    const double spacing = 1.0; // Espaçamento colado para eliminar o Hidden Terminal Problem!
+    const double spacing = 1.0; // Espaçamento colado para eliminar o Hidden Terminal Problem
     const uint32_t cols = 5;
 
     std::vector<NetDeviceContainer> panSix(K);
     std::vector<uint32_t> panSliceLen(K);
     std::vector<Ptr<NetDevice>> monSix(nMonitored, nullptr);
 
-    // ---- Um radio do AP por canal; cada canal = uma PAN de ~25 dispositivos ----
     for (uint32_t k = 0; k < K; ++k) {
         uint32_t startIdx = k * nodesPerPan;
         uint32_t endIdx   = std::min<uint32_t>(startIdx + nodesPerPan, nMonitored);
@@ -299,16 +272,13 @@ int main(int argc, char* argv[]) {
         panSliceLen[k] = sliceLen;
 
         NodeContainer panNodes;
-        panNodes.Add(apNode.Get(0));   // AP = device 0 do canal k (coordenador)
+        panNodes.Add(apNode.Get(0));   
         NodeContainer devSlice;
         for (uint32_t i = startIdx; i < endIdx; ++i) { 
             panNodes.Add(monitoredNodes.Get(i)); 
             devSlice.Add(monitoredNodes.Get(i)); 
         }
 
-        // ============================================================
-        // PASSO 1: MOBILIDADE (Tem de ser ANTES do rádio!)
-        // ============================================================
         Ptr<ListPositionAllocator> pos = CreateObject<ListPositionAllocator>();
         for (uint32_t li = 0; li < sliceLen; ++li) {
             double x = ((double)(li % cols) - (cols-1)/2.0) * spacing + k*0.6;
@@ -320,22 +290,15 @@ int main(int argc, char* argv[]) {
         devMob.SetPositionAllocator(pos);
         devMob.Install(devSlice);
 
-        // ============================================================
-        // PASSO 2: RÁDIO E CANAL FÍSICO ISOLADO (FÍSICA CORRIGIDA)
-        // ============================================================
         LrWpanHelper lrwpan;
-        
-        // AO NÃO CHAMAR "SetChannel", O NS-3 CRIA AUTOMATICAMENTE UM CANAL 
-        // ISOLADO PARA CADA PAN, INCLUINDO AS LEIS DA FÍSICA (DELAY E LOSS)!
         NetDeviceContainer dev = lrwpan.Install(panNodes);
         lrwpan.CreateAssociatedPan(dev, (uint16_t)(k + 1));
 
-        // CSMA-CA tuning: Tolerância a colisões
         for (uint32_t di = 0; di < dev.GetN(); ++di) {
             Ptr<LrWpanNetDevice> ld = DynamicCast<LrWpanNetDevice>(dev.Get(di));
             if (!ld) continue;
-            ld->GetCsmaCa()->SetMacMaxCSMABackoffs(5);  // max permitido = 5
-            ld->GetMac()->SetMacMaxFrameRetries(7); // Maximas retentativas
+            ld->GetCsmaCa()->SetMacMaxCSMABackoffs(5);  
+            ld->GetMac()->SetMacMaxFrameRetries(7); 
         }
 
         SixLowPanHelper sixlow;
@@ -348,12 +311,10 @@ int main(int argc, char* argv[]) {
             lrwpan.EnablePcap("ddos-" + tag + "-ch" + std::to_string(k) + "-ap", dev.Get(0), true);
     }
 
-    // ---- Pilha IPv6 (so roteamento estatico; sem backbone, sem RIPng) ----
-    InternetStackHelper stack;          // AP e dispositivos
+    InternetStackHelper stack;         
     stack.Install(apNode);
     stack.Install(monitoredNodes);
 
-    // ---- Fila pequena no radio (antes de enderecar) ----
     if (radioQueue > 0) {
         TrafficControlHelper tch;
         tch.SetRootQueueDisc("ns3::FifoQueueDisc", "MaxSize",
@@ -361,16 +322,13 @@ int main(int argc, char* argv[]) {
         for (uint32_t k = 0; k < K; ++k) tch.Install(panSix[k]);
     }
 
-    // ---- Enderecamento: canal k em 2001:(k+1)::/64 ----
-    //  AP = device 0 de cada canal. Dispositivos ficam no MESMO /64 do AP
-    //  (on-link) -> falam direto com o AP, sem rotas nem forwarding.
     Ipv6AddressHelper address;
-    std::vector<Ipv6Address> apAddr(K);   // endereco do AP em cada canal
+    std::vector<Ipv6Address> apAddr(K);   
     for (uint32_t k = 0; k < K; ++k) {
         std::ostringstream b; b << "2001:" << std::hex << (k + 1) << "::";
         address.SetBase(Ipv6Address(b.str().c_str()), Ipv6Prefix(64));
         Ipv6InterfaceContainer ifc = address.Assign(panSix[k]);
-        apAddr[k] = ifc.GetAddress(0, 1);   // AP
+        apAddr[k] = ifc.GetAddress(0, 1);  
     }
 
     if (staticNd) {
@@ -379,8 +337,7 @@ int main(int argc, char* argv[]) {
         NS_LOG_UNCOND("[INFO] Neighbor cache populada (ND estatico).");
     }
 
-    // ---- Atacantes: 40 espalhados pelos canais ----
-    const uint32_t nAtt = 40;
+    const uint32_t nAtt = 60;
     std::vector<uint32_t> attackerIdx; std::set<uint32_t> attackerSet;
     for (uint32_t j = 0; j < nAtt; ++j) {
         uint32_t idx = (uint32_t)std::llround((double)j * nMonitored / nAtt);
@@ -388,7 +345,6 @@ int main(int argc, char* argv[]) {
         if (attackerSet.insert(idx).second) attackerIdx.push_back(idx);
     }
 
-    // ---- Sinks NO AP (recebe tudo): 9002 normal, 9001 ataque ----
     uint16_t normalPort = 9002, attackPort = 9001;
     PacketSinkHelper sinkN("ns3::UdpSocketFactory", Inet6SocketAddress(Ipv6Address::GetAny(), normalPort));
     PacketSinkHelper sinkA("ns3::UdpSocketFactory", Inet6SocketAddress(Ipv6Address::GetAny(), attackPort));
@@ -398,7 +354,7 @@ int main(int argc, char* argv[]) {
     s2.Start(Seconds(1.0)); s2.Stop(Seconds(900.0));
 
     // =================================================================
-    //  Tráfego NORMAL: Uniforme Assíncrono (Sem Picos, Sem Phase-Lock)
+    //  Tráfego NORMAL: Uniforme Assíncrono (Sem Picos)
     // =================================================================
     Ptr<UniformRandomVariable> uv = CreateObject<UniformRandomVariable>();
     uv->SetAttribute("Min", DoubleValue(0.0)); 
@@ -406,69 +362,74 @@ int main(int argc, char* argv[]) {
 
     for (uint32_t i = 0; i < nMonitored; ++i) {
         uint32_t k = i / nodesPerPan;
-        
         OnOffHelper onoff("ns3::UdpSocketFactory", Inet6SocketAddress(apAddr[k], normalPort));
-        
-        // A aplicação despacha o pacote num relance (50kbps)
         onoff.SetAttribute("DataRate",   StringValue("50kbps"));
-        onoff.SetAttribute("PacketSize", UintegerValue(20)); // Carga realista
-        
+        onoff.SetAttribute("PacketSize", UintegerValue(20)); 
         onoff.SetAttribute("OnTime",  StringValue("ns3::ConstantRandomVariable[Constant=0.001]"));
-        
-        // O SEGREDO: Tempo aleatório, mas com um limite mínimo rígido!
-        // Min=1.0 garante que o sensor dorme PELO MENOS 1 segundo.
         onoff.SetAttribute("OffTime", StringValue("ns3::UniformRandomVariable[Min=1.0|Max=2.0]"));
 
         ApplicationContainer app = onoff.Install(monitoredNodes.Get(i));
-        // Dispersão de arranque entre os sensores (Jitter)
         app.Start(Seconds(1.0 + uv->GetValue())); 
         app.Stop(Seconds(900.0));
     }
 
-    // ---- ATAQUE: atacante -> AP do seu canal (satura o canal local) ----
+    // =================================================================
+    // ATAQUE DDoS (Apenas este bloco deve ser alterado)
+    // =================================================================
     if (g_attack) {
         for (uint32_t j = 0; j < attackerIdx.size(); ++j) {
             uint32_t node = attackerIdx[j];
             uint32_t k = node / nodesPerPan;
             OnOffHelper atk("ns3::UdpSocketFactory", Inet6SocketAddress(apAddr[k], attackPort));
-            atk.SetAttribute("DataRate",   StringValue("128kbps"));
-            atk.SetAttribute("PacketSize", UintegerValue(1000));   // fragmenta no 6LoWPAN
-            atk.SetAttribute("OnTime",  StringValue("ns3::ConstantRandomVariable[Constant=15]"));
-            atk.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
+            
+            // Taxa de 250kbps força a saturação do canal 802.15.4 (o limite físico)
+            // Isso causará colisões e descartes APENAS durante o ataque.
+            atk.SetAttribute("DataRate",   StringValue("250kbps"));
+            atk.SetAttribute("PacketSize", UintegerValue(1000)); // Pacotes grandes causam maior espera no canal
+            
+            // Ataque mais frequente e persistente
+            atk.SetAttribute("OnTime",  StringValue("ns3::ConstantRandomVariable[Constant=20]"));
+            atk.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0.1]"));
+            
             ApplicationContainer app = atk.Install(monitoredNodes.Get(node));
-            if (j % 2 == 0) { app.Start(Seconds(170.0 + (j/2)*0.05)); app.Stop(Seconds(220.0)); }
-            else            { app.Start(Seconds(250.0 + (j/2)*0.05)); app.Stop(Seconds(300.0)); }
+            // Espalhar um pouco mais o início para criar um cenário realista de botnet
+            app.Start(Seconds(170.0 + (j % 5))); 
+            app.Stop(Seconds(350.0));
         }
     }
 
-    // ---- Contadores de descarte ----
     Config::ConnectWithoutContext("/NodeList/*/DeviceList/*/$ns3::LrWpanNetDevice/Mac/MacTxDrop", MakeCallback(&MacTxDropCb));
     Config::ConnectWithoutContext("/NodeList/*/DeviceList/*/$ns3::LrWpanNetDevice/Mac/MacRxDrop", MakeCallback(&MacRxDropCb));
     Config::ConnectWithoutContext("/NodeList/*/DeviceList/*/$ns3::LrWpanNetDevice/Phy/PhyRxDrop", MakeCallback(&PhyRxDropCb));
     Config::ConnectWithoutContext("/NodeList/*/DeviceList/*/$ns3::SixLowPanNetDevice/Drop", MakeCallback(&SixDropCb));
     Config::ConnectWithoutContext("/NodeList/*/$ns3::TrafficControlLayer/RootQueueDiscList/*/Drop", MakeCallback(&QueueDropCb));
 
-    // ---- FlowMonitor + logger ----
     InstallFlowMonitor();
     Simulator::Schedule(Seconds(899.9), &SaveFlowMonXml, tag);
     g_flowCsv.open("flowmon_persec_" + tag + ".csv");
     g_flowCsv << "tempo,normal_tx_pps,normal_rx_pps,ataque_tx_pps,ataque_rx_pps\n";
     Simulator::Schedule(Seconds(1.0), &LogFlowPerSecond);
 
-    // ---- OpenGym: a DETECCAO roda aqui, no AP central ----
-    uint32_t openGymPort = 5555; double envStepTime = 1.0;
-    Ptr<OpenGymInterface> openGym = CreateObject<OpenGymInterface>(openGymPort);
-    openGym->SetGetObservationSpaceCb(MakeCallback(&MyGetObservationSpace));
-    openGym->SetGetActionSpaceCb(MakeCallback(&MyGetActionSpace));
-    openGym->SetGetObservationCb(MakeCallback(&MyGetObservation));
-    openGym->SetGetRewardCb(MakeCallback(&MyGetReward));
-    openGym->SetGetGameOverCb(MakeCallback(&MyGetGameOver));
-    openGym->SetGetExtraInfoCb(MakeCallback(&MyGetExtraInfo));
-    openGym->SetExecuteActionsCb(MakeCallback(&MyExecuteActions));
-    Simulator::Schedule(Seconds(0.0), &ScheduleNextStateRead, envStepTime, openGym);
+    // =================================================================
+    // MÓDULO DE INTELIGÊNCIA ARTIFICIAL (OpenGym)
+    // =================================================================
+    if (useAi) {
+        uint32_t openGymPort = 5555; double envStepTime = 1.0;
+        Ptr<OpenGymInterface> openGym = CreateObject<OpenGymInterface>(openGymPort);
+        openGym->SetGetObservationSpaceCb(MakeCallback(&MyGetObservationSpace));
+        openGym->SetGetActionSpaceCb(MakeCallback(&MyGetActionSpace));
+        openGym->SetGetObservationCb(MakeCallback(&MyGetObservation));
+        openGym->SetGetRewardCb(MakeCallback(&MyGetReward));
+        openGym->SetGetGameOverCb(MakeCallback(&MyGetGameOver));
+        openGym->SetGetExtraInfoCb(MakeCallback(&MyGetExtraInfo));
+        openGym->SetExecuteActionsCb(MakeCallback(&MyExecuteActions));
+        Simulator::Schedule(Seconds(0.0), &ScheduleNextStateRead, envStepTime, openGym);
+    } else {
+        NS_LOG_UNCOND("[INFO] OpenGym Desligado. Os pacotes vao voar sem censura da IA!");
+    }
 
     Simulator::ScheduleDestroy(&ImprimirDescartes);
-    Simulator::Stop(Seconds(915.0)); // Tempo extra para os pacotes em voo!
+    Simulator::Stop(Seconds(915.0)); 
     Simulator::Run();
     g_flowCsv.close();
     Simulator::Destroy();
